@@ -110,33 +110,33 @@ fn color(hex: u32) -> Vec4f {
 script_mod! {
     use mod.prelude.widgets.*
     use mod.widgets.*
-    mod.widgets.ArticleLabel = Label {width: Fill height: Fit flow: Flow.Right{wrap: true} draw_text +: {color: #x191919 text_style: theme.font_regular{font_size: 13}}}
+    mod.widgets.ArticleLabel = Label {width: Fill height: Fit flow: Flow.Right{wrap: true} draw_text +: {color: #x101010 text_style: theme.font_regular{font_size: 13}}}
     mod.widgets.ArticleButton = RobrixNeutralIconButton {
         grab_key_focus: false enable_long_press: true
         width: 44 height: 44 margin: 0 padding: 0 spacing: 0 text: ""
         align: Align{x: 0.5 y: 0.5}
         icon_walk: Walk{width: 20 height: 20}
-        draw_icon +: {color: #x333333}
-        draw_bg +: {color: #xffffff color_hover: #xf2f5f3 color_down: #xe7f2e9 border_radius: 6}
+        draw_icon +: {color: #x101010}
+        draw_bg +: {color: #xffffff color_hover: #xf5f5f2 color_down: #xefefea border_radius: 6}
     }
-    mod.widgets.ArticlePrimary = mod.widgets.ArticleButton {width: Fill height: 46 align: Align{x: 0.5 y: 0.5} draw_bg +: {color: #x07c160 color_hover: #x06ad56 color_down: #x05984b} draw_icon +: {color: #xffffff}}
+    mod.widgets.ArticlePrimary = mod.widgets.ArticleButton {width: Fill height: 46 align: Align{x: 0.5 y: 0.5} draw_bg +: {color: #x101010 color_hover: #x252525 color_down: #x363636 border_radius: (mod.widgets.RBX_RADIUS_PILL)} draw_icon +: {color: #xffffff}}
     mod.widgets.ArticleActions = View {width: Fill height: 44 flow: Right align: Align{x: 1.0 y: 0.5} spacing: 12}
-    mod.widgets.ArticleInput = TextInput {width: Fill height: 44 draw_cursor +: {color: #x07c160} draw_bg +: {color: #xffffff color_hover: #xffffff color_focus: #xffffff color_empty: #xffffff border_color: #xe5e5e5 border_color_focus: #x07c160} draw_text +: {color: #x191919 color_focus: #x191919 color_hover: #x191919 text_style: theme.font_regular{font_size: 14}}}
-    mod.widgets.ArticleHtml = Html {selectable: true width: Fill height: Fit padding: 0 font_size: 14 font_color: #x191919 draw_text.color: #x191919 text_style_normal: theme.font_regular{font_size: 14} text_style_bold: theme.font_bold{font_size: 14} text_style_italic: theme.font_italic{font_size: 14} text_style_bold_italic: theme.font_bold_italic{font_size: 14} rmath := ArticleMath {} rdiagram := ArticleDiagram {} rimage := ArticleImage {} remoji := ArticleEmoji {} rcode := ArticleCode {} rcell := ArticleCell {}}
-    mod.widgets.ArticleRich = ArticleRichInput {width: Fill height: Fit draw_cursor +: {color: #x07c160} is_multiline: true flow: Flow.Right{wrap: true} padding: Inset{top: 4 bottom: 12 left: 0 right: 0} empty_text: #(crate::i18n::tr("Write your article…")) draw_bg +: {color: #x00000000 color_hover: #x00000000 color_focus: #x00000000 color_down: #x00000000 color_empty: #x00000000 border_size: 0} draw_text +: {color: #x191919 color_hover: #x191919 color_focus: #x191919 text_style: theme.font_regular{font_size: 14}} draw_bold.text_style: theme.font_bold{font_size: 14} draw_italic.text_style: theme.font_italic{font_size: 14} draw_bold_italic.text_style: theme.font_bold_italic{font_size: 14}}
+    mod.widgets.ArticleInput = TextInput {width: Fill height: 44 draw_cursor +: {color: #x101010} draw_bg +: {color: #xffffff color_hover: #xffffff color_focus: #xffffff color_empty: #xffffff border_color: #x10101033 border_color_focus: #x101010} draw_text +: {color: #x101010 color_focus: #x101010 color_hover: #x101010 text_style: theme.font_regular{font_size: 14}}}
+    mod.widgets.ArticleHtml = Html {selectable: true width: Fill height: Fit padding: 0 font_size: 14 font_color: #x101010 draw_text.color: #x101010 text_style_normal: theme.font_regular{font_size: 14} text_style_bold: theme.font_bold{font_size: 14} text_style_italic: theme.font_italic{font_size: 14} text_style_bold_italic: theme.font_bold_italic{font_size: 14} rmath := ArticleMath {} rdiagram := ArticleDiagram {} rimage := ArticleImage {} remoji := ArticleEmoji {} rcode := ArticleCode {} rcell := ArticleCell {}}
+    mod.widgets.ArticleRich = ArticleRichInput {width: Fill height: Fit draw_cursor +: {color: #x101010} is_multiline: true flow: Flow.Right{wrap: true} padding: Inset{top: 4 bottom: 12 left: 0 right: 0} empty_text: #(crate::i18n::tr("Write your article…")) draw_bg +: {color: #x00000000 color_hover: #x00000000 color_focus: #x00000000 color_down: #x00000000 color_empty: #x00000000 border_size: 0} draw_text +: {color: #x101010 color_hover: #x101010 color_focus: #x101010 text_style: theme.font_regular{font_size: 14}} draw_bold.text_style: theme.font_bold{font_size: 14} draw_italic.text_style: theme.font_italic{font_size: 14} draw_bold_italic.text_style: theme.font_bold_italic{font_size: 14}}
     mod.widgets.ArticleIconButton = mod.widgets.ArticleButton {
         width: 44 height: 44 padding: 0 spacing: 0 text: ""
         align: Align{x: 0.5 y: 0.5}
         enable_long_press: true
         icon_walk: Walk{width: 20 height: 20}
-        draw_icon +: {color: #x333333}
+        draw_icon +: {color: #x101010}
     }
-    mod.widgets.ArticleTool = mod.widgets.ArticleIconButton {width: 36 height: 36 draw_bg +: {color: #x00000000 color_hover: #xf0f0f0 color_down: #xe6e6e6 border_size: 0}}
+    mod.widgets.ArticleTool = mod.widgets.ArticleIconButton {width: 36 height: 36 draw_bg +: {color: #x00000000 color_hover: #xf5f5f2 color_down: #xefefea border_size: 0}}
     // A compact theme swatch for the writing view's style panel: a tiny page with the
     // theme's paper, ink and accent, and the theme's name below.
     mod.widgets.ArticleThemeSwatch = NavigationBarButton {width: Fill height: Fill flow: Down align: Align{x: 0.5 y: 0.0} padding: 0 spacing: 6
         draw_bg +: {color: #x00000000 color_hover: #x00000000 color_active: #x00000000}
-        page := RoundedView {width: Fill height: 72 flow: Down padding: 9 spacing: 6 draw_bg +: {color: #xffffff border_size: 1.0 border_color: #xe0e0e0 border_radius: 4.0}
+        page := RoundedView {width: Fill height: 72 flow: Down padding: 9 spacing: 6 draw_bg +: {color: #xffffff border_size: 1.0 border_color: #x1010101f border_radius: 4.0}
             heading := SolidView {width: 34 height: 3}
             line1 := SolidView {width: Fill height: 2}
             line2 := SolidView {width: Fill height: 2}
@@ -146,17 +146,17 @@ script_mod! {
     }
     // A chat to publish to: initial avatar, name and a radio mark (atlas 发布到).
     mod.widgets.ArticleChatRow = NavigationBarButton {width: Fill height: 64 flow: Right align: Align{y: 0.5} padding: Inset{left: 12 right: 12} spacing: 12
-        draw_bg +: {color_hover: #xf5f5f5 color_active: #xf5f5f5}
-        avatar := RoundedView {width: 42 height: 42 align: Align{x: 0.5 y: 0.5} draw_bg +: {color: #xdcebe2 border_radius: 21.0}
-            initial := Label {draw_text +: {color: #x07a858 text_style: theme.font_bold{font_size: 15}}}
+        draw_bg +: {color_hover: #xf5f5f2 color_active: #xf5f5f2}
+        avatar := RoundedView {width: 42 height: 42 align: Align{x: 0.5 y: 0.5} draw_bg +: {color: #xf5f5f2 border_radius: 21.0}
+            initial := Label {draw_text +: {color: #x101010 text_style: theme.font_bold{font_size: 15}}}
         }
         name := mod.widgets.ArticleLabel {width: Fill max_lines: 1 draw_text.text_style: theme.font_regular{font_size: 14}}
-        radio := RoundedView {width: 22 height: 22 align: Align{x: 0.5 y: 0.5} draw_bg +: {color: #xffffff border_size: 1.5 border_color: #xc8c8c8 border_radius: 11.0}
+        radio := RoundedView {width: 22 height: 22 align: Align{x: 0.5 y: 0.5} draw_bg +: {color: #xffffff border_size: 1.5 border_color: #x10101033 border_radius: 11.0}
             check := Label {text: "✓" padding: 0 draw_text +: {color: #xffffff text_style: theme.font_bold{font_size: 10}}}
         }
     }
     mod.widgets.ArticleThemeTile = NavigationBarButton {width: Fill height: 210 flow: Down align: Align{x: 0.0 y: 0.0} padding: 12 spacing: 8
-        draw_bg +: {color: instance(#xffffff) border_size: 1.0 border_color: #xe0e0e0 get_color: fn() {return self.color}}
+        draw_bg +: {color: instance(#xffffff) border_size: 1.0 border_color: #x1010101f get_color: fn() {return self.color}}
         name := mod.widgets.ArticleLabel {padding: 0 max_lines: 1 draw_text.text_style: theme.font_bold{font_size: 11}}
         title := mod.widgets.ArticleLabel {padding: 0 max_lines: 2 draw_text.text_style: theme.font_bold{font_size: 11}}
         sample := mod.widgets.ArticleLabel {padding: 0 max_lines: 3 draw_text.text_style: theme.font_regular{font_size: 9}}
@@ -167,36 +167,37 @@ script_mod! {
         icon_tooltip: CalloutTooltip {}
         width: Fill height: Fill flow: Down draw_bg.color: #xffffff
         padding: Inset{top: mod.widgets.SAFE_INSET_PAD_TOP + #(TOP) bottom: mod.widgets.SAFE_INSET_PAD_BOTTOM}
-        header := SolidView {width: Fill height: 52 flow: Right align: Align{y: 0.5} padding: Inset{left: 8 right: 12} spacing: 8 draw_bg.color: #xededed
-            article_back := RobrixNeutralIconButton {enable_long_press: true width: 36 height: 44 margin: 0 padding: 12 spacing: 0 draw_bg +: {color: #x00000000 color_hover: #x00000000 color_down: #x00000000 border_size: 0} draw_icon +: {svg: ICON_CHEVRON_LEFT color: #x191919} icon_walk: Walk{width: 8 height: 14}}
+        header := SolidView {width: Fill height: 52 flow: Right align: Align{y: 0.5} padding: Inset{left: 8 right: 12} spacing: 8 draw_bg.color: #xffffff
+            article_back := RobrixNeutralIconButton {enable_long_press: true width: 36 height: 44 margin: 0 padding: 12 spacing: 0 draw_bg +: {color: #x00000000 color_hover: #x00000000 color_down: #x00000000 border_size: 0} draw_icon +: {svg: ICON_CHEVRON_LEFT color: #x101010} icon_walk: Walk{width: 8 height: 14}}
             article_heading := mod.widgets.ArticleLabel {width: Fit max_lines: 1 draw_text.text_style: theme.font_bold{font_size: 16}}
             header_fill := View {width: Fill height: Fill}
             // The writing view's article title, centred in the header as in the atlas.
             write_title_box := View {visible: false width: Fill height: Fill align: Align{x: 0.5 y: 0.5}
-                write_title := mod.widgets.ArticleInput {width: 300 height: 40 empty_text: #(crate::i18n::tr("Article title")) i18n_empty_text: "Article title" draw_text.text_style: theme.font_bold{font_size: 15} draw_bg +: {border_size: 0 color: #x00000000 color_empty: #x00000000 color_hover: #x00000000 color_focus: #xf5f5f5 color_down: #x00000000}}
+                write_title := mod.widgets.ArticleInput {width: 300 height: 40 empty_text: #(crate::i18n::tr("Article title")) i18n_empty_text: "Article title" draw_text.text_style: theme.font_bold{font_size: 15} draw_bg +: {border_size: 0 color: #x00000000 color_empty: #x00000000 color_hover: #x00000000 color_focus: #xf5f5f2 color_down: #x00000000}}
             }
             // Writing view controls, as in the redesigned editor atlas.
             write_controls := View {visible: false width: Fit height: Fill flow: Right align: Align{y: 0.5} spacing: 8
-                write_style := mod.widgets.ArticleIconButton {draw_icon.color: #x07a858 draw_bg +: {border_size: 1.0 border_color: #x9fdcb8} draw_icon +: {svg: crate_resource("self://resources/icons/article_palette.svg")}}
+                write_style := mod.widgets.ArticleIconButton {draw_icon.color: #x101010 draw_bg +: {border_size: 1.0 border_color: #x10101033} draw_icon +: {svg: crate_resource("self://resources/icons/article_palette.svg")}}
                 RoundedView {width: Fit height: 48 flow: Right padding: 2 spacing: 0 draw_bg +: {color: #xffffff border_radius: 6.0}
                     write_mode_source := mod.widgets.ArticleIconButton {draw_icon +: {svg: ICON_EDIT}}
                     write_mode_split := mod.widgets.ArticleIconButton {draw_icon +: {svg: crate_resource("self://resources/icons/article_split.svg")}}
                     write_mode_preview := mod.widgets.ArticleIconButton {draw_icon +: {svg: crate_resource("self://resources/icons/eye_open.svg")}}
                 }
                 write_saved := mod.widgets.ArticleLabel {width: Fit draw_text +: {color: #x888888 text_style: theme.font_regular{font_size: 11}}}
-                write_publish := mod.widgets.ArticleIconButton {draw_icon.color: #xffffff draw_bg +: {color: #x07c160 color_hover: #x06ad56 color_down: #x05984b} draw_icon +: {svg: ICON_SEND}}
+                write_publish := mod.widgets.ArticleIconButton {draw_icon.color: #xffffff draw_bg +: {color: #x101010 color_hover: #x252525 color_down: #x363636} draw_icon +: {svg: ICON_SEND}}
             }
             article_save := mod.widgets.ArticleIconButton {visible: false draw_icon +: {svg: crate_resource("self://resources/icons/article_save.svg")}}
-            article_done := mod.widgets.ArticleIconButton {visible: false draw_icon.color: #x07a858 draw_icon +: {svg: ICON_CHECKMARK}}
+            article_done := mod.widgets.ArticleIconButton {visible: false draw_icon.color: #x101010 draw_icon +: {svg: ICON_CHECKMARK}}
             article_close := mod.widgets.ArticleIconButton {draw_icon +: {svg: ICON_CLOSE}}
             // Library: a new article, as the atlas's + in the header.
-            article_new := mod.widgets.ArticleIconButton {visible: false draw_icon.color: #x07a858 draw_icon +: {svg: ICON_ADD}}
+            article_new := mod.widgets.ArticleIconButton {visible: false draw_icon.color: #x101010 draw_icon +: {svg: ICON_ADD}}
         }
+        SolidView {width: Fill height: 1 draw_bg.color: #x1010101f}
         details := View {width: Fill height: Fill flow: Down padding: 28 spacing: 24
             // The text scrolls on short windows; the actions stay in view.
             ScrollYView {width: Fill height: Fill flow: Down spacing: 24
                 View {width: Fill height: 35}
-                Label {text: "Aa" draw_text +: {color: #x07c160 text_style: theme.font_bold{font_size: 56}}}
+                Label {text: "Aa" draw_text +: {color: #x101010 text_style: theme.font_bold{font_size: 56}}}
                 mod.widgets.ArticleLabel {text: #(crate::i18n::tr("Article studio")) i18n_text: "Article studio" draw_text.text_style: theme.font_bold{font_size: 24}}
                 mod.widgets.ArticleLabel {text: "OctoSense · 2.0" draw_text.color: #x777777}
                 mod.widgets.ArticleLabel {text: #(crate::i18n::tr("Write visually. Add images, choose a theme, review and publish.")) i18n_text: "Write visually. Add images, choose a theme, review and publish."}
@@ -218,16 +219,16 @@ script_mod! {
             }
         }
         library := SolidView {visible: false width: Fill height: Fill flow: Down padding: 16 spacing: 12 draw_bg.color: #xffffff
-            article_search := mod.widgets.ArticleInput {draw_bg +: {color: #xf5f5f5 color_hover: #xf5f5f5 color_empty: #xf5f5f5 border_size: 0} empty_text: #(crate::i18n::tr("Search articles")) i18n_empty_text: "Search articles"}
+            article_search := mod.widgets.ArticleInput {draw_bg +: {color: #xf5f5f2 color_hover: #xf5f5f2 color_empty: #xf5f5f2 border_size: 0} empty_text: #(crate::i18n::tr("Search articles")) i18n_empty_text: "Search articles"}
             View {width: Fill height: 44 flow: Right spacing: 6
-                drafts_tab := mod.widgets.ArticleButton {draw_bg +: {color: #xf5f5f5} width: Fill draw_icon +: {svg: ICON_EDIT}}
-                published_tab := mod.widgets.ArticleButton {draw_bg +: {color: #xf5f5f5} width: Fill draw_icon +: {svg: ICON_SEND}}
-                withdrawn_tab := mod.widgets.ArticleButton {draw_bg +: {color: #xf5f5f5} width: Fill draw_icon +: {svg: ICON_TRASH}}
+                drafts_tab := mod.widgets.ArticleButton {draw_bg +: {color: #xf5f5f2} width: Fill draw_icon +: {svg: ICON_EDIT}}
+                published_tab := mod.widgets.ArticleButton {draw_bg +: {color: #xf5f5f2} width: Fill draw_icon +: {svg: ICON_SEND}}
+                withdrawn_tab := mod.widgets.ArticleButton {draw_bg +: {color: #xf5f5f2} width: Fill draw_icon +: {svg: ICON_TRASH}}
             }
             library_empty := mod.widgets.ArticleLabel {text: #(crate::i18n::tr("No articles here yet. Create your first article.")) i18n_text: "No articles here yet. Create your first article." draw_text.color: #x777777}
             article_library := PortalList {width: Fill height: Fill
                 // Atlas article-list: thumbnail, title, status line and a chevron.
-                Entry := NavigationBarButton {width: Fill height: 104 flow: Right align: Align{y: 0.5} spacing: 14 padding: Inset{left: 4 right: 4 top: 10 bottom: 10} draw_bg +: {color_hover: #xf2f5f3 color_active: #xe7f5ec}
+                Entry := NavigationBarButton {width: Fill height: 104 flow: Right align: Align{y: 0.5} spacing: 14 padding: Inset{left: 4 right: 4 top: 10 bottom: 10} draw_bg +: {color_hover: #xf5f5f2 color_active: #xefefea}
                     // "Aa" shows through while there is no cover.
                     RoundedView {width: 84 height: 84 flow: Overlay align: Align{x: 0.5 y: 0.5} draw_bg +: {color: #xf0f3f1 border_radius: 4.0}
                         Label {text: "Aa" draw_text +: {color: #x9fcfb2 text_style: theme.font_bold{font_size: 20}}}
@@ -240,8 +241,8 @@ script_mod! {
                     Label {text: "›" draw_text +: {color: #xb0b0b0 text_style: theme.font_regular{font_size: 20}}}
                 }
             }
-            article_import := mod.widgets.ArticleButton {draw_bg +: {color: #xf5f5f5} draw_icon +: {svg: ICON_IMPORT}}
-            article_share := mod.widgets.ArticleButton {draw_bg +: {color: #xf5f5f5} width: Fill draw_icon +: {svg: ICON_SHARE}}
+            article_import := mod.widgets.ArticleButton {draw_bg +: {color: #xf5f5f2} draw_icon +: {svg: ICON_IMPORT}}
+            article_share := mod.widgets.ArticleButton {draw_bg +: {color: #xf5f5f2} width: Fill draw_icon +: {svg: ICON_SHARE}}
         }
         editor := View {visible: false width: Fill height: Fill flow: Right align: Align{x: 0.5}
             editor_sidebar := View {visible: false width: 230 height: Fill flow: Down padding: 18 spacing: 18
@@ -275,7 +276,7 @@ script_mod! {
                         source_toggle := mod.widgets.ArticleButton {height: 28 draw_icon +: {svg: ICON_VIEW_SOURCE}}
                     }
                     TextBlock := View {width: Fill height: Fit flow: Right spacing: 8
-                        prefix := Label {visible: false width: 16 height: Fit padding: Inset{top: 5} draw_text +: {color: #x07a858 text_style: theme.font_regular{font_size: 14}}}
+                        prefix := Label {visible: false width: 16 height: Fit padding: Inset{top: 5} draw_text +: {color: #x101010 text_style: theme.font_regular{font_size: 14}}}
                         rich := mod.widgets.ArticleRich {}
                     }
                     Picture := View {width: Fill height: Fit flow: Down spacing: 6 padding: Inset{top: 8 bottom: 12}
@@ -283,7 +284,7 @@ script_mod! {
                         caption := mod.widgets.ArticleLabel {draw_text +: {color: #x777777 text_style: theme.font_regular{font_size: 11}}}
                         image_settings := mod.widgets.ArticleButton {draw_icon +: {svg: ICON_SETTINGS}}
                     }
-                    Rule := View {width: Fill height: 30 align: Align{y: 0.5} SolidView {width: Fill height: 1 draw_bg.color: #xdddddd}}
+                    Rule := View {width: Fill height: 30 align: Align{y: 0.5} SolidView {width: Fill height: 1 draw_bg.color: #x1010101f}}
                 }
                 article_stats := mod.widgets.ArticleLabel {draw_text +: {color: #x888888 text_style: theme.font_regular{font_size: 10}}}
                 ScrollXView {width: Fill height: 44 flow: Right spacing: 6
@@ -296,7 +297,7 @@ script_mod! {
                 article_preview := mod.widgets.ArticlePrimary {draw_icon +: {svg: crate_resource("self://resources/icons/eye_open.svg")}}
             }
             editor_inspector := View {visible: false width: 260 height: Fill flow: Down padding: 18 spacing: 20
-                mod.widgets.ArticleLabel {text: #(crate::i18n::tr("Article style")) i18n_text: "Article style" draw_text +: {color: #x07a858 text_style: theme.font_bold{font_size: 16}}}
+                mod.widgets.ArticleLabel {text: #(crate::i18n::tr("Article style")) i18n_text: "Article style" draw_text +: {color: #x101010 text_style: theme.font_bold{font_size: 16}}}
                 inspector_theme := mod.widgets.ArticleButton {width: Fill draw_icon +: {svg: crate_resource("self://resources/icons/article_palette.svg")}}
                 inspector_html := mod.widgets.ArticleHtml {}
                 mod.widgets.ArticleLabel {text: #(crate::i18n::tr("Cover preview")) i18n_text: "Cover preview"}
@@ -329,12 +330,12 @@ script_mod! {
                             wt_table := mod.widgets.ArticleTool {draw_icon +: {svg: crate_resource("self://resources/icons/article_table.svg")}}
                             wt_rule := mod.widgets.ArticleTool {draw_icon +: {svg: crate_resource("self://resources/icons/article_rule.svg")}}
                         }
-                        SolidView {width: Fill height: 1 draw_bg.color: #xe5e5e5}
+                        SolidView {width: Fill height: 1 draw_bg.color: #x1010101f}
                         write_source := mod.widgets.ArticleInput {height: Fill is_multiline: true flow: Flow.Right{wrap: true} padding: Inset{left: 16 right: 16 top: 12 bottom: 12} empty_text: #(crate::i18n::tr("Write Markdown here…")) i18n_empty_text: "Write Markdown here…" draw_text +: {text_style: theme.font_regular{font_size: 13 line_spacing: 1.5}} draw_bg +: {border_size: 0 color_focus: #xffffff}}
                         // Phone width: formatting within thumb reach, as in the mobile atlas.
                         write_bottom := View {visible: false width: Fill height: Fit flow: Down padding: Inset{left: 12 right: 12 bottom: 8} spacing: 6
                             write_saved_small := mod.widgets.ArticleLabel {draw_text +: {color: #x999999 text_style: theme.font_regular{font_size: 11}}}
-                            RoundedView {width: Fill height: 44 flow: Right align: Align{x: 0.5 y: 0.5} padding: Inset{left: 6 right: 6} draw_bg +: {color: #xffffff border_size: 1.0 border_color: #xe5e5e5 border_radius: 6.0}
+                            RoundedView {width: Fill height: 44 flow: Right align: Align{x: 0.5 y: 0.5} padding: Inset{left: 6 right: 6} draw_bg +: {color: #xffffff border_size: 1.0 border_color: #x1010101f border_radius: 6.0}
                                 wb_bold := mod.widgets.ArticleTool {width: Fill draw_icon +: {svg: crate_resource("self://resources/icons/article_bold.svg")}}
                                 wb_italic := mod.widgets.ArticleTool {width: Fill draw_icon +: {svg: crate_resource("self://resources/icons/article_italic.svg")}}
                                 wb_heading := mod.widgets.ArticleTool {width: Fill draw_icon +: {svg: crate_resource("self://resources/icons/article_heading.svg")}}
@@ -348,14 +349,14 @@ script_mod! {
                     }
                     // Shown while image files are dragged over the source pane.
                     write_drop := RoundedView {visible: false width: Fill height: Fill margin: 10 flow: Down align: Align{x: 0.5 y: 0.5} spacing: 8
-                        draw_bg +: {color: #xe9f8ef border_size: 2.0 border_color: #x07c160 border_radius: 10.0}
-                        write_drop_title := Label {draw_text +: {color: #x07a858 text_style: theme.font_bold{font_size: 18}}}
+                        draw_bg +: {color: #xf5f5f2 border_size: 2.0 border_color: #x101010 border_radius: 10.0}
+                        write_drop_title := Label {draw_text +: {color: #x101010 text_style: theme.font_bold{font_size: 18}}}
                         Label {text: #(crate::i18n::tr("Compressed automatically · saved on this device")) i18n_text: "Compressed automatically · saved on this device" draw_text +: {color: #x888888 text_style: theme.font_regular{font_size: 12}}}
                     }
                 }
-                write_divider := SolidView {width: 1 height: Fill draw_bg.color: #xe5e5e5}
-                write_preview_pane := SolidView {width: Fill height: Fill flow: Down align: Align{x: 0.5} padding: Inset{top: 16 bottom: 16} draw_bg.color: #xf5f5f5
-                    write_paper := RoundedView {width: 420 height: Fill flow: Down padding: Inset{left: 24 right: 24 top: 24 bottom: 8} draw_bg +: {color: #xffffff border_size: 1.0 border_color: #xe8e8e8 border_radius: 4.0}
+                write_divider := SolidView {width: 1 height: Fill draw_bg.color: #x1010101f}
+                write_preview_pane := SolidView {width: Fill height: Fill flow: Down align: Align{x: 0.5} padding: Inset{top: 16 bottom: 16} draw_bg.color: #xf5f5f2
+                    write_paper := RoundedView {width: 420 height: Fill flow: Down padding: Inset{left: 24 right: 24 top: 24 bottom: 8} draw_bg +: {color: #xffffff border_size: 1.0 border_color: #x1010101f border_radius: 4.0}
                         write_list := PortalList {width: Fill height: Fill
                             Title := View {width: Fill height: Fit padding: Inset{bottom: 16}
                                 write_preview_title := mod.widgets.ArticleLabel {draw_text.text_style: theme.font_bold{font_size: 22}}
@@ -384,24 +385,24 @@ script_mod! {
                     }
                 }
             }
-            SolidView {width: Fill height: 1 draw_bg.color: #xe5e5e5}
+            SolidView {width: Fill height: 1 draw_bg.color: #x1010101f}
             write_stats := mod.widgets.ArticleLabel {padding: Inset{left: 16 top: 8 bottom: 8} draw_text +: {color: #x888888 text_style: theme.font_regular{font_size: 11}}}
           }
           // Table size picker (⊞), placed under the button that opened it.
           write_table_popup := View {visible: false width: Fill height: Fill flow: Down
-            write_table_card := RoundedView {width: Fit height: Fit flow: Down padding: 14 spacing: 10 draw_bg +: {color: #xffffff border_size: 1.0 border_color: #xdddddd border_radius: 8.0}
+            write_table_card := RoundedView {width: Fit height: Fit flow: Down padding: 14 spacing: 10 draw_bg +: {color: #xffffff border_size: 1.0 border_color: #x1010101f border_radius: 8.0}
               mod.widgets.ArticleLabel {width: Fit text: #(crate::i18n::tr("Insert table")) i18n_text: "Insert table" draw_text.text_style: theme.font_bold{font_size: 13}}
               write_table_picker := mod.widgets.TableSizePicker {}
             }
           }
           // Phone preview: opens the style sheet.
           write_style_fab_box := View {visible: false width: Fill height: Fill align: Align{x: 1.0 y: 1.0} padding: Inset{right: 16 bottom: 64}
-            write_style_fab := mod.widgets.ArticleIconButton {draw_icon.color: #x07a858 draw_bg +: {border_size: 1.0 border_color: #x9fdcb8 border_radius: 22.0} draw_icon +: {svg: crate_resource("self://resources/icons/article_palette.svg")}}
+            write_style_fab := mod.widgets.ArticleIconButton {draw_icon.color: #x101010 draw_bg +: {border_size: 1.0 border_color: #x10101033 border_radius: 22.0} draw_icon +: {svg: crate_resource("self://resources/icons/article_palette.svg")}}
           }
           // Phone style sheet (atlas: theme-sheet). Tapping a style previews it; 应用 keeps it, × restores the previous one.
           write_theme_sheet := SolidView {visible: false width: Fill height: Fill flow: Down align: Align{y: 1.0} draw_bg.color: #x00000055
             RoundedView {width: Fill height: Fit flow: Down padding: Inset{left: 16 right: 16 top: 8 bottom: 20} spacing: 12 draw_bg +: {color: #xffffff border_radius: 12.0}
-              View {width: Fill height: Fit align: Align{x: 0.5} RoundedView {width: 36 height: 4 draw_bg +: {color: #xdddddd border_radius: 2.0}}}
+              View {width: Fill height: Fit align: Align{x: 0.5} RoundedView {width: 36 height: 4 draw_bg +: {color: #x1010101f border_radius: 2.0}}}
               View {width: Fill height: 44 flow: Right align: Align{y: 0.5}
                 mod.widgets.ArticleLabel {width: Fill text: #(crate::i18n::tr("Article style")) i18n_text: "Article style" draw_text.text_style: theme.font_bold{font_size: 16}}
                 theme_sheet_close := mod.widgets.ArticleIconButton {draw_icon +: {svg: ICON_CLOSE}}
@@ -426,17 +427,17 @@ script_mod! {
           // Phone insert-image sheet (atlas: insert-image). Camera and clipboard are not offered: Rinx cannot capture or paste images here yet.
           write_image_sheet := SolidView {visible: false width: Fill height: Fill flow: Down align: Align{y: 1.0} draw_bg.color: #x00000055
             RoundedView {width: Fill height: Fit flow: Down padding: Inset{left: 16 right: 16 top: 8 bottom: 24} spacing: 12 draw_bg +: {color: #xffffff border_radius: 12.0}
-              View {width: Fill height: Fit align: Align{x: 0.5} RoundedView {width: 36 height: 4 draw_bg +: {color: #xdddddd border_radius: 2.0}}}
+              View {width: Fill height: Fit align: Align{x: 0.5} RoundedView {width: 36 height: 4 draw_bg +: {color: #x1010101f border_radius: 2.0}}}
               View {width: Fill height: 44 flow: Right align: Align{y: 0.5}
                 mod.widgets.ArticleLabel {width: Fill text: #(crate::i18n::tr("Insert image")) i18n_text: "Insert image" draw_text.text_style: theme.font_bold{font_size: 16}}
                 image_sheet_close := mod.widgets.ArticleIconButton {draw_icon +: {svg: ICON_CLOSE}}
               }
-              RoundedView {width: Fill height: Fit flow: Down draw_bg +: {color: #xffffff border_size: 1.0 border_color: #xe5e5e5 border_radius: 8.0}
+              RoundedView {width: Fill height: Fit flow: Down draw_bg +: {color: #xffffff border_size: 1.0 border_color: #x1010101f border_radius: 8.0}
                 image_sheet_pick := mod.widgets.ArticleIconButton {width: Fill height: 56 draw_icon +: {svg: ICON_ADD_PHOTO}}
               }
-              RoundedView {width: Fill height: 56 flow: Right align: Align{y: 0.5} padding: Inset{left: 16 right: 8} draw_bg +: {color: #xffffff border_size: 1.0 border_color: #xe5e5e5 border_radius: 8.0}
+              RoundedView {width: Fill height: 56 flow: Right align: Align{y: 0.5} padding: Inset{left: 16 right: 8} draw_bg +: {color: #xffffff border_size: 1.0 border_color: #x1010101f border_radius: 8.0}
                 mod.widgets.ArticleLabel {width: Fill text: #(crate::i18n::tr("Lay out multiple images automatically")) i18n_text: "Lay out multiple images automatically" draw_text.text_style: theme.font_regular{font_size: 14}}
-                image_sheet_layout := ToggleFlat {text: "" draw_bg +: {size: 21 color_active: #x07c160 border_color_active: #x07c160 mark_color_active: #xffffff mark_color_active_hover: #xffffff}}
+                image_sheet_layout := ToggleFlat {text: "" draw_bg +: {size: 21 color_active: #x101010 border_color_active: #x101010 mark_color_active: #xffffff mark_color_active_hover: #xffffff}}
               }
               mod.widgets.ArticleLabel {text: #(crate::i18n::tr("Images added one after another form a grid. Selected images stay on this device until you publish.")) i18n_text: "Images added one after another form a grid. Selected images stay on this device until you publish." draw_text +: {color: #x999999 text_style: theme.font_regular{font_size: 12}}}
             }
@@ -456,14 +457,14 @@ script_mod! {
               }
               View {width: Fill height: Fit flow: Right align: Align{y: 0.5}
                 mod.widgets.ArticleLabel {width: Fill text: #(crate::i18n::tr("Cover")) i18n_text: "Cover" draw_text.text_style: theme.font_bold{font_size: 12}}
-                sheet_cover_change := mod.widgets.ArticleTool {width: 44 padding: Inset{left: 8 right: 8} draw_icon.color: #x07a858 draw_icon +: {svg: ICON_ADD_PHOTO}}
+                sheet_cover_change := mod.widgets.ArticleTool {width: 44 padding: Inset{left: 8 right: 8} draw_icon.color: #x101010 draw_icon +: {svg: ICON_ADD_PHOTO}}
               }
               sheet_cover := Image {width: Fill height: 150 fit: ImageFit.Biggest}
               sheet_no_cover := mod.widgets.ArticleLabel {text: #(crate::i18n::tr("This article will be published without a cover.")) i18n_text: "This article will be published without a cover." draw_text.color: #x888888}
               mod.widgets.ArticleLabel {text: #(crate::i18n::tr("Summary")) i18n_text: "Summary" draw_text.text_style: theme.font_bold{font_size: 12}}
               sheet_summary := mod.widgets.ArticleInput {height: 38 empty_text: #(crate::i18n::tr("One line about this article")) i18n_empty_text: "One line about this article"}
               mod.widgets.ArticleLabel {text: #(crate::i18n::tr("Publish to")) i18n_text: "Publish to" draw_text.text_style: theme.font_bold{font_size: 12}}
-              RoundedView {width: Fill height: 138 draw_bg +: {color: #xffffff border_size: 1.0 border_color: #xe5e5e5 border_radius: 6.0}
+              RoundedView {width: Fill height: 138 draw_bg +: {color: #xffffff border_size: 1.0 border_color: #x1010101f border_radius: 6.0}
                 sheet_rooms := PortalList {width: Fill height: Fill
                   Chat := mod.widgets.ArticleChatRow {height: 44 spacing: 10 avatar +: {width: 28 height: 28 draw_bg +: {border_radius: 14.0} initial +: {draw_text +: {text_style: theme.font_bold{font_size: 11}}}} name +: {draw_text +: {text_style: theme.font_regular{font_size: 12}}} radio +: {width: 18 height: 18 draw_bg +: {border_radius: 9.0}} }
                 }
@@ -599,7 +600,7 @@ script_mod! {
             }
         }
         publication := ScrollYView {visible: false width: Fill height: Fill flow: Down padding: 24 spacing: 18
-            publication_state := mod.widgets.ArticleLabel {draw_text +: {color: #x07a858 text_style: theme.font_bold{font_size: 24}}}
+            publication_state := mod.widgets.ArticleLabel {draw_text +: {color: #x101010 text_style: theme.font_bold{font_size: 24}}}
             publication_cover := Image {width: Fill height: 170 fit: ImageFit.Biggest}
             publication_title := mod.widgets.ArticleLabel {draw_text.text_style: theme.font_bold{font_size: 18}}
             publication_info := mod.widgets.ArticleLabel {}
@@ -612,14 +613,14 @@ script_mod! {
         }
         published := View {visible: false width: Fill height: Fill flow: Down align: Align{x: 0.5} padding: 32 spacing: 14
             View {width: Fill height: 90}
-            RoundedView {width: 64 height: 64 align: Align{x: 0.5 y: 0.5} draw_bg +: {color: #x07c160 border_radius: 32.0}
+            RoundedView {width: 64 height: 64 align: Align{x: 0.5 y: 0.5} draw_bg +: {color: #x101010 border_radius: 32.0}
                 Label {text: "✓" draw_text +: {color: #xffffff text_style: theme.font_bold{font_size: 28}}}
             }
             mod.widgets.ArticleLabel {width: Fit text: #(crate::i18n::tr("Published")) i18n_text: "Published" draw_text.text_style: theme.font_bold{font_size: 22}}
             published_info := mod.widgets.ArticleLabel {width: Fit draw_text +: {color: #x777777 text_style: theme.font_regular{font_size: 13}}}
             View {width: Fill height: Fill}
             published_edit := mod.widgets.ArticlePrimary {draw_icon +: {svg: ICON_EDIT}}
-            published_library := mod.widgets.ArticleButton {width: Fill height: 46 align: Align{x: 0.5 y: 0.5} draw_bg +: {border_size: 1.0 border_color: #xdddddd} draw_icon +: {svg: ICON_FILE}}
+            published_library := mod.widgets.ArticleButton {width: Fill height: 46 align: Align{x: 0.5 y: 0.5} draw_bg +: {border_size: 1.0 border_color: #x1010101f} draw_icon +: {svg: ICON_FILE}}
         }
         withdraw := ScrollYView {visible: false width: Fill height: Fill flow: Down padding: 24 spacing: 24
             withdraw_title := mod.widgets.ArticleLabel {draw_text.text_style: theme.font_bold{font_size: 22}}
@@ -1840,7 +1841,7 @@ impl ArticlePanel {
         }
         // The writing view hides the heading at phone width; other pages always show it.
         self.label(cx, ids!(article_heading)).set_visible(cx, true);
-        let header_bg = color(if writing { 0xffffff } else { 0xededed });
+        let header_bg = color(if writing { 0xffffff } else { 0xffffff });
         let mut header = self.view(cx, ids!(header));
         script_apply_eval!(cx, header, {draw_bg +: {color: #(header_bg)}});
         self.button(cx, ids!(article_done)).set_visible(

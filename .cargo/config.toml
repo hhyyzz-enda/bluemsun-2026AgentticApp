@@ -16,3 +16,7 @@ runner = "packaging/run-macos.sh"
 MAKEPAD_BUNDLE_IDENTIFIER = { value = "org.octosense.rinx", force = true }
 ## The minimum version that Rinx & Makepad support (for speech-to-text and other features).
 MACOSX_DEPLOYMENT_TARGET = "11.0"
+## Local build fix (Windows): aws-lc-sys 0.32 with the prebuilt-nasm feature
+## misses NASM objects under the Visual Studio generator; fall back to
+## portable C crypto (OPENSSL_NO_ASM). Harmless on other platforms.
+AWS_LC_SYS_NO_ASM = "1"

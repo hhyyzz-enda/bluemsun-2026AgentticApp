@@ -1,55 +1,56 @@
-//! Hosts the article editor in its own native window on desktop, as Moments is.
+//! Hosts the writing studio's review card in its own native window on
+//! desktop, exactly as the article editor is hosted.
 //!
-//! Makepad creates a window's OS window as soon as its `Window` widget is built,
-//! and has no way to re-show a window once hidden. So this host lives directly
-//! under the app's `Root` (which forwards every event, including draws, to it),
-//! builds the `ArticleWindow` widget when the editor is first opened,
-//! and drops it once the user or the panel closes that window.
+//! The window holds a second `WritingPanel` face over the same shared
+//! `model::Studio` store: whichever face edits the proposal, applies,
+//! discards or undoes, the other face's sync poll rebinds within a fraction
+//! of a second. Leaving and returning finds the same draft and the same
+//! decision state, because neither face owns the state — the store does.
 use makepad_widgets::*;
-use super::ui::{ArticleAction, ArticlePanelWidgetRefExt};
+use super::ui::{WritingAction, WritingPanelWidgetRefExt};
 
 script_mod! {
     use mod.prelude.widgets.*
     use mod.widgets.*
 
-    mod.widgets.ArticleWindow = Window {
-        window.inner_size: vec2(1200, 800)
-        window.title: #(crate::i18n::tr("Article editor"))
+    mod.widgets.WritingWindow = Window {
+        window.inner_size: vec2(760, 860)
+        window.title: #(crate::i18n::tr("Writing studio"))
         pass.clear_color: #FFFFFF00
         caption_bar +: {
             draw_bg.color: #xffffff
             caption_label +: {
                 label +: {
                     draw_text +: { color: #0 }
-                    text: #(crate::i18n::tr("Article editor"))
+                    text: #(crate::i18n::tr("Writing studio"))
                 }
             }
         }
         body +: {
-            article_panel := ArticlePanel {
+            writing_card_panel := WritingPanel {
                 // This window's own caption bar already sits above the panel.
                 padding: Inset{top: 0 bottom: 0}
             }
         }
     }
 
-    mod.widgets.ArticleWindowHost = #(ArticleWindowHost::register_widget(vm)) {}
+    mod.widgets.WritingWindowHost = #(WritingWindowHost::register_widget(vm)) {}
 }
 
 #[derive(Script, WidgetRef, WidgetRegister)]
-pub struct ArticleWindowHost {
+pub struct WritingWindowHost {
     #[uid] uid: WidgetUid,
     #[source] source: ScriptObjectRef,
     #[rust] area: Area,
-    /// The editor window, while it is open.
+    /// The card window, while it is open.
     #[rust] window: Option<WidgetRef>,
     /// Set once we've asked the OS to close `window`, which is dropped on `WindowClosed`.
     #[rust] closing: bool,
 }
 
-impl ScriptHook for ArticleWindowHost {}
+impl ScriptHook for WritingWindowHost {}
 
-impl WidgetNode for ArticleWindowHost {
+impl WidgetNode for WritingWindowHost {
     fn widget_uid(&self) -> WidgetUid { self.uid }
     fn area(&self) -> Area { self.area }
     fn walk(&mut self, _cx: &mut Cx) -> Walk { Walk::default() }
@@ -60,19 +61,19 @@ impl WidgetNode for ArticleWindowHost {
     }
     fn children(&self, visit: &mut dyn FnMut(LiveId, WidgetRef)) {
         if let Some(window) = self.window.as_ref() {
-            visit(id!(article_window), window.clone());
+            visit(id!(writing_window), window.clone());
         }
     }
 }
 
-impl Widget for ArticleWindowHost {
+impl Widget for WritingWindowHost {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         let Some(window) = self.window.clone() else { return };
         let window_id = window.as_window().window_id();
         let closed = matches!(event, Event::WindowClosed(e) if Some(e.window_id) == window_id);
-        // `Window` records its own geometry as the app-wide display context, which
-        // drives the main window's desktop/mobile layout choice. Resizing the editor
-        // window must not flip the main window's layout, so undo that.
+        // `Window` records its own geometry as the app-wide display context,
+        // which drives the main window's desktop/mobile layout choice.
+        // Resizing the card window must not flip the main window's layout.
         let saved_display = matches!(event, Event::WindowGeomChange(e) if Some(e.window_id) == window_id)
             .then(|| {
                 let dc = &cx.display_context;
@@ -85,8 +86,7 @@ impl Widget for ArticleWindowHost {
             cx.display_context.updated_on_event_id = updated_on_event_id;
         }
         if closed {
-            // Saves the draft and revokes the app's permission, as closing the modal does.
-            window.article_panel(cx, ids!(article_panel)).action(cx, ModalRef::default(), &ArticleAction::Close);
+            window.writing_panel(cx, ids!(writing_card_panel)).action(cx, ModalRef::default(), &WritingAction::Close);
             self.window = None;
             self.closing = false;
             cx.widget_tree_mark_dirty(self.uid);
@@ -102,16 +102,16 @@ impl Widget for ArticleWindowHost {
     }
 }
 
-impl ArticleWindowHost {
-    /// Routes an article action to the window, creating the window if needed.
-    pub fn action(&mut self, cx: &mut Cx, action: &ArticleAction) {
-        if matches!(action, ArticleAction::Close) {
+impl WritingWindowHost {
+    /// Routes a writing action to the window, creating the window if needed.
+    pub fn action(&mut self, cx: &mut Cx, action: &WritingAction) {
+        if matches!(action, WritingAction::Close) {
             self.close(cx);
             return;
         }
         if self.window.is_none() || self.closing {
             let window = cx.with_vm(|vm| {
-                let template = vm.eval(script! { mod.widgets.ArticleWindow });
+                let template = vm.eval(script! { mod.widgets.WritingWindow });
                 WidgetRef::script_from_value(vm, template)
             });
             self.window = Some(window);
@@ -119,14 +119,14 @@ impl ArticleWindowHost {
             cx.widget_tree_mark_dirty(self.uid);
         }
         let window = self.window.clone().unwrap();
-        window.article_panel(cx, ids!(article_panel)).action(cx, ModalRef::default(), action);
+        window.writing_panel(cx, ids!(writing_card_panel)).action(cx, ModalRef::default(), action);
         window.redraw(cx);
     }
 
-    /// Closes the editor window, if open.
+    /// Closes the card window, if open.
     pub fn close(&mut self, cx: &mut Cx) {
         let Some(window) = self.window.as_ref() else { return };
-        window.article_panel(cx, ids!(article_panel)).action(cx, ModalRef::default(), &ArticleAction::Close);
+        window.writing_panel(cx, ids!(writing_card_panel)).action(cx, ModalRef::default(), &WritingAction::Close);
         if !self.closing {
             if let Some(window_id) = window.as_window().window_id() {
                 cx.push_unique_platform_op(CxOsOp::CloseWindow(window_id));
@@ -136,8 +136,8 @@ impl ArticleWindowHost {
     }
 }
 
-impl ArticleWindowHostRef {
-    pub fn action(&self, cx: &mut Cx, action: &ArticleAction) {
+impl WritingWindowHostRef {
+    pub fn action(&self, cx: &mut Cx, action: &WritingAction) {
         if let Some(mut inner) = self.borrow_mut() {
             inner.action(cx, action);
         }

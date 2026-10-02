@@ -8,10 +8,12 @@ use std::{
 };
 
 pub const ARTICLE_ID: &str = "org.octosense.article-editor";
+pub const WRITING_STUDIO_ID: &str = "org.octosense.writing-studio";
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum NativeApp {
     ArticleEditor,
+    WritingStudio,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -174,6 +176,9 @@ pub fn pack(root: &Path) -> Result<PackedCatalog, String> {
             Some(NativeApp::ArticleEditor) if manifest.id != ARTICLE_ID => {
                 return Err("Native entry and stable app id disagree".into());
             }
+            Some(NativeApp::WritingStudio) if manifest.id != WRITING_STUDIO_ID => {
+                return Err("Native entry and stable app id disagree".into());
+            }
             Some(_)
                 if files
                     .iter()
@@ -181,7 +186,9 @@ pub fn pack(root: &Path) -> Result<PackedCatalog, String> {
             {
                 return Err("Native bundle cannot supply executable script".into());
             }
-            None if manifest.id == ARTICLE_ID => return Err("Reserved native app id".into()),
+            None if manifest.id == ARTICLE_ID || manifest.id == WRITING_STUDIO_ID => {
+                return Err("Reserved native app id".into());
+            }
             None if !files
                 .iter()
                 .any(|f| matches!(f.path.as_str(), "main.splash" | "page.card")) =>

@@ -169,6 +169,8 @@ script_mod! {
                     mod.widgets.MobileDivider {}
                     discover_article := mod.widgets.MobileRow {title.text: #(crate::i18n::tr("Article editor")) title.i18n_text: "Article editor" icon.draw_icon.svg: ICON_ADD_ATTACHMENT}
                     mod.widgets.MobileDivider {}
+                    discover_writing := mod.widgets.MobileRow {title.text: #(crate::i18n::tr("Writing studio")) title.i18n_text: "Writing studio" icon.draw_icon.svg: ICON_WRITING_STUDIO}
+                    mod.widgets.MobileDivider {}
                     discover_moments := mod.widgets.MobileRow {title.text: #(crate::i18n::tr("Moments")) title.i18n_text: "Moments" icon.draw_icon.svg: ICON_GLOBE}
                     mod.widgets.MobileDivider {}
                     explore := mod.widgets.MobileRow {title.text: #(crate::i18n::tr("Explore Groups & Spaces")) title.i18n_text: "Explore Groups & Spaces" icon.draw_icon.svg: ICON_GLOBE}
@@ -493,6 +495,7 @@ impl Widget for MobileHub {
             }
             if self.view.navigation_bar_button(cx,ids!(discover_mini_apps)).clicked(actions){cx.action(crate::octoscript_apps::MiniAppsAction::Open);}
             if self.view.navigation_bar_button(cx, ids!(discover_article)).clicked(actions) { crate::system_apps::open_article(cx); }
+            if self.view.navigation_bar_button(cx, ids!(discover_writing)).clicked(actions) { crate::system_apps::open_writing_studio(cx); }
             if self.view.navigation_bar_button(cx, ids!(discover_moments)).clicked(actions) {
                 cx.action(crate::moments::ui::MomentsAction::Open {author: None});
             }

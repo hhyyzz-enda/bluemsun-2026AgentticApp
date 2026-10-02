@@ -74,6 +74,8 @@ pub mod assistant;
 pub mod octos_service;
 #[path = "../apps/article-editor/native/mod.rs"]
 pub mod article_app;
+#[path = "../apps/writing-studio/native/mod.rs"]
+pub mod writing_studio;
 pub mod forwarding;
 pub mod moments;
 pub mod i18n;

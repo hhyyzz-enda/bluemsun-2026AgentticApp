@@ -12,6 +12,9 @@ pub mod ui;
 pub mod window;
 pub mod table_picker;
 pub use model::{ArticlePackage, MSGTYPE};
+/// Grafting targets (writing-studio → article library) need the host's
+/// publication metadata types so the shared library round-trips losslessly.
+pub use storage::{Operation, Publication};
 pub use ui::{ArticleAction, ArticlePanelWidgetRefExt};
 pub(crate) use model::invalidate_sessions;
 pub fn script_mod(vm:&mut makepad_widgets::ScriptVm) {

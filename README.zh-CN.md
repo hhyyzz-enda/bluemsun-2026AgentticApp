@@ -4,6 +4,16 @@
 
 Rinx 是原生 Matrix 客户端，包含聊天、联系人、发现、朋友圈和文章编辑器，支持独立运行及作为 OctoSense 原生模块运行。完整构建与兼容性说明见 [英文文档](README.md)。
 
+## 本地编译与运行
+
+```bash
+# 快速检查（只编译不链接，报错最快）
+cargo check --locked
+
+# 编译并运行（首次链接要 10-20 分钟，之后增量编译很快）
+cargo run --locked
+```
+
 ## 内置应用
 
 `system-apps.json` 定义随 Rinx 发布的原生和 OctoScript 应用。原生文章编辑器位于 `apps/article-editor/`；共享文档和 Makepad 控件库保留在 `crates/`。

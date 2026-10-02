@@ -32,6 +32,7 @@ use crate::agent_chat::ops::ui::{AgentOpsAction, AgentOpsPanelWidgetRefExt};
 use crate::moments::ui::{MomentsAction, MomentsPanelWidgetRefExt};
 use crate::octoscript_apps::{MiniAppsAction, MiniAppsPanelWidgetRefExt};
 use crate::article_app::{ArticleAction, ArticlePanelWidgetRefExt};
+use crate::writing_studio::{WritingAction, WritingPanelWidgetRefExt};
 use crate::mini_app::{MiniAppAction, MiniAppPanelWidgetRefExt};
 use crate::forwarding::{ForwardAction, ForwardPanelWidgetRefExt};
 use crate::home::room_history::{RoomHistoryAction, RoomHistoryPanelWidgetRefExt};
@@ -140,6 +141,7 @@ mod embedded_content {
                 }
 
                 article_app_modal := Modal {can_dismiss: false content := ArticlePanel {}}
+                writing_studio_modal := Modal {can_dismiss: false content := WritingPanel {}}
                 octoscript_apps_modal := Modal {can_dismiss: false content := MiniAppsPanel {}}
                 // The assistant's read and send requests: answered only here.
                 assistant_sheet_modal := Modal {can_dismiss: false content := AssistantSheet {}}
@@ -180,6 +182,8 @@ script_mod! {
             moments_window_host := MomentsWindowHost {}
             // Likewise the article editor's window.
             article_window_host := ArticleWindowHost {}
+            // Likewise the writing studio's desktop card window.
+            writing_studio_window_host := WritingWindowHost {}
 
             main_window := Window {
                 window.inner_size: vec2(1280, 800)
@@ -387,12 +391,17 @@ impl MatchEvent for App {
             // When not yet logged in, the login_screen widget handles displaying the failure modal.
             if let Some(LoginAction::LoginFailure(_)) = action.downcast_ref() {
                 crate::article_app::invalidate_sessions();
+                crate::writing_studio::invalidate_sessions();
+                crate::writing_studio::clear_studio();
                 crate::octoscript_apps::invalidate_sessions();
                 let mini_modal=self.ui.modal(cx,ids!(octoscript_apps_modal));
                 self.ui.mini_apps_panel(cx,ids!(octoscript_apps_modal.content)).action(cx,mini_modal,&MiniAppsAction::Close);
                 let modal = self.ui.modal(cx, ids!(article_app_modal));
                 self.ui.article_panel(cx, ids!(article_app_modal.content)).action(cx, modal, &ArticleAction::Close);
                 self.article_window_host(cx).close(cx);
+                let writing_modal = self.ui.modal(cx, ids!(writing_studio_modal));
+                self.ui.writing_panel(cx, ids!(writing_studio_modal.content)).action(cx, writing_modal, &WritingAction::Close);
+                self.writing_studio_window_host(cx).close(cx);
                 if self.app_state.logged_in {
                     log!("Received LoginAction::LoginFailure while logged in; showing login screen.");
                     self.clear_session_ui(cx);
@@ -473,6 +482,24 @@ impl MatchEvent for App {
                     panel.as_article_panel().action(cx, ModalRef::default(), action);
                 } else {
                     self.ui.article_panel(cx, ids!(article_app_modal.content)).action(cx, modal, action);
+                }
+                continue;
+            }
+            // The writing studio is a full-screen modal on every shell, plus
+            // a desktop window card sharing the same store when requested.
+            if let Some(action) = action.downcast_ref::<WritingAction>() {
+                let modal = self.ui.modal(cx, ids!(writing_studio_modal));
+                let window_host = self.writing_studio_window_host(cx);
+                if matches!(action, WritingAction::Close) {
+                    self.ui.writing_panel(cx, ids!(writing_studio_modal.content)).action(cx, modal.clone(), action);
+                    window_host.close(cx);
+                } else if matches!(action, WritingAction::OpenCard)
+                    && !self.embedded
+                    && crate::home::home_screen::effective_is_desktop(cx)
+                {
+                    window_host.action(cx, action);
+                } else {
+                    self.ui.writing_panel(cx, ids!(writing_studio_modal.content)).action(cx, modal, action);
                 }
                 continue;
             }
@@ -607,11 +634,13 @@ impl MatchEvent for App {
                     }
                     self.app_state.selected_room = Some(selected_room.clone());
                     crate::assistant::set_current_room(Some(selected_room.room_name()));
+                    crate::writing_studio::set_current_room(Some(selected_room.room_id().to_owned()));
                     continue;
                 }
                 Some(AppStateAction::FocusNone) => {
                     self.app_state.selected_room = None;
                     crate::assistant::set_current_room(None);
+                    crate::writing_studio::set_current_room(None);
                     continue;
                 }
                 Some(AppStateAction::UpgradedInviteToJoinedRoom { room_id, is_space }) => {
@@ -882,6 +911,7 @@ impl App {
         let modal = self.ui.modal(cx, ids!(space_management_modal));
         self.ui.space_management_panel(cx, ids!(space_management_modal.content)).action(cx, modal, &SpaceManagementAction::Close);
         crate::assistant::set_current_room(None);
+        crate::writing_studio::set_current_room(None);
         for window in [HostedWindow::Moments, HostedWindow::Article] {
             self.close_hosted_window(cx, window, true);
         }
@@ -899,6 +929,10 @@ impl App {
         let modal = self.ui.modal(cx, ids!(article_app_modal));
         self.ui.article_panel(cx, ids!(article_app_modal.content)).action(cx, modal, &ArticleAction::Close);
         self.article_window_host(cx).close(cx);
+        let writing_modal = self.ui.modal(cx, ids!(writing_studio_modal));
+        self.ui.writing_panel(cx, ids!(writing_studio_modal.content)).action(cx, writing_modal, &WritingAction::Close);
+        self.writing_studio_window_host(cx).close(cx);
+        crate::writing_studio::clear_studio();
         let modal = self.ui.modal(cx, ids!(mini_app_modal));
         self.ui.mini_app_panel(cx, ids!(mini_app_modal.content)).action(cx, modal, &MiniAppAction::Close);
         let modal = self.ui.modal(cx, ids!(forward_modal));
@@ -968,6 +1002,7 @@ pub fn register_widgets(vm: &mut ScriptVm) {
     crate::shared::script_mod(vm);
     crate::mini_app::script_mod(vm);
     crate::article_app::script_mod(vm);
+    crate::writing_studio::script_mod(vm);
     crate::octoscript_apps::script_mod(vm);
     crate::forwarding::script_mod(vm);
 
@@ -1370,6 +1405,11 @@ impl App {
     fn article_window_host(&self, cx: &mut Cx) -> crate::article_app::window::ArticleWindowHostRef {
         use crate::article_app::window::ArticleWindowHostWidgetRefExt;
         self.ui.widget(cx, ids!(article_window_host)).as_article_window_host()
+    }
+
+    fn writing_studio_window_host(&self, cx: &mut Cx) -> crate::writing_studio::window::WritingWindowHostRef {
+        use crate::writing_studio::window::WritingWindowHostWidgetRefExt;
+        self.ui.widget(cx, ids!(writing_studio_window_host)).as_writing_window_host()
     }
 
     fn persist_runtime_state(&mut self, cx: &mut Cx, reason: &'static str) {
