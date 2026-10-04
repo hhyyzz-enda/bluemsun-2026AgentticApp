@@ -5,7 +5,10 @@
 //! atomic replacement contract, a much smaller schema. Documents and tasks
 //! rewrite whole files atomically; the decision log is an append-only JSONL
 //! trail, as an audit log should be.
-use std::path::{Path, PathBuf};
+use std::{
+    io::{BufRead, BufReader, Write},
+    path::{Path, PathBuf},
+};
 use serde::{Deserialize, Serialize};
 use article_core::{
     host::{ArticleHost, Capability},
@@ -171,11 +174,139 @@ pub fn append_decision(root: &Path, grant: &Grant, decision: &Decision) -> Resul
     host.authorize(&grant.lease, Capability::WriteDrafts)?;
     let mut line = serde_json::to_vec(decision).map_err(|e| e.to_string())?;
     line.push(b'\n');
-    use std::io::Write;
     let mut file = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open(directory(root, grant).join("decisions.jsonl"))
         .map_err(|e| e.to_string())?;
     file.write_all(&line).map_err(|e| e.to_string())
+}
+
+/// Reads the full decision log: a Vec in JSONL order. Malformed lines are
+/// skipped (they're an audit trail; a bad line is the last thing to crash on).
+/// Missing file → empty Vec. Used by `rewrite_decisions` and any future
+/// "show audit" UI.
+pub fn read_decisions(root: &Path, grant: &Grant) -> Result<Vec<Decision>, String> {
+    let host = RobrixWritingHost::new(root);
+    host.authorize(&grant.lease, Capability::ReadDrafts)?;
+    let path = directory(root, grant).join("decisions.jsonl");
+    let file = match std::fs::File::open(&path) {
+        Ok(f) => f,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => return Err(e.to_string()),
+    };
+    let mut decisions = Vec::new();
+    for line in BufReader::new(file).lines() {
+        let line = match line {
+            Ok(l) => l,
+            Err(_) => continue,
+        };
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if let Ok(d) = serde_json::from_str::<Decision>(trimmed) {
+            decisions.push(d);
+        }
+    }
+    Ok(decisions)
+}
+
+/// Rewrites the decision log keeping only entries whose `task_id` passes the
+/// predicate. The log is append-only in the steady state; this is the
+/// housekeeping path used by `delete_task` / `delete_document`. We rewrite the
+/// whole file with `atomic_write` — the same protection as documents.json.
+/// Returns how many lines were kept.
+pub fn rewrite_decisions<F: Fn(&str) -> bool>(
+    root: &Path,
+    grant: &Grant,
+    keep: F,
+) -> Result<usize, String> {
+    let host = RobrixWritingHost::new(root);
+    host.authorize(&grant.lease, Capability::WriteDrafts)?;
+    let kept = read_decisions(root, grant)?
+        .into_iter()
+        .filter(|d| keep(&d.task_id))
+        .collect::<Vec<_>>();
+    let mut bytes = Vec::new();
+    for d in &kept {
+        let mut line = serde_json::to_vec(d).map_err(|e| e.to_string())?;
+        line.push(b'\n');
+        bytes.extend_from_slice(&line);
+    }
+    let path = directory(root, grant).join("decisions.jsonl");
+    atomic_write(&path, &bytes)?;
+    Ok(kept.len())
+}
+
+/// Removes a document by id. Also removes its tasks' decision-log entries and
+/// undo entries are cleared by the caller (they live in memory only). Returns
+/// whether the document existed.
+pub fn delete_document(root: &Path, grant: &Grant, doc_id: &str) -> Result<bool, String> {
+    if !article_core::document::valid_id(doc_id) {
+        return Err("Invalid document id".into());
+    }
+    let host = RobrixWritingHost::new(root);
+    host.authorize(&grant.lease, Capability::WriteDrafts)?;
+    let mut docs = load_documents(root, grant)?;
+    let before = docs.len();
+    docs.retain(|d| d.id != doc_id);
+    if docs.len() == before {
+        return Ok(false);
+    }
+    save_documents(root, grant, &docs)?;
+    // Cascade: drop tasks for this document and any decision-log entries that
+    // pointed at them. Undo entries live in memory and are cleared by the
+    // caller through `Studio::delete_document`.
+    let mut tasks = load_tasks(root, grant)?;
+    let dropped_task_ids: Vec<String> = tasks
+        .iter()
+        .filter(|t| t.doc_id == doc_id)
+        .map(|t| t.id.clone())
+        .collect();
+    tasks.retain(|t| t.doc_id != doc_id);
+    save_tasks(root, grant, &tasks)?;
+    if !dropped_task_ids.is_empty() {
+        rewrite_decisions(root, grant, |tid| !dropped_task_ids.iter().any(|d| d == tid))?;
+    }
+    Ok(true)
+}
+
+/// Removes one task by id and prunes its decision-log entries. Returns whether
+/// the task existed. Undo entries are the caller's job (in-memory).
+pub fn delete_task(root: &Path, grant: &Grant, task_id: &str) -> Result<bool, String> {
+    if !article_core::document::valid_id(task_id) {
+        return Err("Invalid task id".into());
+    }
+    let host = RobrixWritingHost::new(root);
+    host.authorize(&grant.lease, Capability::WriteDrafts)?;
+    let mut tasks = load_tasks(root, grant)?;
+    let before = tasks.len();
+    tasks.retain(|t| t.id != task_id);
+    if tasks.len() == before {
+        return Ok(false);
+    }
+    save_tasks(root, grant, &tasks)?;
+    rewrite_decisions(root, grant, |tid| tid != task_id)?;
+    Ok(true)
+}
+
+/// Tests are gated behind `cfg(test)` at the bottom of the file (alongside
+/// the other unit tests); the helpers `temp_root` and `seed_grant` build a
+/// throwaway directory + SessionAuthority per test.
+
+/// UI-facing helper: drops every decision-log entry whose `task_id` is in
+/// `dropped_task_ids`. Used after `Studio::delete_document` /
+/// `Studio::delete_task` to keep the on-disk JSONL consistent with the
+/// in-memory state (`persist()` only appends the newest decision, it never
+/// rewrites older entries). Returns how many entries survive.
+pub fn delete_decisions_for(
+    root: &Path,
+    grant: &Grant,
+    dropped_task_ids: &[String],
+) -> Result<usize, String> {
+    if dropped_task_ids.is_empty() {
+        return Ok(read_decisions(root, grant)?.len());
+    }
+    rewrite_decisions(root, grant, |tid| !dropped_task_ids.iter().any(|d| d == tid))
 }

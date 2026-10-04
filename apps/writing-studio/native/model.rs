@@ -485,6 +485,53 @@ impl Studio {
     pub fn log(&mut self, task_id: &str, stage: &str, detail: String) {
         self.decisions.push(Decision::new(task_id, stage, detail, article_core::document::now()));
     }
+
+    /// Removes a document and everything attached to it: the document, its
+    /// tasks, decision-log entries that referenced those tasks, undo entries
+    /// that referenced those tasks. Returns whether the document existed.
+    /// On-disk persistence is the caller's job (mutate → persist handles the
+    /// documents.json / tasks.json side; the JSONL decision trail needs a
+    /// separate `storage::delete_decisions_for` call for the cascade).
+    ///
+    /// If the deleted document was the current focus, the focus is cleared so
+    /// the next face-open lands on the library.
+    pub fn delete_document(&mut self, doc_id: &str) -> bool {
+        let Some(doc_pos) = self.documents.iter().position(|d| d.id == doc_id) else {
+            return false;
+        };
+        let dropped_task_ids: Vec<String> = self
+            .tasks
+            .iter()
+            .filter(|t| t.doc_id == doc_id)
+            .map(|t| t.id.clone())
+            .collect();
+        self.documents.remove(doc_pos);
+        if !dropped_task_ids.is_empty() {
+            self.tasks.retain(|t| t.doc_id != doc_id);
+            self.decisions.retain(|d| !dropped_task_ids.iter().any(|id| id == &d.task_id));
+            self.undo.retain(|u| !dropped_task_ids.iter().any(|id| id == &u.task_id));
+        }
+        if self.focus_doc.as_deref() == Some(doc_id) {
+            self.focus_doc = None;
+            self.focus_task = None;
+        }
+        true
+    }
+
+    /// Removes one task and its decision-log entries and undo entry. Returns
+    /// whether the task existed.
+    pub fn delete_task(&mut self, task_id: &str) -> bool {
+        let Some(pos) = self.tasks.iter().position(|t| t.id == task_id) else {
+            return false;
+        };
+        self.tasks.remove(pos);
+        self.decisions.retain(|d| d.task_id != task_id);
+        self.undo.retain(|u| u.task_id != task_id);
+        if self.focus_task.as_deref() == Some(task_id) {
+            self.focus_task = None;
+        }
+        true
+    }
 }
 
 /// Process-global store (not thread-local): background LLM threads write
@@ -633,5 +680,114 @@ mod tests {
         let (para, s, e) = doc.locate(3, start + 3).unwrap();
         assert_eq!(para, 0);
         assert_eq!((s, e), (3, doc.paragraphs[0].len()));
+    }
+
+    // -- Cascade delete ----------------------------------------------------
+
+    /// The deleted task is gone; its decisions and undo entries are pruned;
+    /// unrelated tasks, documents and decisions stay put.
+    #[test]
+    fn delete_task_prunes_its_decisions_and_undo_only() {
+        let mut doc = doc();
+        let mut t1 = task(&doc);
+        t1.id = "task-1".into();
+        let mut t2 = task(&doc);
+        t2.id = "task-2".into();
+        let mut s = Studio::empty();
+        s.documents.push(doc.clone());
+        s.tasks.push(t1.clone());
+        s.tasks.push(t2.clone());
+        s.decisions.push(Decision::new("task-1", "propose", "first".into(), 100));
+        s.decisions.push(Decision::new("task-2", "propose", "second".into(), 200));
+        s.decisions.push(Decision::new("task-1", "apply", "third".into(), 300));
+        s.undo.push(UndoEntry {
+            task_id: "task-1".into(),
+            doc_id: doc.id.clone(),
+            para_index: 1,
+            start: 0,
+            before: "before".into(),
+            after: "after".into(),
+        });
+
+        assert!(s.delete_task("task-1"));
+        assert!(!s.tasks.iter().any(|t| t.id == "task-1"));
+        assert!(s.tasks.iter().any(|t| t.id == "task-2"));
+        assert!(s.decisions.iter().all(|d| d.task_id != "task-1"));
+        assert_eq!(s.decisions.len(), 1);
+        assert!(s.undo.is_empty());
+        // Second call returns false (already gone) — idempotent.
+        assert!(!s.delete_task("task-1"));
+    }
+
+    /// Deleting a document removes it and every task that belonged to it;
+    /// decisions and undo entries tied to those tasks go too. Other
+    /// documents and their tasks stay intact.
+    #[test]
+    fn delete_document_cascades_to_its_tasks() {
+        let doc = doc();
+        let doc_id = doc.id.clone();
+        // The sibling document needs the same shape as `doc` so the
+        // shared `task()` helper (which reads `paragraphs[1]`) compiles.
+        let other = Document::new("Other".into(), vec!["a".into(), "b".into()]);
+        let mut t1 = task(&doc);
+        t1.id = "task-1".into();
+        let mut t2 = task(&doc);
+        t2.id = "task-2".into();
+        let mut t_other = task(&other);
+        t_other.id = "task-other".into();
+        let mut s = Studio::empty();
+        s.documents.push(doc.clone());
+        s.documents.push(other.clone());
+        s.tasks.push(t1.clone());
+        s.tasks.push(t2.clone());
+        s.tasks.push(t_other.clone());
+        s.decisions.push(Decision::new("task-1", "propose", "x".into(), 1));
+        s.decisions.push(Decision::new("task-other", "propose", "y".into(), 2));
+
+        assert!(s.delete_document(&doc_id));
+        assert!(!s.documents.iter().any(|d| d.id == doc_id));
+        assert!(s.documents.iter().any(|d| d.id == other.id));
+        assert!(!s.tasks.iter().any(|t| t.doc_id == doc_id));
+        assert!(s.tasks.iter().any(|t| t.id == "task-other"));
+        assert!(s.decisions.iter().all(|d| d.task_id != "task-1" && d.task_id != "task-2"));
+        // Unknown id is a no-op.
+        assert!(!s.delete_document("does-not-exist"));
+    }
+
+    /// Deleting the document clears `focus_doc` and `focus_task` so the next
+    /// face-open lands on the library, not on a dangling focus.
+    #[test]
+    fn delete_document_clears_focus_when_it_was_focused() {
+        let doc = doc();
+        let doc_id = doc.id.clone();
+        let mut t = task(&doc);
+        let tid = t.id.clone();
+        let mut s = Studio::empty();
+        s.documents.push(doc.clone());
+        s.tasks.push(t.clone());
+        s.focus_doc = Some(doc_id.clone());
+        s.focus_task = Some(tid.clone());
+
+        assert!(s.delete_document(&doc_id));
+        assert!(s.focus_doc.is_none());
+        assert!(s.focus_task.is_none());
+    }
+
+    /// Deleting one task does not touch `focus_doc`; only `focus_task` is
+    /// cleared when the deleted task happened to be the focused one.
+    #[test]
+    fn delete_task_keeps_focus_doc_but_clears_focus_task() {
+        let doc = doc();
+        let mut t = task(&doc);
+        let tid = t.id.clone();
+        let mut s = Studio::empty();
+        s.documents.push(doc.clone());
+        s.tasks.push(t.clone());
+        s.focus_doc = Some(doc.id.clone());
+        s.focus_task = Some(tid.clone());
+
+        assert!(s.delete_task(&tid));
+        assert_eq!(s.focus_doc.as_deref(), Some(doc.id.as_str()));
+        assert!(s.focus_task.is_none());
     }
 }

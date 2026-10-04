@@ -52,6 +52,37 @@ fn send_via<H: ArticleHost>(host: &H, lease: &ConsentGrant, doc: &Document, now:
     Ok(id)
 }
 
+/// Removes the article that was created from a writing-studio document.
+/// Cascades through the shared source-draft map so the article editor stops
+/// showing the draft it would have rendered. Returns whether an article was
+/// found. Safe to call even when nothing was ever sent — idempotent.
+pub fn delete_article_from_editor(root: &Path, grant: &Grant, doc: &Document) -> Result<bool, String> {
+    grant.authorize(Capability::WriteDrafts)?;
+    let host = RobrixWritingHost::new(root);
+    let article_id = article_id_for(doc);
+    delete_article_via(&host, &grant.lease, &article_id)
+}
+
+/// The host-generic core, unit-tested alongside `send_via`.
+fn delete_article_via<H: ArticleHost>(
+    host: &H,
+    lease: &ConsentGrant,
+    article_id: &str,
+) -> Result<bool, String> {
+    let store: LocalStore<'_, H, Publication, Operation> = LocalStore::new(host, lease);
+    let article_id = article_id.to_owned();
+    store.update(|library| {
+        let before = library.documents.len();
+        library.documents.retain(|d| d.id != article_id);
+        let removed = library.documents.len() != before;
+        // The shared map keys on article id; drop any entry pointing at the
+        // removed article so the article-editor UI stays consistent.
+        library.source_drafts.remove(&article_id);
+        library.source_locations.remove(&article_id);
+        Ok(removed)
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -117,6 +148,38 @@ mod tests {
         let mut newer = doc.clone();
         newer.version += 1;
         assert_ne!(article_id_for(&newer), first);
+        std::fs::remove_dir_all(host.data_root()).ok();
+    }
+
+    #[test]
+    fn deleting_the_only_article_empties_the_library() {
+        let (host, lease, doc) = fixture();
+        let id = send_via(&host, &lease, &doc, 1_700_000_000).unwrap();
+        // Confirm it landed first.
+        assert!(load_ids(&host, &lease).contains(&id));
+        // Delete it: returns true (was found) and library is now empty.
+        assert!(delete_article_via(&host, &lease, &id).unwrap());
+        assert!(load_ids(&host, &lease).is_empty());
+        // Idempotent: deleting again returns false, still empty.
+        assert!(!delete_article_via(&host, &lease, &id).unwrap());
+        std::fs::remove_dir_all(host.data_root()).ok();
+    }
+
+    #[test]
+    fn deleting_one_article_leaves_the_others() {
+        let (host, lease, _doc) = fixture();
+        // Two distinct documents — `article_id_for` keys on doc.id + version,
+        // so cloning with only a title change would hash to the same id and
+        // overwrite instead of stacking.
+        let doc_a = Document::new("第一篇".into(), vec!["A 段。".into(), "A 段二。".into()]);
+        let doc_b = Document::new("第二篇".into(), vec!["B 段。".into(), "B 段二。".into()]);
+        let id_a = send_via(&host, &lease, &doc_a, 1_700_000_000).unwrap();
+        let id_b = send_via(&host, &lease, &doc_b, 1_700_000_001).unwrap();
+        assert_ne!(id_a, id_b);
+        assert_eq!(load_ids(&host, &lease).len(), 2);
+        assert!(delete_article_via(&host, &lease, &id_a).unwrap());
+        let remaining = load_ids(&host, &lease);
+        assert_eq!(remaining, vec![id_b.clone()]);
         std::fs::remove_dir_all(host.data_root()).ok();
     }
 }

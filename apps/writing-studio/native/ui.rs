@@ -59,6 +59,19 @@ pub enum WritingAction {
     /// Opens (or focuses) the desktop window card face on the current task.
     OpenCard,
     Close,
+    /// Pops the confirm overlay asking whether to delete a document and its
+    /// whole history. No data is touched yet — confirmation comes from the
+    /// panel's own overlay button.
+    RequestDeleteDocument(String),
+    /// Same flow for a single task history line.
+    RequestDeleteTask(String),
+    /// The overlay's "Delete" button: actually removes the document (and its
+    /// tasks + decisions + the article-editor copy it sent) from disk.
+    ConfirmDeleteDocument(String),
+    /// The overlay's "Delete" button for a single task.
+    ConfirmDeleteTask(String),
+    /// The overlay's "Cancel" button.
+    CancelDelete,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -273,10 +286,15 @@ script_mod! {
             mod.widgets.WritingBody {text: #(crate::i18n::tr("Pick a document, select a passage inside it, and request a rewrite you stay in control of.")) i18n_text: "Pick a document, select a passage inside it, and request a rewrite you stay in control of."}
             new_doc := mod.widgets.WritingPrimary {width: Fill text: #(crate::i18n::tr("New document")) i18n_text: "New document"}
             doc_list := PortalList {width: Fill height: Fill
-                // A draft card: title, preview, stats, then the document's
-                // rewrite history (newest first, up to three lines).
+                // A draft card: title + delete affordance on a top row,
+                // preview, stats, then the document's rewrite history (newest
+                // first, up to three lines). The whole card stays clickable
+                // (opens the doc); the trash icon absorbs its own clicks.
                 DocRow := mod.widgets.WritingRow {
-                    doc_title := mod.widgets.WritingStage {draw_text +: {text_style: theme.font_bold{font_size: 14.5}}}
+                    View {width: Fill height: Fit flow: Right align: Align{y: 0.5} spacing: 4
+                        doc_title := mod.widgets.WritingStage {width: Fill draw_text +: {text_style: theme.font_bold{font_size: 14.5}}}
+                        doc_delete := mod.widgets.WritingIconButton {width: 36 height: 36 icon_walk: Walk{width: 16 height: 16} draw_icon +: {svg: (mod.widgets.ICON_TRASH)}}
+                    }
                     doc_preview := mod.widgets.WritingBody {max_lines: 1}
                     doc_meta := mod.widgets.WritingMeta {}
                     mod.widgets.WritingRule {}
@@ -332,7 +350,10 @@ script_mod! {
             mod.widgets.WritingStage {text: #(crate::i18n::tr("Task history")) i18n_text: "Task history"}
             task_list := PortalList {width: Fill height: 200
                 TaskRow := mod.widgets.WritingRow {
-                    task_title := mod.widgets.WritingStage {}
+                    View {width: Fill height: Fit flow: Right align: Align{y: 0.5} spacing: 4
+                        task_title := mod.widgets.WritingStage {width: Fill}
+                        task_delete := mod.widgets.WritingIconButton {width: 36 height: 36 icon_walk: Walk{width: 16 height: 16} draw_icon +: {svg: (mod.widgets.ICON_TRASH)}}
+                    }
                     task_meta := mod.widgets.WritingMeta {}
                 }
             }
@@ -444,6 +465,28 @@ script_mod! {
             mod.widgets.WritingRule {}
             writing_status := mod.widgets.WritingLabel {draw_text +: {color: #x10101099 text_style: theme.font_regular{font_size: 11 line_spacing: 1.3}}}
         }
+
+        // Delete confirm overlay: a fullscreen semi-transparent backdrop that
+        // sits above every page; when visible, only the overlay's own card is
+        // interactive. Two buttons (cancel/delete) call back into the panel
+        // through `WritingAction::Confirm*` / `CancelDelete`.
+        delete_overlay := View {
+            visible: false
+            width: Fill height: Fill flow: Down
+            align: Align{x: 0.5 y: 0.5}
+            draw_bg +: { color: #x10101066 }
+            padding: Inset{left: 32 right: 32 top: 32 bottom: 32}
+            confirm_card := mod.widgets.WritingCard {
+                width: 460 height: Fit
+                align: Align{x: 0.5 y: 0.5}
+                confirm_title := mod.widgets.WritingStage {draw_text +: {text_style: theme.font_bold{font_size: 16 line_spacing: 1.25}}}
+                confirm_body := mod.widgets.WritingBody {max_lines: 6}
+                View {width: Fill height: Fit flow: Right spacing: 12
+                    confirm_cancel := mod.widgets.WritingButton {width: Fill text: #(crate::i18n::tr("Cancel")) i18n_text: "Cancel"}
+                    confirm_delete := mod.widgets.WritingPrimary {width: Fill text: #(crate::i18n::tr("Delete")) i18n_text: "Delete"}
+                }
+            }
+        }
     }
 }
 
@@ -480,6 +523,26 @@ pub struct WritingPanel {
     seen_version: u64,
     #[rust]
     publish_dest: Option<String>,
+    /// What the delete overlay is asking the user about right now.
+    /// `None` when the overlay is hidden; otherwise carries the id and the
+    /// short description shown in the confirm body line.
+    #[rust]
+    pending_delete: Option<PendingDelete>,
+}
+
+/// What the overlay is asking about: either a whole document or a single
+/// task history line. The label is shown in the overlay body at open time;
+/// we don't need to keep it after that.
+#[derive(Clone, Debug)]
+struct PendingDelete {
+    kind: PendingDeleteKind,
+    id: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PendingDeleteKind {
+    Document,
+    Task,
 }
 
 /// Runs `f` with the shared store and this panel's storage grant, persisting
@@ -1073,6 +1136,125 @@ impl WritingPanel {
         self.view(cx, ids!(publish_confirm_box)).set_visible(cx, false);
     }
 
+    /// Pops the confirm overlay asking the user to OK a destructive action.
+    /// `label` is the short text the body line shows (a document title or a
+    /// task request). Hiding an already-hidden overlay is a no-op so the
+    /// caller doesn't need to track state.
+    fn show_delete_overlay(&mut self, cx: &mut Cx, kind: PendingDeleteKind, id: &str, label: &str) {
+        self.pending_delete = Some(PendingDelete {
+            kind,
+            id: id.to_owned(),
+        });
+        let (title, body) = match kind {
+            PendingDeleteKind::Document => (
+                tr("Delete this document?").to_owned(),
+                format!(
+                    "{} · {}\n{}",
+                    tr("Document"),
+                    label,
+                    tr("This removes its task history and the copy in the article editor's library.")
+                ),
+            ),
+            PendingDeleteKind::Task => (
+                tr("Delete this task?").to_owned(),
+                format!("{}\n{}", tr("Task"), label),
+            ),
+        };
+        self.label(cx, ids!(confirm_title)).set_text(cx, &title);
+        self.label(cx, ids!(confirm_body)).set_text(cx, &body);
+        self.view(cx, ids!(delete_overlay)).set_visible(cx, true);
+        self.view.redraw(cx);
+    }
+
+    fn hide_delete_overlay(&mut self, cx: &mut Cx) {
+        self.pending_delete = None;
+        self.view(cx, ids!(delete_overlay)).set_visible(cx, false);
+        self.view.redraw(cx);
+    }
+
+    /// Actually performs the deletion: in-memory cascade first, then the
+    /// on-disk cleanup that `persist()` doesn't cover (decision log rewrite,
+    /// article-editor removal). On failure leaves the overlay up and surfaces
+    /// the reason in the status line so the user can retry or cancel.
+    fn confirm_pending_delete(&mut self, cx: &mut Cx) {
+        let Some(pending) = self.pending_delete.clone() else { return };
+        let Some(grant) = self.grant.clone() else {
+            self.hide_delete_overlay(cx);
+            return;
+        };
+        let root = crate::app_data_dir();
+
+        match pending.kind {
+            PendingDeleteKind::Document => {
+                // Snapshot the doc and its task ids BEFORE we mutate, so the
+                // on-disk cleanup can run after the in-memory wipe.
+                let (doc_snapshot, dropped_ids) = studio(|s| {
+                    let doc = s.document(&pending.id).cloned();
+                    let task_ids: Vec<String> = s
+                        .tasks
+                        .iter()
+                        .filter(|t| t.doc_id == pending.id)
+                        .map(|t| t.id.clone())
+                        .collect();
+                    (doc, task_ids)
+                });
+                let removed = mutate(&self.grant, |s| {
+                    let r = s.delete_document(&pending.id);
+                    s.log(
+                        "",
+                        "delete",
+                        format!("用户确认删除文档（含 {} 条任务历史）", dropped_ids.len()),
+                    );
+                    r
+                });
+                if removed {
+                    if let Err(e) = storage::delete_decisions_for(root, &grant, &dropped_ids) {
+                        error!("Writing studio: failed to clean decisions: {e}");
+                        self.status(
+                            cx,
+                            &format!("{}: {e}", tr("Delete left orphan audit entries")),
+                        );
+                    }
+                    if let Some(doc) = doc_snapshot.as_ref() {
+                        if let Err(e) = graft::delete_article_from_editor(root, &grant, doc) {
+                            error!("Writing studio: failed to clean article editor copy: {e}");
+                        }
+                    }
+                    if self.doc_id.as_deref() == Some(pending.id.as_str()) {
+                        self.doc_id = None;
+                        self.task_id = None;
+                        self.show(cx, Page::Library);
+                    }
+                    self.status(cx, tr("Document deleted"));
+                }
+            }
+            PendingDeleteKind::Task => {
+                let removed = mutate(&self.grant, |s| {
+                    let r = s.delete_task(&pending.id);
+                    if r {
+                        s.log(&pending.id, "delete", "用户确认删除任务历史".into());
+                    }
+                    r
+                });
+                if removed {
+                    if let Err(e) = storage::delete_decisions_for(root, &grant, &[pending.id.clone()]) {
+                        error!("Writing studio: failed to clean decisions: {e}");
+                        self.status(
+                            cx,
+                            &format!("{}: {e}", tr("Delete left orphan audit entries")),
+                        );
+                    } else {
+                        self.status(cx, tr("Task deleted"));
+                    }
+                    if self.task_id.as_deref() == Some(pending.id.as_str()) {
+                        self.task_id = None;
+                    }
+                }
+            }
+        }
+        self.hide_delete_overlay(cx);
+    }
+
     /// Reports to the room in focus as a plain message from the user's own
     /// client. The app never holds an access token: it goes through the
     /// host's client after the grant's publish capability check.
@@ -1176,6 +1358,17 @@ impl Widget for WritingPanel {
                     }
                     break;
                 }
+                if item.button(cx, ids!(doc_delete)).clicked(actions) {
+                    let (id, label) = studio(|s| {
+                        let d = s.documents.get(index)?;
+                        Some((d.id.clone(), d.title.clone()))
+                    })
+                    .unwrap_or_default();
+                    if !id.is_empty() {
+                        self.show_delete_overlay(cx, PendingDeleteKind::Document, &id, &label);
+                    }
+                    break;
+                }
             }
             for (index, item) in self.portal_list(cx, ids!(task_list)).items_with_actions(actions) {
                 if item.as_navigation_bar_button().clicked(actions) {
@@ -1192,6 +1385,30 @@ impl Widget for WritingPanel {
                     }
                     break;
                 }
+                if item.button(cx, ids!(task_delete)).clicked(actions) {
+                    let (id, label) = studio(|s| {
+                        let doc_id = self.doc_id.as_ref()?;
+                        let mut tasks = s.tasks_of(doc_id);
+                        tasks.reverse();
+                        let task = tasks.get(index)?;
+                        Some((task.id.clone(), task.request.clone()))
+                    })
+                    .unwrap_or_default();
+                    if !id.is_empty() {
+                        self.show_delete_overlay(cx, PendingDeleteKind::Task, &id, &label);
+                    }
+                    break;
+                }
+            }
+            // Delete-confirm overlay buttons: confirm runs the cascade, cancel
+            // hides the overlay without touching state.
+            if self.button(cx, ids!(confirm_cancel)).clicked(actions) {
+                self.hide_delete_overlay(cx);
+                return;
+            }
+            if self.button(cx, ids!(confirm_delete)).clicked(actions) {
+                self.confirm_pending_delete(cx);
+                return;
             }
             if self.button(cx, ids!(new_doc)).clicked(actions) {
                 let id = mutate(&self.grant, |s| {
@@ -1505,6 +1722,24 @@ impl WritingPanelRef {
                 panel.owner = None;
                 cx.stop_timer(panel.sync_timer);
                 modal.close(cx);
+            }
+            // Delete flows: the in-panel buttons call the helpers directly,
+            // these variants are the programmatic entry points (e.g. a future
+            // keyboard shortcut or remote trigger). They reuse the same
+            // overlay + confirm path so the cascade stays in one place.
+            WritingAction::RequestDeleteDocument(id) => {
+                let label = studio(|s| s.document(&id).map(|d| d.title.clone())).unwrap_or_default();
+                panel.show_delete_overlay(cx, PendingDeleteKind::Document, &id, &label);
+            }
+            WritingAction::RequestDeleteTask(id) => {
+                let label = studio(|s| s.task(&id).map(|t| t.request.clone())).unwrap_or_default();
+                panel.show_delete_overlay(cx, PendingDeleteKind::Task, &id, &label);
+            }
+            WritingAction::ConfirmDeleteDocument(_) | WritingAction::ConfirmDeleteTask(_) => {
+                panel.confirm_pending_delete(cx);
+            }
+            WritingAction::CancelDelete => {
+                panel.hide_delete_overlay(cx);
             }
         }
     }
