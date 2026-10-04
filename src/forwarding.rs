@@ -177,37 +177,37 @@ script_mod! {
         visible: false width: Fill height: Fit
         open_bundle := NavigationBarButton {
             width: Fill height: Fit padding: 14 flow: Down spacing: 8
-            draw_bg +: {color_hover: #xf0f0f0 color_active: #xf0f0f0 border_radius: 5}
-            title := Label {width: Fill max_lines: 2 draw_text +: {color: #x191919 text_style: theme.font_bold {font_size: 12}}}
-            preview := Label {width: Fill max_lines: 3 text_overflow: Ellipsis draw_text +: {color: #x888888 text_style: theme.font_regular {font_size: 10}}}
-            Label {text: #(crate::i18n::tr("Chat history  ›")) i18n_text: "Chat history  ›" draw_text +: {color: #x576b95 text_style: theme.font_regular {font_size: 10}}}
+            draw_bg +: {color_hover: mod.widgets.RINX_HOVER color_active: mod.widgets.RINX_HOVER border_radius: 5}
+            title := Label {width: Fill max_lines: 2 draw_text +: {color: mod.widgets.RINX_INK text_style: theme.font_bold {font_size: (12 * mod.widgets.RINX_TEXT_SCALE)}}}
+            preview := Label {width: Fill max_lines: 3 text_overflow: Ellipsis draw_text +: {color: mod.widgets.RINX_MUTED text_style: theme.font_regular {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}}}
+            Label {text: #(crate::i18n::tr("Chat history  ›")) i18n_text: "Chat history  ›" draw_text +: {color: mod.widgets.RINX_ACCENT text_style: theme.font_regular {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}}}
         }
     }
     mod.widgets.ForwardPanel = #(ForwardPanel::register_widget(vm)) {
         ..mod.widgets.SolidView
         width: Fill height: Fill flow: Down
         padding: Inset{top: mod.widgets.SAFE_INSET_PAD_TOP + #(CAPTION_PADDING) bottom: mod.widgets.SAFE_INSET_PAD_BOTTOM}
-        draw_bg.color: #xededed
+        draw_bg.color: mod.widgets.RINX_PAGE
         header := DetailHeader {title.text: #(crate::i18n::tr("Select Messages")) title.i18n_text: "Select Messages"}
-        summary := Label {width: Fill height: Fit padding: 12 flow: Flow.Right{wrap: true} draw_text +: {color: #x576b95 text_style: theme.font_regular {font_size: 10}}}
+        summary := Label {width: Fill height: Fit padding: 12 flow: Flow.Right{wrap: true} draw_text +: {color: mod.widgets.RINX_ACCENT text_style: theme.font_regular {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}}}
         messages_view := View {
             width: Fill height: Fill
         message_list := PortalList {
             width: Fill height: Fill
             Entry := NavigationBarButton {
                 width: Fill height: 100 padding: 12 flow: Right spacing: 12 align: Align{y: 0.5}
-                draw_bg +: {color_hover: #xffffff color_active: #xd9f6e5 border_radius: 0}
-                choice := Label {width: 22 draw_text +: {color: #x07a858 text_style.font_size: 15}}
+                draw_bg +: {color_hover: mod.widgets.RINX_SURFACE color_active: mod.widgets.RINX_SELECTED border_radius: 0}
+                choice := Label {width: 22 draw_text +: {color: mod.widgets.RINX_ACCENT text_style.font_size: (15 * mod.widgets.RINX_TEXT_SCALE)}}
                 text_content := View {width: Fill height: Fill flow: Down spacing: 8
-                    sender := Label {width: Fill max_lines: 1 text_overflow: Ellipsis draw_text +: {color: #x576b95 text_style.font_size: 11}}
-                    body := Label {width: Fill max_lines: 2 text_overflow: Ellipsis draw_text +: {color: #x191919 text_style.font_size: 11}}
+                    sender := Label {width: Fill max_lines: 1 text_overflow: Ellipsis draw_text +: {color: mod.widgets.RINX_ACCENT text_style.font_size: (11 * mod.widgets.RINX_TEXT_SCALE)}}
+                    body := Label {width: Fill max_lines: 2 text_overflow: Ellipsis draw_text +: {color: mod.widgets.RINX_INK text_style.font_size: (11 * mod.widgets.RINX_TEXT_SCALE)}}
                 }
             }
             History := NavigationBarButton {
                 width: Fill height: Fit padding: 16 flow: Down spacing: 8
-                draw_bg +: {color_hover: #xffffff color_active: #xffffff border_radius: 0}
-                sender := Label {width: Fill flow: Flow.Right{wrap: true} draw_text +: {color: #x576b95 text_style.font_size: 11}}
-                body := Label {width: Fill flow: Flow.Right{wrap: true} draw_text +: {color: #x191919 text_style.font_size: 11}}
+                draw_bg +: {color_hover: mod.widgets.RINX_SURFACE color_active: mod.widgets.RINX_SURFACE border_radius: 0}
+                sender := Label {width: Fill flow: Flow.Right{wrap: true} draw_text +: {color: mod.widgets.RINX_ACCENT text_style.font_size: (11 * mod.widgets.RINX_TEXT_SCALE)}}
+                body := Label {width: Fill flow: Flow.Right{wrap: true} draw_text +: {color: mod.widgets.RINX_INK text_style.font_size: (11 * mod.widgets.RINX_TEXT_SCALE)}}
             }
         }
         }
@@ -223,13 +223,13 @@ script_mod! {
                 width: Fill height: Fill
                 Chat := NavigationBarButton {
                     width: Fill height: 56 padding: 12 flow: Right spacing: 12 align: Align{y: 0.5}
-                    draw_bg +: {color_hover: #xffffff color_active: #xd9f6e5 border_radius: 0}
-                    choice := Label {width: 22 draw_text +: {color: #x07a858 text_style.font_size: 15}}
-                    name := Label {width: Fill max_lines: 1 text_overflow: Ellipsis draw_text +: {color: #x191919 text_style.font_size: 12}}
+                    draw_bg +: {color_hover: mod.widgets.RINX_SURFACE color_active: mod.widgets.RINX_SELECTED border_radius: 0}
+                    choice := Label {width: 22 draw_text +: {color: mod.widgets.RINX_ACCENT text_style.font_size: (15 * mod.widgets.RINX_TEXT_SCALE)}}
+                    name := Label {width: Fill max_lines: 1 text_overflow: Ellipsis draw_text +: {color: mod.widgets.RINX_INK text_style.font_size: (12 * mod.widgets.RINX_TEXT_SCALE)}}
                 }
             }
         }
-        forward_status := Label {width: Fill height: Fit padding: 12 flow: Flow.Right{wrap: true} draw_text +: {color: #x888888 text_style.font_size: 10}}
+        forward_status := Label {width: Fill height: Fit padding: 12 flow: Flow.Right{wrap: true} draw_text +: {color: mod.widgets.RINX_MUTED text_style.font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}}
         proceed := RobrixPositiveIconButton {
             text: #(crate::i18n::tr("Choose Recipients")) i18n_text: "Choose Recipients" width: Fill height: 48 margin: 12 spacing: 0 align: Align{x: 0.5 y: 0.5}
             icon_walk: Walk{width: 0 height: 0}

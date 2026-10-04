@@ -41,9 +41,9 @@ script_mod! {
                 flow: Flow.Right{wrap: true}
                 margin: Inset{left: 14, top: 0, bottom: 0, right: 5}
                 padding: 0,
-                font_size: 11,
-                font_color: #666,
-                text_style_normal: MESSAGE_TEXT_STYLE { font_size: 11 },
+                font_size: (11 * mod.widgets.RINX_TEXT_SCALE),
+                font_color: mod.widgets.RINX_MUTED,
+                text_style_normal: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                 body: #(crate::i18n::tr("<p>Show workflow commands in coordinator rooms, and /task and /thread in agent rooms. Approval cards remain available when this is off.</p>"))
                 i18n_body: "<p>Show workflow commands in coordinator rooms, and /task and /thread in agent rooms. Approval cards remain available when this is off.</p>"
             }

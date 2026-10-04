@@ -110,7 +110,7 @@ script_mod! {
         }
         draw_icon +: {
             svg: (ICON_ZOOM_OUT),
-            color: #000
+            color: mod.widgets.RINX_INK
         }
         icon_walk: Walk{width: 27, height: 27}
     }
@@ -178,7 +178,7 @@ script_mod! {
                     width: Fit, height: 30,
                     text: #(crate::i18n::tr("Loading image...")) i18n_text: "Loading image...",
                     draw_text +: {
-                        text_style: REGULAR_TEXT {font_size: 14},
+                        text_style: REGULAR_TEXT {font_size: (14 * mod.widgets.RINX_TEXT_SCALE)},
                         color: (COLOR_TEXT)
                     }
                 }
@@ -215,7 +215,7 @@ script_mod! {
                         text_view +: {
                             text +: {
                                 draw_text +: {
-                                    text_style: TITLE_TEXT { font_size: 15.0 }
+                                    text_style: TITLE_TEXT { font_size: (15.0 * mod.widgets.RINX_TEXT_SCALE) }
                                 }
                             }
                         }
@@ -225,7 +225,7 @@ script_mod! {
                         height: Fit,
                         ts_label := Label {
                             draw_text +: {
-                                text_style: theme.font_regular {font_size: 9.5},
+                                text_style: theme.font_regular {font_size: (9.5 * mod.widgets.RINX_TEXT_SCALE)},
                                 color: (COLOR_TEXT)
                             }
                         }
@@ -248,7 +248,7 @@ script_mod! {
                         max_lines: 2
                         text_overflow: Ellipsis
                         draw_text +: {
-                            text_style: REGULAR_TEXT {font_size: 12},
+                            text_style: REGULAR_TEXT {font_size: (12 * mod.widgets.RINX_TEXT_SCALE)},
                             color: (COLOR_TEXT)
                         }
                     }
@@ -269,7 +269,7 @@ script_mod! {
                         max_lines: 2
                         text_overflow: Ellipsis
                         draw_text +: {
-                            text_style: REGULAR_TEXT {font_size: 13},
+                            text_style: REGULAR_TEXT {font_size: (13 * mod.widgets.RINX_TEXT_SCALE)},
                             color: (COLOR_TEXT),
                         }
                     }

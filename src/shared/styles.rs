@@ -73,41 +73,42 @@ script_mod! {
     mod.widgets.ICON_FILE             = crate_resource("self://resources/icons/file.svg")
 
     mod.widgets.TITLE_TEXT = theme.font_regular {
-        font_size: (13),
+        font_size: (13 * mod.widgets.RINX_TEXT_SCALE),
     }
 
     mod.widgets.REGULAR_TEXT = theme.font_regular {
-        font_size: (10),
+        font_size: (10 * mod.widgets.RINX_TEXT_SCALE),
     }
 
     mod.widgets.BOLD_TEXT = theme.font_bold {
-        font_size: (13),
+        font_size: (13 * mod.widgets.RINX_TEXT_SCALE),
     }
 
     mod.widgets.TEXT_SUB = theme.font_regular {
-        font_size: (10),
+        font_size: (10 * mod.widgets.RINX_TEXT_SCALE),
     }
 
-    mod.widgets.USERNAME_FONT_SIZE = 11
+    mod.widgets.USERNAME_FONT_SIZE = 11 * mod.widgets.RINX_TEXT_SCALE
 
-    mod.widgets.USERNAME_TEXT_COLOR = #x2
+    mod.widgets.USERNAME_TEXT_COLOR = mod.widgets.RINX_INK
     mod.widgets.USERNAME_TEXT_STYLE = theme.font_bold {
         font_size: (mod.widgets.USERNAME_FONT_SIZE),
     }
 
-    mod.widgets.COLOR_ROBRIX_PURPLE = #572DCC; // the purple color from the Rinx logo
+    mod.widgets.COLOR_ROBRIX_PURPLE = #572DCC; // the purple color from the Rinx logo // theme-content: stable brand or avatar identity.
 
-    mod.widgets.COLOR_ROBRIX_CYAN = #05CDC7; // the cyan color from the Rinx logo
+    mod.widgets.COLOR_ROBRIX_CYAN = #05CDC7; // the cyan color from the Rinx logo // theme-content: stable brand or avatar identity.
 
-    mod.widgets.TYPING_NOTICE_TEXT_COLOR = #121570
+    mod.widgets.TYPING_NOTICE_TEXT_COLOR = mod.widgets.RINX_MUTED
 
 
-    mod.widgets.MESSAGE_FONT_SIZE = 11
-    mod.widgets.REDACTED_MESSAGE_FONT_SIZE = 10
+    mod.widgets.MESSAGE_FONT_SIZE = mod.widgets.RINX_BODY_SIZE
+    mod.widgets.MOBILE_MESSAGE_FONT_SIZE = 12.5 * mod.widgets.RINX_TEXT_SCALE
+    mod.widgets.REDACTED_MESSAGE_FONT_SIZE = 10 * mod.widgets.RINX_TEXT_SCALE
 
-    mod.widgets.MESSAGE_TEXT_COLOR = #x333
+    mod.widgets.MESSAGE_TEXT_COLOR = mod.widgets.RINX_INK
     // notices (automated messages from bots) use a lighter color
-    mod.widgets.COLOR_MESSAGE_NOTICE_TEXT = #x888
+    mod.widgets.COLOR_MESSAGE_NOTICE_TEXT = mod.widgets.RINX_MUTED
     mod.widgets.MESSAGE_TEXT_LINE_SPACING = 1.3
     // This font should only be used for plaintext labels. Don't use this for Html content,
     // as the Html widget sets different fonts for different text styles (e.g., bold, italic).
@@ -116,96 +117,94 @@ script_mod! {
         line_spacing: (mod.widgets.MESSAGE_TEXT_LINE_SPACING),
     }
 
-    mod.widgets.MESSAGE_REPLY_PREVIEW_FONT_SIZE = 9.5
+    mod.widgets.MESSAGE_REPLY_PREVIEW_FONT_SIZE = mod.widgets.RINX_META_SIZE
 
 
 
-    mod.widgets.SMALL_STATE_FONT_SIZE = 9.0
+    mod.widgets.SMALL_STATE_FONT_SIZE = 9.0 * mod.widgets.RINX_TEXT_SCALE
 
 
-    mod.widgets.SMALL_STATE_TEXT_COLOR = #x888
+    mod.widgets.SMALL_STATE_TEXT_COLOR = mod.widgets.RINX_MUTED
     mod.widgets.SMALL_STATE_TEXT_STYLE = theme.font_regular {
         font_size: (mod.widgets.SMALL_STATE_FONT_SIZE),
     }
 
-    mod.widgets.TIMESTAMP_FONT_SIZE = 8.5
+    mod.widgets.TIMESTAMP_FONT_SIZE = 8.5 * mod.widgets.RINX_TEXT_SCALE
 
-    mod.widgets.TIMESTAMP_TEXT_COLOR = #x999
+    mod.widgets.TIMESTAMP_TEXT_COLOR = mod.widgets.RINX_MUTED
     mod.widgets.TIMESTAMP_TEXT_STYLE = theme.font_regular {
         font_size: (mod.widgets.TIMESTAMP_FONT_SIZE),
     }
 
-    mod.widgets.ROOM_NAME_TEXT_COLOR = #x0
+    mod.widgets.ROOM_NAME_TEXT_COLOR = mod.widgets.RINX_INK
 
-    mod.widgets.COLOR_META = #xccc
+    mod.widgets.COLOR_META = mod.widgets.RINX_MUTED
 
-    mod.widgets.COLOR_DIVIDER = #00000018
+    mod.widgets.COLOR_DIVIDER = mod.widgets.RINX_BORDER
 
-    mod.widgets.COLOR_DIVIDER_DARK = #00000044
+    mod.widgets.COLOR_DIVIDER_DARK = mod.widgets.RINX_BORDER
 
-    mod.widgets.COLOR_FG_ACCEPT_GREEN = #138808
-    mod.widgets.COLOR_BG_ACCEPT_GREEN = #F0FFF0
-    mod.widgets.COLOR_FG_DANGER_RED = #DC0005
-    mod.widgets.COLOR_BG_DANGER_RED = #FFF0F0
-    mod.widgets.COLOR_FG_DISABLED = #B3B3B3
-    mod.widgets.COLOR_BG_DISABLED = #E0E0E0
+    mod.widgets.COLOR_FG_ACCEPT_GREEN = mod.widgets.RINX_SUCCESS_FG
+    mod.widgets.COLOR_BG_ACCEPT_GREEN = mod.widgets.RINX_SUCCESS_BG
+    mod.widgets.COLOR_FG_DANGER_RED = mod.widgets.RINX_DANGER_FG
+    mod.widgets.COLOR_BG_DANGER_RED = mod.widgets.RINX_DANGER_BG
+    mod.widgets.COLOR_FG_DISABLED = mod.widgets.RINX_DISABLED
+    mod.widgets.COLOR_BG_DISABLED = mod.widgets.RINX_FIELD
     // Informational accent (mirrors RBX_INFO_FG; RBX_* is registered after this file).
-    mod.widgets.COLOR_INFO_BLUE = #1C67B0
-    mod.widgets.COLOR_WARNING_YELLOW = #fcdb03
-    mod.widgets.COLOR_TEXT_WARNING_NOT_FOUND = #953800
+    mod.widgets.COLOR_INFO_BLUE = mod.widgets.RINX_INFO_FG
+    mod.widgets.COLOR_WARNING_YELLOW = mod.widgets.RINX_WARNING_FG
+    mod.widgets.COLOR_TEXT_WARNING_NOT_FOUND = mod.widgets.RINX_WARNING_FG
 
-    // mod.widgets.COLOR_SELECT_TEXT = #A6CDFE
-    // mod.widgets.COLOR_SELECT_TEXT = #B5D8FE
-    // mod.widgets.COLOR_SELECT_TEXT = #6BB1FD88 // results in #B5D8FE when mixed halfway with white
-    // mod.widgets.COLOR_SELECT_TEXT = #57A3FB44
+    // mod.widgets.COLOR_SELECT_TEXT = mod.widgets.RINX_SELECTED
+    // mod.widgets.COLOR_SELECT_TEXT = mod.widgets.RINX_SELECTED
+    // mod.widgets.COLOR_SELECT_TEXT = mod.widgets.RINX_SELECTED // results in #B5D8FE when mixed halfway with white
+    // mod.widgets.COLOR_SELECT_TEXT = mod.widgets.RINX_SELECTED
     // 0x4C is ~30% opacity , which results in #B5D8FE when atop pure white
     // But i like the look of 0x33 20% opacity a little better.
-    mod.widgets.COLOR_SELECT_TEXT = #087DFC33
-    // mod.widgets.COLOR_SELECT_TEXT = #4D9BFD88 // results in #A6CDFE when mixed halfway with white
+    mod.widgets.COLOR_SELECT_TEXT = mod.widgets.RINX_SELECTED
+    // mod.widgets.COLOR_SELECT_TEXT = mod.widgets.RINX_SELECTED // results in #A6CDFE when mixed halfway with white
 
-    mod.widgets.COLOR_PRIMARY = #ffffff
+    mod.widgets.COLOR_PRIMARY = mod.widgets.RINX_SURFACE
 
-    mod.widgets.COLOR_PRIMARY_DARKER = #ffffff
-    mod.widgets.COLOR_SECONDARY = #E3E3E3
-    mod.widgets.COLOR_SECONDARY_DARKER = #C8C8C8
+    mod.widgets.COLOR_PRIMARY_DARKER = mod.widgets.RINX_SURFACE
+    mod.widgets.COLOR_SECONDARY = mod.widgets.RINX_FIELD
+    mod.widgets.COLOR_SECONDARY_DARKER = mod.widgets.RINX_BORDER
 
     // What a rooms list entry or timeline message darkens to on hover or press.
-    mod.widgets.COLOR_LIST_ITEM_BG_HOVER = #f4f4f4
+    mod.widgets.COLOR_LIST_ITEM_BG_HOVER = mod.widgets.RINX_HOVER
 
-    // The primary/CTA/focus colour: the robrix2 accent teal. Literals mirroring
-    // RBX_ACCENT / RBX_ACCENT_HOVER — this file is registered before
-    // design_tokens.rs, so `RBX_*` is not resolvable here.
-    mod.widgets.COLOR_ACTIVE_PRIMARY = #0D7988
+    // Legacy aliases resolve from the same host roles as the newer RBX names.
+    mod.widgets.COLOR_ACTIVE_PRIMARY = mod.widgets.RINX_ACCENT
 
-    mod.widgets.COLOR_ACTIVE_PRIMARY_DARKER = #0A6675
+    mod.widgets.COLOR_ACTIVE_PRIMARY_DARKER = mod.widgets.RINX_ACCENT_HOVER
 
-    mod.widgets.COLOR_BG_PREVIEW = #F0F5FF
+    mod.widgets.COLOR_BG_PREVIEW = mod.widgets.RINX_SELECTED
 
-    mod.widgets.COLOR_BG_PREVIEW_HOVER = #CDEDDF
+    mod.widgets.COLOR_BG_PREVIEW_HOVER = mod.widgets.RINX_HOVER
 
-    mod.widgets.COLOR_AVATAR_BG = #52b2ac
+    mod.widgets.COLOR_AVATAR_BG = mod.widgets.RINX_ACCENT
 
-    mod.widgets.COLOR_AVATAR_BG_IDLE = #d8d8d8
+    mod.widgets.COLOR_AVATAR_BG_IDLE = mod.widgets.RINX_FIELD
 
 
     // Unread badge fills, mirroring RBX_DANGER_FG / RBX_ACCENT / RBX_FG_TERTIARY
     // (RBX_* is registered after this file, so literals are used here).
-    mod.widgets.COLOR_UNREAD_BADGE_MENTIONS = #B93429;
-    mod.widgets.COLOR_UNREAD_BADGE_MARKED = #0D7988;
-    mod.widgets.COLOR_UNREAD_BADGE_MESSAGES = #687283
+    mod.widgets.COLOR_UNREAD_BADGE_MENTIONS = mod.widgets.RINX_DANGER_FG;
+    mod.widgets.COLOR_UNREAD_BADGE_MARKED = mod.widgets.RINX_ACCENT;
+    mod.widgets.COLOR_UNREAD_BADGE_MESSAGES = mod.widgets.RINX_MUTED
 
 
-    mod.widgets.COLOR_TEXT_IDLE = #d8d8d8
+    mod.widgets.COLOR_TEXT_IDLE = mod.widgets.RINX_MUTED
 
 
-    mod.widgets.COLOR_TEXT = #1C274C
-    mod.widgets.COLOR_TEXT_INPUT_IDLE = #d8d8d8
+    mod.widgets.COLOR_TEXT = mod.widgets.RINX_INK
+    mod.widgets.COLOR_TEXT_INPUT_IDLE = mod.widgets.RINX_MUTED
 
     mod.widgets.COLOR_TRANSPARENT = #00000000
 
-    mod.widgets.COLOR_WARNING = #fcdb03
+    mod.widgets.COLOR_WARNING = mod.widgets.RINX_WARNING_FG
 
-    mod.widgets.COLOR_LINK_HOVER = #21B070
+    mod.widgets.COLOR_LINK_HOVER = mod.widgets.RINX_ACCENT_HOVER
 
 
     // Use an even value for this, not odd, such that it can be divided in half,
@@ -220,35 +219,35 @@ script_mod! {
     mod.widgets.COLOR_NAVIGATION_TAB_FG_HOVER = (mod.widgets.COLOR_TEXT)
     mod.widgets.COLOR_NAVIGATION_TAB_FG_ACTIVE = (mod.widgets.COLOR_TEXT)
     mod.widgets.COLOR_NAVIGATION_TAB_BG = (mod.widgets.COLOR_SECONDARY)
-    mod.widgets.COLOR_NAVIGATION_TAB_BG_HOVER = (mod.widgets.COLOR_SECONDARY * 0.85)
-    mod.widgets.COLOR_NAVIGATION_TAB_BG_ACTIVE = #9
+    mod.widgets.COLOR_NAVIGATION_TAB_BG_HOVER = mod.widgets.RINX_HOVER
+    mod.widgets.COLOR_NAVIGATION_TAB_BG_ACTIVE = mod.widgets.RINX_SELECTED
 
-    mod.widgets.COLOR_IMAGE_VIEWER_BACKGROUND = #333333CC // 80% Opacity
+    mod.widgets.COLOR_IMAGE_VIEWER_BACKGROUND = #333333CC // 80% Opacity // theme-content: fixed overlay over arbitrary media.
 
-    mod.widgets.COLOR_IMAGE_VIEWER_META_BACKGROUND = #E8E8E8
+    mod.widgets.COLOR_IMAGE_VIEWER_META_BACKGROUND = mod.widgets.RINX_FIELD
 
     // Layout spacing constants (4px grid)
-    mod.widgets.SPACE_XS  = 4
-    mod.widgets.SPACE_SM  = 8
-    mod.widgets.SPACE_MD  = 12
-    mod.widgets.SPACE_LG  = 16
-    mod.widgets.SPACE_XL  = 20
-    mod.widgets.SPACE_XXL = 24
+    mod.widgets.SPACE_XS  = 4 * mod.widgets.RINX_SPACING
+    mod.widgets.SPACE_SM  = 8 * mod.widgets.RINX_SPACING
+    mod.widgets.SPACE_MD  = 12 * mod.widgets.RINX_SPACING
+    mod.widgets.SPACE_LG  = 16 * mod.widgets.RINX_SPACING
+    mod.widgets.SPACE_XL  = 20 * mod.widgets.RINX_SPACING
+    mod.widgets.SPACE_XXL = 24 * mod.widgets.RINX_SPACING
 
     // Border radius constants
-    mod.widgets.RADIUS_SM = 4.0
-    mod.widgets.RADIUS_MD = 6.0
-    mod.widgets.RADIUS_LG = 8.0
+    mod.widgets.RADIUS_SM = theme.corner_radius * 0.67
+    mod.widgets.RADIUS_MD = theme.corner_radius * 1
+    mod.widgets.RADIUS_LG = theme.corner_radius * 1.33
 
     // Settings screen colors
-    mod.widgets.COLOR_DROPDOWN_TEXT = #x333333
-    mod.widgets.COLOR_DROPDOWN_BORDER = #xC8D9F2
-    mod.widgets.COLOR_DROPDOWN_POPUP_BORDER = #xD3E1F6
-    mod.widgets.COLOR_DROPDOWN_ARROW = #x888888
-    mod.widgets.COLOR_INACTIVE_BORDER = #xBBBBBB
-    mod.widgets.COLOR_DESCRIPTION_TEXT = #x7A7A7A
-    mod.widgets.COLOR_FIELD_LABEL = #x555555
-    mod.widgets.COLOR_DISABLED_TEXT = #x999999
+    mod.widgets.COLOR_DROPDOWN_TEXT = mod.widgets.RINX_INK
+    mod.widgets.COLOR_DROPDOWN_BORDER = mod.widgets.RINX_BORDER
+    mod.widgets.COLOR_DROPDOWN_POPUP_BORDER = mod.widgets.RINX_BORDER
+    mod.widgets.COLOR_DROPDOWN_ARROW = mod.widgets.RINX_MUTED
+    mod.widgets.COLOR_INACTIVE_BORDER = mod.widgets.RINX_BORDER
+    mod.widgets.COLOR_DESCRIPTION_TEXT = mod.widgets.RINX_MUTED
+    mod.widgets.COLOR_FIELD_LABEL = mod.widgets.RINX_MUTED
+    mod.widgets.COLOR_DISABLED_TEXT = mod.widgets.RINX_MUTED
 
     // Settings screen layout
     mod.widgets.SETTINGS_CONTENT_PADDING = 16
@@ -263,7 +262,7 @@ script_mod! {
     // The font size used for regular (non-title, non-subsection) text
     // within any settings screen (e.g., dropdown labels, radio/toggle
     // labels, inline helper text inside a control).
-    mod.widgets.SETTINGS_REGULAR_FONT_SIZE = 11
+    mod.widgets.SETTINGS_REGULAR_FONT_SIZE = 11 * mod.widgets.RINX_TEXT_SCALE
     mod.widgets.SETTINGS_REGULAR_TEXT_STYLE = theme.font_regular {
         font_size: (mod.widgets.SETTINGS_REGULAR_FONT_SIZE),
     }
@@ -346,26 +345,26 @@ script_mod! {
             }
             draw_bg +: { color: (mod.widgets.COLOR_TRANSPARENT) }
 
-            // Light mode syntax highlighting (inspired by GitHub Light / VS Code Light+)
+            // The plain-code preview inherits the reader foreground in both modes.
             token_colors +: {
-                whitespace: #x6a737d,          // Gray for whitespace markers
-                delimiter: #x24292e,           // Dark gray for punctuation
-                delimiter_highlight: #x005cc5, // Blue for highlighted delimiters
-                error_decoration: #xcb2431,    // Red for errors
-                warning_decoration: #xb08800,  // Dark yellow/amber for warnings
+                whitespace: mod.widgets.RINX_CODE_FG,          // Gray for whitespace markers
+                delimiter: mod.widgets.RINX_CODE_FG,           // Dark gray for punctuation
+                delimiter_highlight: mod.widgets.RINX_CODE_FG, // Blue for highlighted delimiters
+                error_decoration: mod.widgets.RINX_CODE_FG,    // Red for errors
+                warning_decoration: mod.widgets.RINX_CODE_FG,  // Dark yellow/amber for warnings
 
-                unknown: #x24292e,             // Default dark text
-                branch_keyword: #xd73a49,      // Red/pink for keywords (if, else, match)
-                constant: #x005cc5,            // Blue for constants
-                identifier: #x24292e,          // Dark gray for variables
-                loop_keyword: #xd73a49,        // Red/pink for loop keywords
-                number: #x005cc5,              // Blue for numbers
-                other_keyword: #xd73a49,       // Red/pink for other keywords
-                punctuator: #x24292e,          // Dark gray for punctuation
-                string: #x22863a,              // Green for strings
-                function: #x6f42c1,            // Purple for functions
-                typename: #xe36209,            // Orange for types
-                comment: #x6a737d,             // Gray for comments
+                unknown: mod.widgets.RINX_CODE_FG,             // Default dark text
+                branch_keyword: mod.widgets.RINX_CODE_FG,      // Red/pink for keywords (if, else, match)
+                constant: mod.widgets.RINX_CODE_FG,            // Blue for constants
+                identifier: mod.widgets.RINX_CODE_FG,          // Dark gray for variables
+                loop_keyword: mod.widgets.RINX_CODE_FG,        // Red/pink for loop keywords
+                number: mod.widgets.RINX_CODE_FG,              // Blue for numbers
+                other_keyword: mod.widgets.RINX_CODE_FG,       // Red/pink for other keywords
+                punctuator: mod.widgets.RINX_CODE_FG,          // Dark gray for punctuation
+                string: mod.widgets.RINX_CODE_FG,              // Green for strings
+                function: mod.widgets.RINX_CODE_FG,            // Purple for functions
+                typename: mod.widgets.RINX_CODE_FG,            // Orange for types
+                comment: mod.widgets.RINX_CODE_FG,             // Gray for comments
             }
         }
     }
@@ -374,64 +373,28 @@ script_mod! {
     mod.widgets.PlainCodeView = mod.widgets.LightCodeView {
         editor +: {
             token_colors +: {
-                whitespace: #x24292e,
-                delimiter_highlight: #x24292e,
-                error_decoration: #x24292e,
-                warning_decoration: #x24292e,
-                branch_keyword: #x24292e,
-                constant: #x24292e,
-                loop_keyword: #x24292e,
-                number: #x24292e,
-                other_keyword: #x24292e,
-                string: #x24292e,
-                function: #x24292e,
-                typename: #x24292e,
-                comment: #x24292e,
+                whitespace: mod.widgets.RINX_CODE_FG,
+                delimiter_highlight: mod.widgets.RINX_CODE_FG,
+                error_decoration: mod.widgets.RINX_CODE_FG,
+                warning_decoration: mod.widgets.RINX_CODE_FG,
+                branch_keyword: mod.widgets.RINX_CODE_FG,
+                constant: mod.widgets.RINX_CODE_FG,
+                loop_keyword: mod.widgets.RINX_CODE_FG,
+                number: mod.widgets.RINX_CODE_FG,
+                other_keyword: mod.widgets.RINX_CODE_FG,
+                string: mod.widgets.RINX_CODE_FG,
+                function: mod.widgets.RINX_CODE_FG,
+                typename: mod.widgets.RINX_CODE_FG,
+                comment: mod.widgets.RINX_CODE_FG,
             }
         }
     }
 }
 
-
-/// #FFFFFF
-pub const COLOR_PRIMARY:               Vec4 = vec4(1.0, 1.0, 1.0, 1.0);
-/// The primary/CTA/focus colour, the accent teal (was the legacy `#0F88FE`).
-pub const COLOR_ACTIVE_PRIMARY:        Vec4 = crate::shared::design_tokens::RBX_ACCENT;
-pub const COLOR_ACTIVE_PRIMARY_DARKER: Vec4 = crate::shared::design_tokens::RBX_ACCENT_HOVER;
-/// #138808
-pub const COLOR_FG_ACCEPT_GREEN:       Vec4 = vec4(0.074, 0.533, 0.031, 1.0);
-/// #F0FFF0
-pub const COLOR_BG_ACCEPT_GREEN:       Vec4 = vec4(0.941, 1.0, 0.941, 1.0);
-/// #B3B3B3
-pub const COLOR_FG_DISABLED:           Vec4 = vec4(0.7, 0.7, 0.7, 1.0);
-/// #E0E0E0
-pub const COLOR_BG_DISABLED:           Vec4 = vec4(0.878, 0.878, 0.878, 1.0);
-/// #1C274C
-pub const COLOR_TEXT:                  Vec4 = vec4(0.11, 0.153, 0.298, 1.0);
-/// #DC0005
-pub const COLOR_FG_DANGER_RED:         Vec4 = vec4(0.863, 0.0, 0.02, 1.0);
-/// #FFF0F0
-pub const COLOR_BG_DANGER_RED:         Vec4 = vec4(1.0, 0.941, 0.941, 1.0);
-/// #572DCC
-pub const COLOR_ROBRIX_PURPLE:         Vec4 = vec4(0.341, 0.176, 0.8, 1.0);
-/// #05CDC7
-pub const COLOR_ROBRIX_CYAN:           Vec4 = vec4(0.031, 0.804, 0.78, 1.0);
-/// #B93429 — mention badge (`RBX_DANGER_FG`).
-pub const COLOR_UNREAD_BADGE_MENTIONS: Vec4 = crate::shared::design_tokens::RBX_DANGER_FG;
-/// #0D7988 — marked-unread badge (`RBX_ACCENT`).
-pub const COLOR_UNREAD_BADGE_MARKED:   Vec4 = crate::shared::design_tokens::RBX_ACCENT;
-/// #687283 — plain unread-count badge (`RBX_FG_TERTIARY`).
-pub const COLOR_UNREAD_BADGE_MESSAGES: Vec4 = crate::shared::design_tokens::RBX_FG_TERTIARY;
-/// #FF6e00
-pub const COLOR_UNKNOWN_ROOM_AVATAR:   Vec4 = vec4(1.0, 0.431, 0.0, 1.0);
-/// #888888
-pub const COLOR_MESSAGE_NOTICE_TEXT:   Vec4 = vec4(0.5, 0.5, 0.5, 1.0);
-/// #953800
-pub const COLOR_TEXT_WARNING_NOT_FOUND: Vec4 = vec4(0.584, 0.219, 0.0, 1.0);
-/// #F0F5FF
-pub const COLOR_BG_PREVIEW:            Vec4 = vec4(0.941, 0.961, 1.0, 1.0);
-/// #CDEDDF
-pub const COLOR_BG_PREVIEW_HOVER:      Vec4 = vec4(0.804, 0.929, 0.875, 1.0);
+// Stable brand/avatar content colors; interface colors live in theme::Snapshot.
+pub const COLOR_ROBRIX_PURPLE: Vec4 = vec4(0.341, 0.176, 0.8, 1.0); // theme-content: stable brand or avatar identity.
+pub const COLOR_ROBRIX_CYAN: Vec4 = vec4(0.031, 0.804, 0.78, 1.0); // theme-content: stable brand or avatar identity.
+pub const COLOR_UNKNOWN_ROOM_AVATAR: Vec4 = vec4(1.0, 0.431, 0.0, 1.0); // theme-content: stable brand or avatar identity.
 
 /// Applies positive (green) button styling to the given button.
 pub fn apply_positive_button_style(cx: &mut Cx, button: &mut ButtonRef) {
@@ -439,8 +402,8 @@ pub fn apply_positive_button_style(cx: &mut Cx, button: &mut ButtonRef) {
         draw_bg +: {
             border_color: mod.widgets.COLOR_FG_ACCEPT_GREEN,
             color: mod.widgets.COLOR_BG_ACCEPT_GREEN,
-            color_hover: #D4EED4,
-            color_down: #B8E0B8,
+            color_hover: mod.widgets.RINX_SUCCESS_BG,
+            color_down: mod.widgets.RINX_SUCCESS_BG,
         }
         draw_text +: {
             color: mod.widgets.COLOR_FG_ACCEPT_GREEN,
@@ -459,8 +422,8 @@ pub fn apply_negative_button_style(cx: &mut Cx, button: &mut ButtonRef) {
         draw_bg +: {
             border_color: mod.widgets.COLOR_FG_DANGER_RED,
             color: mod.widgets.COLOR_BG_DANGER_RED,
-            color_hover: #F0D4D4,
-            color_down: #E0B8B8,
+            color_hover: mod.widgets.RINX_DANGER_BG,
+            color_down: mod.widgets.RINX_DANGER_BG,
         }
         draw_text +: {
             color: mod.widgets.COLOR_FG_DANGER_RED,
@@ -479,8 +442,8 @@ pub fn apply_neutral_button_style(cx: &mut Cx, button: &mut ButtonRef) {
         draw_bg +: {
             border_color: mod.widgets.COLOR_BG_DISABLED,
             color: mod.widgets.COLOR_SECONDARY,
-            color_hover: #D0D0D0,
-            color_down: #C0C0C0,
+            color_hover: mod.widgets.RINX_HOVER,
+            color_down: mod.widgets.RINX_PRESSED,
         }
         draw_text +: {
             color: mod.widgets.COLOR_TEXT,
@@ -499,7 +462,7 @@ pub fn apply_primary_button_style(cx: &mut Cx, button: &mut ButtonRef) {
         draw_bg +: {
             color: mod.widgets.COLOR_ACTIVE_PRIMARY,
             color_hover: mod.widgets.COLOR_ACTIVE_PRIMARY_DARKER,
-            color_down: #0C5DAA,
+            color_down: mod.widgets.RINX_ACCENT_DOWN,
             border_color: #0000,
             border_color_hover: #0000,
             border_color_down: #0000,

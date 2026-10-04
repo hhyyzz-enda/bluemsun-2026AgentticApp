@@ -180,7 +180,7 @@ script_mod! {
                     margin: 0, padding: 0,
                     draw_text +: {
                         color: (mod.widgets.RBX_ACCENT)
-                        text_style: theme.font_bold { font_size: 10.5 }
+                        text_style: theme.font_bold { font_size: (10.5 * mod.widgets.RINX_TEXT_SCALE) }
                     }
                     text: #(crate::i18n::tr("Active"))
                 }
@@ -308,11 +308,11 @@ impl AccountMenu {
                     .is_ok();
             }
             if !drew_image {
-                active_avatar.show_text(cx, None, None, profile.displayable_name());
+                active_avatar.show_user_text(cx, &profile.user_id, profile.displayable_name());
             }
             (profile.displayable_name().to_string(), profile.user_id.to_string())
         } else if let Some(active) = current_user_id() {
-            active_avatar.show_text(cx, None, None, active.as_str());
+            active_avatar.show_user_text(cx, &active, active.as_str());
             (active.to_string(), active.to_string())
         } else {
             active_avatar.show_text(cx, None, None, "");

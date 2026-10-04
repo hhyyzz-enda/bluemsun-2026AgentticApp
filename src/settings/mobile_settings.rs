@@ -24,9 +24,9 @@ script_mod! {
         draw_bg +: {pixel: fn() {
             let sdf = Sdf2d.viewport(self.pos * self.rect_size)
             sdf.box(0.0, 0.0, 46.0, 28.0, 14.0)
-            sdf.fill((#xdcdcdc).mix(#x07c160, self.active))
+            sdf.fill((mod.widgets.RINX_PRESSED).mix(mod.widgets.RINX_ACCENT, self.active))
             sdf.circle(14.0 + 18.0 * self.active, 14.0, 12.0)
-            sdf.fill(#xffffff)
+            sdf.fill(mod.widgets.RINX_SURFACE)
             return sdf.result
         }}
     }
@@ -37,7 +37,7 @@ script_mod! {
     }
     mod.widgets.MobileSettings = #(MobileSettings::register_widget(vm)) {
         ..mod.widgets.SolidView
-        width: Fill height: Fill flow: Down show_bg: true draw_bg.color: #xededed
+        width: Fill height: Fill flow: Down show_bg: true draw_bg.color: mod.widgets.RINX_PAGE
         header := DetailHeader {}
         pages := PageFlip {
             width: Fill height: Fill active_page: @settings
@@ -57,17 +57,17 @@ script_mod! {
                     about_row := DetailRow {title.text: #(crate::i18n::tr("About Rinx")) title.i18n_text: "About Rinx"}
                 }
                 DetailGap {}
-                DetailSection {logout_row := DetailAction {title +: {text: #(crate::i18n::tr("Log Out")) i18n_text: "Log Out" draw_text.color: #x191919}}}
+                DetailSection {logout_row := DetailAction {title +: {text: #(crate::i18n::tr("Log Out")) i18n_text: "Log Out" draw_text.color: mod.widgets.RINX_INK}}}
             }
             personal := ScrollYView {
                 width: Fill height: Fill flow: Down
                 DetailSection {
                     photo_row := NavigationBarButton {
                         width: Fill height: 88 padding: Inset{left: 20 right: 20} spacing: 12 flow: Right align: Align{y: 0.5}
-                        draw_bg +: {color_hover: #xe5e5e5 border_radius: 0}
+                        draw_bg +: {color_hover: mod.widgets.RINX_BORDER border_radius: 0}
                         DetailLabel {width: Fill text: #(crate::i18n::tr("Profile Photo")) i18n_text: "Profile Photo"}
                         photo_thumbnail := DetailAvatar {width: 60 height: 60}
-                        Icon {icon_walk: Walk{width: 7 height: 12} draw_icon +: {svg: crate_resource("self://resources/icons/mobile_chevron_right.svg") color: #xb2b2b2}}
+                        Icon {icon_walk: Walk{width: 7 height: 12} draw_icon +: {svg: crate_resource("self://resources/icons/mobile_chevron_right.svg") color: mod.widgets.RINX_DISABLED}}
                     }
                     DetailDivider {}
                     name_row := DetailRow {title.text: #(crate::i18n::tr("Name")) title.i18n_text: "Name"}
@@ -82,8 +82,8 @@ script_mod! {
                 DetailSection {
                     name_input := RobrixTextInput {
                         width: Fill height: 56 padding: Inset{left: 20 right: 20 top: 16 bottom: 16}
-                        empty_text: #(crate::i18n::tr("Name")) i18n_empty_text: "Name" draw_text +: {color: #x191919 text_style: theme.font_regular {font_size: 12.5}}
-                        draw_bg +: {color: #xffffff color_hover: #xffffff color_focus: #xffffff border_size: 0 border_radius: 0}
+                        empty_text: #(crate::i18n::tr("Name")) i18n_empty_text: "Name" draw_text +: {color: mod.widgets.RINX_INK text_style: theme.font_regular {font_size: (12.5 * mod.widgets.RINX_TEXT_SCALE)}}
+                        draw_bg +: {color: mod.widgets.RINX_SURFACE color_hover: mod.widgets.RINX_SURFACE color_focus: mod.widgets.RINX_SURFACE border_size: 0 border_radius: 0}
                     }
                 }
                 DetailNote {text: #(crate::i18n::tr("Your name is visible to people you chat with.")) i18n_text: "Your name is visible to people you chat with."}
@@ -94,7 +94,7 @@ script_mod! {
                 DetailSection {
                     change_photo := DetailAction {title.text: #(crate::i18n::tr("Change Photo")) title.i18n_text: "Change Photo"}
                     DetailDivider {}
-                    remove_photo := DetailAction {title +: {text: #(crate::i18n::tr("Remove Photo")) i18n_text: "Remove Photo" draw_text.color: #xfa5151}}
+                    remove_photo := DetailAction {title +: {text: #(crate::i18n::tr("Remove Photo")) i18n_text: "Remove Photo" draw_text.color: mod.widgets.RINX_DANGER_FG}}
                 }
             }
             account := ScrollYView {
@@ -214,9 +214,9 @@ script_mod! {
                 View {
                     width: Fill height: Fit padding: Inset{top: 48 bottom: 40} flow: Down spacing: 16 align: Align{x: 0.5}
                     Image {width: 72 height: 72 fit: ImageFit.Smallest src: crate_resource("self://resources/robrix_logo_alpha.png")}
-                    DetailLabel {text: "Rinx" draw_text.text_style: theme.font_bold {font_size: 20}}
-                    DetailLabel {text: #(crate::i18n::tr("Built on Robrix · Apache-2.0")) i18n_text: "Built on Robrix · Apache-2.0" draw_text.color: #x888888}
-                    version := DetailLabel {draw_text.color: #x888888}
+                    DetailLabel {text: "Rinx" draw_text.text_style: theme.font_bold {font_size: (20 * mod.widgets.RINX_TEXT_SCALE)}}
+                    DetailLabel {text: #(crate::i18n::tr("Built on Robrix · Apache-2.0")) i18n_text: "Built on Robrix · Apache-2.0" draw_text.color: mod.widgets.RINX_MUTED}
+                    version := DetailLabel {draw_text.color: mod.widgets.RINX_MUTED}
                 }
                 DetailSection {
                     website_row := DetailRow {title.text: #(crate::i18n::tr("Website")) title.i18n_text: "Website"}
@@ -291,7 +291,7 @@ impl MobileSettings {
         let mut state = profile.avatar_state.clone();
         state.update_from_cache(cx)
             .and_then(|image| avatar.show_image(cx, None, |cx, img| utils::load_avatar_image(&img, cx, image)).ok())
-            .unwrap_or_else(|| avatar.show_text(cx, None, None, profile.displayable_name()));
+            .unwrap_or_else(|| avatar.show_user_text(cx, &profile.user_id, profile.displayable_name()));
     }
     fn open_account_url(&self) {
         match &self.account_url {

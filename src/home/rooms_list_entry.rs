@@ -1,3 +1,4 @@
+use crate::theme::Snapshot as ThemeSnapshot;
 use std::borrow::Cow;
 use makepad_widgets::*;
 use makepad_widgets::event::TouchState;
@@ -6,11 +7,9 @@ use matrix_sdk::ruma::{OwnedRoomId, RoomId};
 use crate::{
     room::FetchedRoomAvatar,
     shared::{
-    avatar::AvatarWidgetExt,
-        design_tokens::{RBX_BG_SUNKEN, RBX_FG_PRIMARY, RBX_FG_SECONDARY, RBX_FG_TERTIARY, RBX_LINK},
-        context_menu::ContextMenuClosed,
-        hover_highlight::handle_hover_hit,
-        html_or_plaintext::HtmlOrPlaintextWidgetExt, unread_badge::UnreadBadgeWidgetExt as _,
+        avatar::AvatarWidgetExt, context_menu::ContextMenuClosed,
+        hover_highlight::handle_hover_hit, html_or_plaintext::HtmlOrPlaintextWidgetExt,
+        unread_badge::UnreadBadgeWidgetExt as _,
     },
     utils::{self, relative_format}
 };
@@ -66,14 +65,14 @@ script_mod! {
         latest_message := HtmlOrPlaintext {
             html_view +: {
                 html +: {
-                    font_size: 9.3
+                    font_size: (9.3 * mod.widgets.RINX_TEXT_SCALE)
                     max_lines: 2
                     text_overflow: Ellipsis
-                    text_style_normal +: { font_size: 9.3, line_spacing: 1.32 }
-                    text_style_italic +: { font_size: 9.3, line_spacing: 1.32 }
-                    text_style_bold +: { font_size: 9.3, line_spacing: 1.32 }
-                    text_style_bold_italic +: { font_size: 9.3, line_spacing: 1.32 }
-                    text_style_fixed +: { font_size: 9.3, line_spacing: 1.32 }
+                    text_style_normal +: { font_size: (9.3 * mod.widgets.RINX_TEXT_SCALE), line_spacing: 1.32 }
+                    text_style_italic +: { font_size: (9.3 * mod.widgets.RINX_TEXT_SCALE), line_spacing: 1.32 }
+                    text_style_bold +: { font_size: (9.3 * mod.widgets.RINX_TEXT_SCALE), line_spacing: 1.32 }
+                    text_style_bold_italic +: { font_size: (9.3 * mod.widgets.RINX_TEXT_SCALE), line_spacing: 1.32 }
+                    text_style_fixed +: { font_size: (9.3 * mod.widgets.RINX_TEXT_SCALE), line_spacing: 1.32 }
                     // Scale down the pill (title font, avatar size, avatar text) to fit.
                     a +: {
                         matrix_link_view +: {
@@ -87,14 +86,14 @@ script_mod! {
                                         text_view +: {
                                             text +: {
                                                 draw_text +: {
-                                                    text_style +: { font_size: 6 }
+                                                    text_style +: { font_size: (6 * mod.widgets.RINX_TEXT_SCALE) }
                                                 }
                                             }
                                         }
                                     }
                                     title +: {
                                         draw_text +: {
-                                            text_style +: { font_size: 8.5 }
+                                            text_style +: { font_size: (8.5 * mod.widgets.RINX_TEXT_SCALE) }
                                         }
                                     }
                                 }
@@ -109,7 +108,7 @@ script_mod! {
                     text_overflow: Ellipsis
                     draw_text +: {
                         color: (RBX_FG_SECONDARY),
-                        text_style: REGULAR_TEXT { font_size: 9.3, line_spacing: 1.32 },
+                        text_style: REGULAR_TEXT { font_size: (9.3 * mod.widgets.RINX_TEXT_SCALE), line_spacing: 1.32 },
                     }
                     text: #(crate::i18n::tr("[No recent messages]"))
                 }
@@ -204,13 +203,13 @@ script_mod! {
         height: 72 padding: 0 spacing: 0 flow: Overlay clip_x: true
         draw_bg +: {
             border_radius: 0
-            color: #xffffff color_hover: #xe5e5e5 color_selected: #xffffff
+            color: mod.widgets.RINX_SURFACE color_hover: mod.widgets.RINX_BORDER color_selected: mod.widgets.RINX_SURFACE
             pixel: fn() {
                 let sdf = Sdf2d.viewport(self.pos * self.rect_size)
                 sdf.rect(0.0, 0.0, self.rect_size.x, self.rect_size.y)
                 sdf.fill(self.get_color())
                 sdf.rect(76.0, self.rect_size.y - 0.5, self.rect_size.x - 76.0, 0.5)
-                sdf.fill(#xe5e5e5)
+                sdf.fill(mod.widgets.RINX_BORDER)
                 return sdf.result
             }
         }
@@ -220,20 +219,20 @@ script_mod! {
             swipe_unread := RobrixNeutralIconButton {
                 width: 88 height: Fill padding: 4 spacing: 0 align: Align{x: 0.5 y: 0.5}
                 text: #(crate::i18n::tr("Unread")) i18n_text: "Unread" icon_walk: Walk{width: 0 height: 0}
-                draw_bg +: {pixel: fn() {return #x576b95.mix(#x405377, self.down)}}
-                draw_text +: {color: #xffffff color_hover: #xffffff color_down: #xffffff text_style.font_size: 10}
+                draw_bg +: {pixel: fn() {return mod.widgets.RINX_ACCENT.mix(mod.widgets.RINX_ACCENT_DOWN, self.down)}}
+                draw_text +: {color: mod.widgets.RINX_ON_ACCENT color_hover: mod.widgets.RINX_ON_ACCENT color_down: mod.widgets.RINX_ON_ACCENT text_style.font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}
             }
             swipe_hide := RobrixNeutralIconButton {
                 width: 64 height: Fill padding: 4 spacing: 0 align: Align{x: 0.5 y: 0.5}
                 text: #(crate::i18n::tr("Hide")) i18n_text: "Hide" icon_walk: Walk{width: 0 height: 0}
-                draw_bg +: {pixel: fn() {return #xfa9d3b.mix(#xd88830, self.down)}}
-                draw_text +: {color: #xffffff color_hover: #xffffff color_down: #xffffff text_style.font_size: 10}
+                draw_bg +: {pixel: fn() {return mod.widgets.RINX_WARNING_FG.mix(mod.widgets.RINX_WARNING_FG, self.down)}}
+                draw_text +: {color: mod.widgets.RINX_WARNING_BG color_hover: mod.widgets.RINX_WARNING_BG color_down: mod.widgets.RINX_WARNING_BG text_style.font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}
             }
             swipe_delete := RobrixNeutralIconButton {
                 width: 72 height: Fill padding: 4 spacing: 0 align: Align{x: 0.5 y: 0.5}
                 text: #(crate::i18n::tr("Delete")) i18n_text: "Delete" icon_walk: Walk{width: 0 height: 0}
-                draw_bg +: {pixel: fn() {return #xfa5151.mix(#xd84040, self.down)}}
-                draw_text +: {color: #xffffff color_hover: #xffffff color_down: #xffffff text_style.font_size: 10}
+                draw_bg +: {pixel: fn() {return mod.widgets.RINX_DANGER_FG.mix(mod.widgets.RINX_DANGER_FG, self.down)}}
+                draw_text +: {color: mod.widgets.RINX_DANGER_BG color_hover: mod.widgets.RINX_DANGER_BG color_down: mod.widgets.RINX_DANGER_BG text_style.font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}
             }
         }
         chat_row := SolidView {
@@ -242,9 +241,9 @@ script_mod! {
             draw_bg +: {pixel: fn() {
                 let sdf = Sdf2d.viewport(self.pos * self.rect_size)
                 sdf.rect(0.0, 0.0, self.rect_size.x, self.rect_size.y)
-                sdf.fill(#xffffff)
+                sdf.fill(mod.widgets.RINX_SURFACE)
                 sdf.rect(76.0, self.rect_size.y - 0.5, self.rect_size.x - 76.0, 0.5)
-                sdf.fill(#xe5e5e5)
+                sdf.fill(mod.widgets.RINX_BORDER)
                 return sdf.result
             }}
         View {
@@ -256,8 +255,8 @@ script_mod! {
                 mobile_badge := RoundedView {
                     visible: false width: Fit height: 18 padding: Inset{left: 5 right: 5}
                     align: Align{x: 0.5 y: 0.5}
-                    draw_bg +: {color: #xfa5151 border_radius: 9}
-                    count := Label {padding: 0 draw_text +: {color: #xffffff text_style: theme.font_regular {font_size: 9}}}
+                    draw_bg +: {color: mod.widgets.RINX_DANGER_FG border_radius: 9}
+                    count := Label {padding: 0 draw_text +: {color: mod.widgets.RINX_DANGER_BG text_style: theme.font_regular {font_size: (9 * mod.widgets.RINX_TEXT_SCALE)}}}
                 }
             }
         }
@@ -265,22 +264,22 @@ script_mod! {
             width: Fill height: Fill flow: Down spacing: 6 padding: Inset{top: 2}
             View {
                 width: Fill height: Fit flow: Right spacing: 6 align: Align{y: 0.5}
-                room_name := mod.widgets.RoomName {draw_text.text_style: theme.font_regular {font_size: 12.5}}
-                timestamp := mod.widgets.RoomsListEntryTimestamp {draw_text.text_style.font_size: 8.5}
+                room_name := mod.widgets.RoomName {draw_text.text_style: theme.font_regular {font_size: (12.5 * mod.widgets.RINX_TEXT_SCALE)}}
+                timestamp := mod.widgets.RoomsListEntryTimestamp {draw_text.text_style.font_size: (8.5 * mod.widgets.RINX_TEXT_SCALE)}
             }
             View {
                 width: Fill height: Fit flow: Right spacing: 6 align: Align{y: 0.5}
                 mod.widgets.MessagePreview {
                     latest_message +: {
-                        html_view +: {html +: {max_lines: 1 font_size: 10}}
-                        plaintext_view +: {pt_label +: {max_lines: 1 draw_text +: {text_style +: {font_size: 10}}}}
+                        html_view +: {html +: {max_lines: 1 font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}}
+                        plaintext_view +: {pt_label +: {max_lines: 1 draw_text +: {text_style +: {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}}}}
                     }
                 }
                 muted_indicator := View {
                     visible: false width: 16 height: 16
                     Icon {
                         icon_walk: Walk{width: 16 height: 16}
-                        draw_icon +: {svg: crate_resource("self://resources/icons/bell_off.svg") color: #xb2b2b2}
+                        draw_icon +: {svg: crate_resource("self://resources/icons/bell_off.svg") color: mod.widgets.RINX_DISABLED}
                     }
                 }
             }
@@ -405,11 +404,16 @@ impl Widget for RoomsListEntry {
     }
 }
 
-#[derive(Script, ScriptHook, Widget, Animator)]
+#[derive(Script, Widget, Animator)]
 pub struct RoomsListEntryContent {
-    #[source] source: ScriptObjectRef,
-    #[deref] view: View,
-    #[apply_default] animator: Animator,
+    #[rust]
+    appearance: ThemeSnapshot,
+    #[source]
+    source: ScriptObjectRef,
+    #[deref]
+    view: View,
+    #[apply_default]
+    animator: Animator,
 
     #[live] mobile: bool,
 
@@ -433,6 +437,13 @@ pub struct RoomsListEntryContent {
 
     /// The avatar content that was last drawn for this room.
     #[rust] last_avatar: Option<FetchedRoomAvatar>,
+}
+
+impl ScriptHook for RoomsListEntryContent {
+    fn on_after_apply(&mut self, vm: &mut ScriptVm, _: &Apply, _: &mut Scope, _: ScriptValue) {
+        self.appearance = crate::theme::snapshot_for_vm(vm);
+        self.last_selection_drawn = None;
+    }
 }
 
 impl Widget for RoomsListEntryContent {
@@ -687,6 +698,9 @@ impl RoomsListEntryContent {
                 FetchedRoomAvatar::Text(text) => {
                     self.view.avatar(cx, ids!(avatar)).show_text(cx, None, None, text);
                 }
+                FetchedRoomAvatar::Members(_) => {
+                    self.view.avatar(cx, ids!(avatar)).show_room_avatar(cx, room_avatar);
+                }
                 FetchedRoomAvatar::Image(avatar_image) => {
                     let _ = self.view.avatar(cx, ids!(avatar)).show_image(
                         cx,
@@ -707,7 +721,9 @@ impl RoomsListEntryContent {
         // get created dynamically during the draw walk. Both states sit on a light
         // surface (transparent / soft-teal wash), so the token link colour is used
         // in both cases.
-        self.view.html_or_plaintext(cx, ids!(latest_message)).set_link_color(cx, Some(RBX_LINK));
+        self.view
+            .html_or_plaintext(cx, ids!(latest_message))
+            .set_link_color(cx, Some(self.appearance.accent));
 
         // Skip redrawing if nothing changed.
         if self.last_selection_drawn == Some(is_selected) {
@@ -718,10 +734,10 @@ impl RoomsListEntryContent {
         // The selected row signals the active room with the soft teal wash alone
         // (see the draw_bg shader), so the text keeps identical dark ink in both
         // states and stays fully legible.
-        let message_text_color = if self.mobile { vec4(0.6, 0.6, 0.6, 1.0) } else { RBX_FG_SECONDARY };
-        let room_name_color = if self.mobile { vec4(0.1, 0.1, 0.1, 1.0) } else { RBX_FG_PRIMARY };
-        let timestamp_color = if self.mobile { vec4(0.7, 0.7, 0.7, 1.0) } else { RBX_FG_TERTIARY };
-        let code_bg_color = RBX_BG_SUNKEN;
+        let message_text_color = self.appearance.muted;
+        let room_name_color = self.appearance.ink;
+        let timestamp_color = self.appearance.muted;
+        let code_bg_color = self.appearance.role("color.code.background");
 
         // Toggle the background color via the animator (handles selected/deselected bg).
         self.animator_toggle(cx, is_selected, Animate::No, ids!(selected.on), ids!(selected.off));

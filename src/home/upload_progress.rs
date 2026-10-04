@@ -1,6 +1,7 @@
 //! A widget that displays upload progress with a progress bar, status label,
 //! and cancel/retry buttons.
 
+use crate::theme::Snapshot as ThemeSnapshot;
 use makepad_widgets::*;
 use futures_util::future::AbortHandle;
 use matrix_sdk::ruma::OwnedTransactionId;
@@ -10,7 +11,6 @@ use crate::shared::file_upload_modal::{AttachmentUpload, FileUploadAttemptId, su
 use crate::sliding_sync::{MatrixRequest, TimelineKind, submit_async_request};
 use crate::shared::popup_list::{PopupKind, enqueue_popup_notification};
 use crate::shared::progress_bar::ProgressBarWidgetRefExt;
-use crate::shared::styles::{COLOR_FG_DANGER_RED, COLOR_TEXT};
 use crate::home::send_status_indicator::upload_progress_text;
 
 script_mod! {
@@ -45,7 +45,7 @@ script_mod! {
                 padding: 0,
                 margin: Inset { left: 1 }
                 draw_text +: {
-                    text_style: REGULAR_TEXT { font_size: 10 },
+                    text_style: REGULAR_TEXT { font_size: (10 * mod.widgets.RINX_TEXT_SCALE) },
                     color: (COLOR_TEXT)
                 }
                 text: ""
@@ -76,7 +76,7 @@ script_mod! {
                 padding: 0,
                 margin: Inset { left: 1 }
                 draw_text +: {
-                    text_style: REGULAR_TEXT { font_size: 11 },
+                    text_style: REGULAR_TEXT { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                     color: (COLOR_TEXT)
                 }
                 text: ""
@@ -129,13 +129,26 @@ enum UploadPhase {
 /// A widget showing upload progress with cancel/retry functionality.
 #[derive(Script, Widget)]
 pub struct UploadProgressView {
-    #[source] source: ScriptObjectRef,
-    #[deref] view: View,
+    #[rust]
+    appearance: ThemeSnapshot,
+    #[source]
+    source: ScriptObjectRef,
+    #[deref]
+    view: View,
 
     #[rust] state: Option<UploadState>,
 }
 
 impl ScriptHook for UploadProgressView {
+    fn on_after_apply(
+        &mut self,
+        vm: &mut ScriptVm,
+        _apply: &Apply,
+        _scope: &mut Scope,
+        _value: ScriptValue,
+    ) {
+        self.appearance = crate::theme::snapshot_for_vm(vm);
+    }
     fn on_after_reload(&mut self, vm: &mut ScriptVm) {
         vm.with_cx_mut(|cx| self.populate(cx));
     }
@@ -322,10 +335,15 @@ impl UploadProgressView {
         let progress_bar = self.child_by_path(ids!(progress_bar)).as_progress_bar();
         progress_bar.set_progress(cx, fraction);
         if let Some(mut label) = status_label.borrow_mut() {
-            label.draw_text.color = if is_failed { COLOR_FG_DANGER_RED } else { COLOR_TEXT };
+            label.draw_text.color = if is_failed {
+                self.appearance.role("color.status.danger.foreground")
+            } else {
+                self.appearance.ink
+            };
         }
         if is_failed {
-            progress_bar.set_progress_color(cx, COLOR_FG_DANGER_RED);
+            progress_bar
+                .set_progress_color(cx, self.appearance.role("color.status.danger.foreground"));
         } else {
             progress_bar.reset_progress_color(cx);
         }

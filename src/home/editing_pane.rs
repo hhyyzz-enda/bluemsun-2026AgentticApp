@@ -54,7 +54,7 @@ script_mod! {
                 margin: Inset{top: 3}
                 draw_text +: {
                     text_style: USERNAME_TEXT_STYLE {},
-                    color: #222,
+                    color: mod.widgets.RINX_INK,
                 }
                 text: #(crate::i18n::tr("Editing:")) i18n_text: "Editing:"
             }

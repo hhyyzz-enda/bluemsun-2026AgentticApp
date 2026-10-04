@@ -46,8 +46,8 @@ script_mod! {
                 title := Label {
                     text: #(crate::i18n::tr("Loading content...")) i18n_text: "Loading content..."
                     draw_text +: {
-                        text_style: TITLE_TEXT {font_size: 13},
-                        color: #000
+                        text_style: TITLE_TEXT {font_size: (13 * mod.widgets.RINX_TEXT_SCALE)},
+                        color: mod.widgets.RINX_INK
                     }
                 }
             }
@@ -64,9 +64,9 @@ script_mod! {
                     flow: Flow.Right{wrap: true},
                     draw_text +: {
                         text_style: REGULAR_TEXT {
-                            font_size: 11.5,
+                            font_size: (11.5 * mod.widgets.RINX_TEXT_SCALE),
                         },
-                        color: #000
+                        color: mod.widgets.RINX_INK
                     }
                 }
 

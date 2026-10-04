@@ -147,7 +147,7 @@ script_mod! {
                 color_hover: instance(COLOR_TEXT)
                 color_active: instance(COLOR_TEXT)
 
-                text_style: REGULAR_TEXT {font_size: 11},
+                text_style: REGULAR_TEXT {font_size: (11 * mod.widgets.RINX_TEXT_SCALE)},
 
                 get_color: fn() -> vec4 {
                     return mix(
@@ -208,7 +208,7 @@ script_mod! {
             level: 0.0
             is_last: 0.0
             parent_mask: 0.0
-            line_color: #888
+            line_color: mod.widgets.RINX_MUTED
 
             pixel: fn() {
                 let pos = self.pos * self.rect_size;
@@ -289,7 +289,7 @@ script_mod! {
         show_bg: true
         draw_bg +: {
             hover: instance(0.0)
-            color: instance(#fff)
+            color: instance(mod.widgets.RINX_SURFACE)
             color_hover: instance(COLOR_LIST_ITEM_BG_HOVER)
             pixel: fn() {
                 return mix(self.color, self.color_hover, self.hover);
@@ -313,7 +313,7 @@ script_mod! {
                 width: 16,
                 height: 16,
                 margin: Inset{ left: -6, right: 4 }
-                draw_bg.color: #888
+                draw_bg.color: mod.widgets.RINX_MUTED
                 draw_bg.border_radius: 1.5 // less rounded
             }
 
@@ -333,7 +333,7 @@ script_mod! {
                     flow: Flow.Right{wrap: true}
                     max_lines: 2
                     text_overflow: Ellipsis
-                    draw_text +: { text_style: REGULAR_TEXT {font_size: 10.5}, color: #1a1a1a }
+                    draw_text +: { text_style: REGULAR_TEXT {font_size: (10.5 * mod.widgets.RINX_TEXT_SCALE)}, color: mod.widgets.RINX_INK }
                 }
 
                 suggested_tag := RoundedView {
@@ -342,7 +342,7 @@ script_mod! {
                     padding: Inset { left: 6, right: 6, top: 3, bottom: 3 }
                     show_bg: true
                     draw_bg +: {
-                        color: #E8F4FD
+                        color: mod.widgets.RINX_SELECTED
                         border_radius: 3.0
                         border_size: 0.75
                         border_color: (COLOR_INFO_BLUE)
@@ -352,7 +352,7 @@ script_mod! {
                         margin: 0
                         width: Fit, height: Fit,
                         text: #(crate::i18n::tr("Suggested")) i18n_text: "Suggested"
-                        draw_text +: { text_style: REGULAR_TEXT {font_size: 8.5}, color: (COLOR_INFO_BLUE) }
+                        draw_text +: { text_style: REGULAR_TEXT {font_size: (8.5 * mod.widgets.RINX_TEXT_SCALE)}, color: (COLOR_INFO_BLUE) }
                     }
                 }
 
@@ -363,7 +363,7 @@ script_mod! {
                     flow: Flow.Right{wrap: true}
                     max_lines: 2
                     text_overflow: Ellipsis
-                    draw_text +: { text_style: REGULAR_TEXT {font_size: 8.5}, color: #737373 }
+                    draw_text +: { text_style: REGULAR_TEXT {font_size: (8.5 * mod.widgets.RINX_TEXT_SCALE)}, color: mod.widgets.RINX_MUTED }
                 }
             }
         }
@@ -380,7 +380,7 @@ script_mod! {
 
             show_bg: true
             draw_bg +: {
-                color: #f5f5f5
+                color: mod.widgets.RINX_FIELD
                 border_radius: 4.0
                 border_size: 0
             }
@@ -390,7 +390,7 @@ script_mod! {
                 padding: 8
                 spacing: 0
                 icon_walk: Walk{width: 0, height: 0}
-                draw_text.text_style: REGULAR_TEXT {font_size: 9.5}
+                draw_text.text_style: REGULAR_TEXT {font_size: (9.5 * mod.widgets.RINX_TEXT_SCALE)}
                 text: #(crate::i18n::tr("Join")) i18n_text: "Join"
             }
 
@@ -399,7 +399,7 @@ script_mod! {
                 padding: 8
                 spacing: 0
                 icon_walk: Walk{width: 0, height: 0}
-                draw_text.text_style: REGULAR_TEXT {font_size: 9.5}
+                draw_text.text_style: REGULAR_TEXT {font_size: (9.5 * mod.widgets.RINX_TEXT_SCALE)}
                 text: #(crate::i18n::tr("View")) i18n_text: "View"
             }
 
@@ -408,7 +408,7 @@ script_mod! {
                 padding: 8
                 spacing: 0
                 icon_walk: Walk{width: 0, height: 0}
-                draw_text.text_style: REGULAR_TEXT {font_size: 9.5}
+                draw_text.text_style: REGULAR_TEXT {font_size: (9.5 * mod.widgets.RINX_TEXT_SCALE)}
                 text: #(crate::i18n::tr("Leave")) i18n_text: "Leave"
             }
         }
@@ -459,8 +459,8 @@ script_mod! {
             flow: Flow.Right{wrap: true},
             align: Align{ x: 0.5, y: 0.5 }
             draw_text +: {
-                color: #737373,
-                text_style: REGULAR_TEXT {font_size: 10}
+                color: mod.widgets.RINX_MUTED,
+                text_style: REGULAR_TEXT {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}
             }
             text: #(crate::i18n::tr("Loading rooms and spaces...")) i18n_text: "Loading rooms and spaces..."
         }
@@ -497,8 +497,8 @@ script_mod! {
                 width: Fit,
                 height: Fit,
                 draw_text +: {
-                    text_style: REGULAR_TEXT {font_size: 9},
-                    color: #888,
+                    text_style: REGULAR_TEXT {font_size: (9 * mod.widgets.RINX_TEXT_SCALE)},
+                    color: mod.widgets.RINX_MUTED,
                 }
                 text: #(crate::i18n::tr("Loading...")) i18n_text: "Loading..."
             }
@@ -543,8 +543,8 @@ script_mod! {
                     flow: Flow.Right { wrap: false },
                     margin: Inset{left: 2}
                     draw_text +: {
-                        text_style: REGULAR_TEXT {font_size: 10},
-                        color: #737373,
+                        text_style: REGULAR_TEXT {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)},
+                        color: mod.widgets.RINX_MUTED,
                     }
                     text: #(crate::i18n::tr("Welcome to the space:")) i18n_text: "Welcome to the space:"
                 }
@@ -577,8 +577,8 @@ script_mod! {
                     text_overflow: Ellipsis,
                     margin: Inset{top: 4} // vertically center-align with the avatar
                     draw_text +: {
-                        text_style: TITLE_TEXT {font_size: 14},
-                        color: #1a1a1a,
+                        text_style: TITLE_TEXT {font_size: (14 * mod.widgets.RINX_TEXT_SCALE)},
+                        color: mod.widgets.RINX_INK,
                     }
                     text: ""
                 }
@@ -611,13 +611,13 @@ script_mod! {
                     margin: 0
                     max_lines: 2
                     text_overflow: Ellipsis
-                    font_size: 10
-                    font_color: #737373
-                    text_style_normal      +: { font_size: 10, line_spacing: 1.2 }
-                    text_style_italic      +: { font_size: 10, line_spacing: 1.2 }
-                    text_style_bold        +: { font_size: 10, line_spacing: 1.2 }
-                    text_style_bold_italic +: { font_size: 10, line_spacing: 1.2 }
-                    text_style_fixed       +: { font_size: 10, line_spacing: 1.2 }
+                    font_size: (10 * mod.widgets.RINX_TEXT_SCALE)
+                    font_color: mod.widgets.RINX_MUTED
+                    text_style_normal      +: { font_size: (10 * mod.widgets.RINX_TEXT_SCALE), line_spacing: 1.2 }
+                    text_style_italic      +: { font_size: (10 * mod.widgets.RINX_TEXT_SCALE), line_spacing: 1.2 }
+                    text_style_bold        +: { font_size: (10 * mod.widgets.RINX_TEXT_SCALE), line_spacing: 1.2 }
+                    text_style_bold_italic +: { font_size: (10 * mod.widgets.RINX_TEXT_SCALE), line_spacing: 1.2 }
+                    text_style_fixed       +: { font_size: (10 * mod.widgets.RINX_TEXT_SCALE), line_spacing: 1.2 }
                     body: ""
                 }
             }

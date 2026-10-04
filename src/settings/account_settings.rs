@@ -4,7 +4,7 @@ use makepad_widgets::{text::selection::Cursor, *};
 use matrix_sdk::encryption::{identities::Device, VerificationState};
 use url::Url;
 
-use crate::{app::ConfirmDeleteAction, avatar_cache::{self}, logout::logout_confirm_modal::{LogoutAction, LogoutConfirmModalAction}, profile::user_profile::UserProfile, settings::PopulateMode, shared::{avatar::{AvatarState, AvatarWidgetExt}, confirmation_modal::ConfirmationModalContent, file_upload_modal::{FileUploadMetadata, PendingUpload, handle_picked_file, handle_picker_launch_errors}, popup_list::{PopupKind, enqueue_popup_notification}, styles::*}, sliding_sync::{get_client, submit_async_request, AccountDataAction, MatrixRequest}, utils, verification::VerificationStateAction};
+use crate::{app::ConfirmDeleteAction, avatar_cache::{self}, logout::logout_confirm_modal::{LogoutAction, LogoutConfirmModalAction}, profile::user_profile::UserProfile, settings::PopulateMode, shared::{avatar::{AvatarState, AvatarWidgetExt}, confirmation_modal::ConfirmationModalContent, file_upload_modal::{FileUploadMetadata, PendingUpload, handle_picked_file, handle_picker_launch_errors}, popup_list::{PopupKind, enqueue_popup_notification}}, sliding_sync::{get_client, submit_async_request, AccountDataAction, MatrixRequest}, utils, verification::VerificationStateAction};
 
 script_mod! {
     use mod.prelude.widgets.*
@@ -41,7 +41,7 @@ script_mod! {
                 flow: Flow.Right{wrap: true}
                 draw_text +: {
                     color: (COLOR_FG_ACCEPT_GREEN),
-                    text_style: theme.font_bold { font_size: 11.5 },
+                    text_style: theme.font_bold { font_size: (11.5 * mod.widgets.RINX_TEXT_SCALE) },
                 }
                 text: #(crate::i18n::tr("This device is verified and can access encrypted messages.")) i18n_text: "This device is verified and can access encrypted messages."
             }
@@ -68,7 +68,7 @@ script_mod! {
                 flow: Flow.Right{wrap: true}
                 draw_text +: {
                     color: (COLOR_FG_DANGER_RED),
-                    text_style: theme.font_bold { font_size: 11.5 },
+                    text_style: theme.font_bold { font_size: (11.5 * mod.widgets.RINX_TEXT_SCALE) },
                 }
                 text: #(crate::i18n::tr("This device is not verified and can't view encrypted messages.")) i18n_text: "This device is not verified and can't view encrypted messages."
             }
@@ -89,7 +89,7 @@ script_mod! {
                 margin: Inset { top: 4, bottom: 1}
                 draw_text +: {
                     color: (MESSAGE_TEXT_COLOR),
-                    text_style: theme.font_regular { font_size: 11.5 },
+                    text_style: theme.font_regular { font_size: (11.5 * mod.widgets.RINX_TEXT_SCALE) },
                 }
                 text: #(crate::i18n::tr("Or verify it from another client using this info:")) i18n_text: "Or verify it from another client using this info:"
             }
@@ -101,7 +101,7 @@ script_mod! {
                 flow: Flow.Right{wrap: true}
                 draw_text +: {
                     color: (MESSAGE_TEXT_COLOR),
-                    text_style: theme.font_regular { font_size: 11.5 },
+                    text_style: theme.font_regular { font_size: (11.5 * mod.widgets.RINX_TEXT_SCALE) },
                 }
                 text: ""
             }
@@ -123,7 +123,7 @@ script_mod! {
                 text_view +: {
                     text +: {
                         draw_text +: {
-                            text_style: theme.font_regular { font_size: 35.0 }
+                            text_style: theme.font_regular { font_size: (35.0 * mod.widgets.RINX_TEXT_SCALE) }
                         }
                     }
                 }
@@ -261,7 +261,7 @@ script_mod! {
                 margin: Inset{top: 9}
                 draw_text +: {
                     color: (MESSAGE_TEXT_COLOR),
-                    text_style: MESSAGE_TEXT_STYLE { font_size: 11.5 },
+                    text_style: MESSAGE_TEXT_STYLE { font_size: (11.5 * mod.widgets.RINX_TEXT_SCALE) },
                 }
                 text: #(crate::i18n::tr("You are not logged in.")) i18n_text: "You are not logged in."
             }
@@ -338,7 +338,7 @@ impl ScriptHook for AccountSettings {
         if let Some(client) = get_client() {
             self.verification_state = client.encryption().verification_state().get();
         }
-        if self.own_device.is_none() {
+        if self.own_device.is_none() && !apply.is_script_reapply() {
             submit_async_request(MatrixRequest::GetOwnDevice);
         }
         let cx = vm.cx_mut();
@@ -658,12 +658,7 @@ impl AccountSettings {
             ).is_ok();
         }
         if !drew_avatar {
-            our_own_avatar.show_text(
-                cx,
-                Some(COLOR_ROBRIX_PURPLE),
-                None, // don't make this avatar clickable; we handle clicks on this ProfileIcon widget directly.
-                own_profile.displayable_name(),
-            );
+            our_own_avatar.show_user_text(cx, &own_profile.user_id, own_profile.displayable_name());
         }
 
         Self::enable_upload_avatar_button(
@@ -797,15 +792,15 @@ impl AccountSettings {
     }
 
     /// Enable or disable the delete avatar button.
-    fn enable_delete_avatar_button(
-        cx: &mut Cx,
-        enable: bool,
-        delete_avatar_button: &ButtonRef,
-    ) {
+    fn enable_delete_avatar_button(cx: &mut Cx, enable: bool, delete_avatar_button: &ButtonRef) {
+        let appearance = crate::theme::snapshot(cx);
         let (delete_button_fg_color, delete_button_bg_color) = if enable {
-            (COLOR_FG_DANGER_RED, COLOR_BG_DANGER_RED)
+            (
+                appearance.role("color.status.danger.foreground"),
+                appearance.role("color.status.danger.background"),
+            )
         } else {
-            (COLOR_FG_DISABLED, COLOR_BG_DISABLED)
+            (appearance.role("color.content.disabled"), appearance.field)
         };
         let mut delete_avatar_button = delete_avatar_button.clone();
         script_apply_eval!(cx, delete_avatar_button, {
@@ -824,15 +819,12 @@ impl AccountSettings {
     }
 
     /// Enable or disable the upload avatar button.
-    fn enable_upload_avatar_button(
-        cx: &mut Cx,
-        enable: bool,
-        upload_avatar_button: &ButtonRef,
-    ) {
+    fn enable_upload_avatar_button(cx: &mut Cx, enable: bool, upload_avatar_button: &ButtonRef) {
+        let appearance = crate::theme::snapshot(cx);
         let (upload_button_fg_color, upload_button_bg_color) = if enable {
-            (COLOR_PRIMARY, COLOR_ACTIVE_PRIMARY)
+            (appearance.on_accent, appearance.accent)
         } else {
-            (COLOR_FG_DISABLED, COLOR_BG_DISABLED)
+            (appearance.role("color.content.disabled"), appearance.field)
         };
         let mut upload_avatar_button = upload_avatar_button.clone();
         script_apply_eval!(cx, upload_avatar_button, {
@@ -857,15 +849,22 @@ impl AccountSettings {
         accept_display_name_button: &ButtonRef,
         cancel_display_name_button: &ButtonRef,
     ) {
+        let appearance = crate::theme::snapshot(cx);
         let (accept_button_fg_color, accept_button_bg_color) = if enable {
-            (COLOR_FG_ACCEPT_GREEN, COLOR_BG_ACCEPT_GREEN)
+            (
+                appearance.role("color.status.success.foreground"),
+                appearance.role("color.status.success.background"),
+            )
         } else {
-            (COLOR_FG_DISABLED, COLOR_BG_DISABLED)
+            (appearance.role("color.content.disabled"), appearance.field)
         };
         let (cancel_button_fg_color, cancel_button_bg_color) = if enable {
-            (COLOR_FG_DANGER_RED, COLOR_BG_DANGER_RED)
+            (
+                appearance.role("color.status.danger.foreground"),
+                appearance.role("color.status.danger.background"),
+            )
         } else {
-            (COLOR_FG_DISABLED, COLOR_BG_DISABLED)
+            (appearance.role("color.content.disabled"), appearance.field)
         };
 
         let mut accept_display_name_button = accept_display_name_button.clone();

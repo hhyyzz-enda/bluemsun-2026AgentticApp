@@ -59,7 +59,7 @@ script_mod! {
             max_lines: 1
             draw_text +: {
                 // Lighter weight than the bold section-title token — calmer group label.
-                text_style: REGULAR_TEXT { font_size: 12.5 },
+                text_style: REGULAR_TEXT { font_size: (12.5 * mod.widgets.RINX_TEXT_SCALE) },
                 color: (RBX_FG_SECONDARY),
             }
         }

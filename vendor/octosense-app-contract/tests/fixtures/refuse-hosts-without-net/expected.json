@@ -1,0 +1,6 @@
+{
+  "digest": "729bc3dfe1ef9ae2e49cb86f82db670adc09282c4aaadc65d58ed804d6255c26",
+  "limits": "unsigned",
+  "refused": "app forecast lists hosts but does not request the net capability",
+  "source": "App Hub app-policy admission tests: hosts without the net capability"
+}

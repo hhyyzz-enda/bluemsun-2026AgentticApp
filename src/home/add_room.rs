@@ -18,7 +18,7 @@ script_mod! {
     mod.widgets.AddRoomScreen = #(AddRoomScreen::register_widget(vm)) {
         ..mod.widgets.SolidView
         width: Fill height: Fill flow: Down
-        draw_bg.color: #xededed
+        draw_bg.color: mod.widgets.RINX_PAGE
         explore_header := DetailHeader { title +: {text: #(crate::i18n::tr("Explore Rooms")) i18n_text: "Explore Rooms"} }
         create_room_space := RobrixNeutralIconButton {
             width: Fill height: 40 margin: Inset{left: 16 right: 16}
@@ -48,9 +48,9 @@ script_mod! {
             }
 
             search_for_room_button := RobrixPositiveIconButton {
-                draw_bg +: {color: #x07c160 color_hover: #x06ad56 color_down: #x059c4d border_size: 0}
-                draw_text +: {color: #xffffff color_hover: #xffffff color_down: #xffffff}
-                draw_icon.color: #xffffff
+                draw_bg +: {color: mod.widgets.RINX_ACCENT color_hover: mod.widgets.RINX_ACCENT_HOVER color_down: mod.widgets.RINX_ACCENT_DOWN border_size: 0}
+                draw_text +: {color: mod.widgets.RINX_ON_ACCENT color_hover: mod.widgets.RINX_ON_ACCENT color_down: mod.widgets.RINX_ON_ACCENT}
+                draw_icon.color: mod.widgets.RINX_ON_ACCENT
                 padding: Inset{top: 10, bottom: 10, left: 12, right: 14}
                 height: 40
                 draw_icon.svg: (ICON_SEARCH)
@@ -83,7 +83,7 @@ script_mod! {
                 margin: Inset { top: 4 }
                 draw_text +: {
                     color: (MESSAGE_TEXT_COLOR),
-                    text_style: MESSAGE_TEXT_STYLE { font_size: 11 },
+                    text_style: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                 }
             }
         }
@@ -95,7 +95,7 @@ script_mod! {
                 flow: Flow.Right{wrap: true},
                 draw_text +: {
                     color: (COLOR_FG_DANGER_RED),
-                    text_style: MESSAGE_TEXT_STYLE { font_size: 11 },
+                    text_style: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                 }
             }
         }
@@ -107,15 +107,15 @@ script_mod! {
                 width: Fill height: Fill flow: Down
                 auto_tail: false
                 Result := SolidView {
-                    width: Fill height: 74 flow: Down draw_bg.color: #xffffff
+                    width: Fill height: 74 flow: Down draw_bg.color: mod.widgets.RINX_SURFACE
                     row := NavigationBarButton {
                         width: Fill height: 73 flow: Down spacing: 7 align: Align{x: 0 y: 0.5}
                         padding: Inset{left: 20 right: 20 top: 14 bottom: 12}
-                        draw_bg +: {color_hover: #xe5e5e5 color_active: #xe5e5e5 border_radius: 0}
+                        draw_bg +: {color_hover: mod.widgets.RINX_BORDER color_active: mod.widgets.RINX_BORDER border_radius: 0}
                         name := DetailLabel {width: Fill padding: 0 max_lines: 1 text_overflow: Ellipsis}
                         description := DetailLabel {
                             width: Fill padding: 0 max_lines: 1 text_overflow: Ellipsis
-                            draw_text +: {color: #x888888 text_style: theme.font_regular {font_size: 10}}
+                            draw_text +: {color: mod.widgets.RINX_MUTED text_style: theme.font_regular {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}}
                         }
                     }
                     DetailDivider {}
@@ -155,7 +155,7 @@ script_mod! {
                         text_view +: {
                             text +: {
                                 draw_text +: {
-                                    text_style: TITLE_TEXT { font_size: 16.0 }
+                                    text_style: TITLE_TEXT { font_size: (16.0 * mod.widgets.RINX_TEXT_SCALE) }
                                 }
                             }
                         }
@@ -166,7 +166,7 @@ script_mod! {
                         margin: Inset{top: 3} // align it with the above room_avatar
                         flow: Flow.Right{wrap: true},
                         draw_text +: {
-                            text_style: TITLE_TEXT { font_size: 16 }
+                            text_style: TITLE_TEXT { font_size: (16 * mod.widgets.RINX_TEXT_SCALE) }
                             color: (COLOR_TEXT)
                         }
                     }
@@ -179,12 +179,12 @@ script_mod! {
                     margin: Inset{top: 10}
                     draw_text +: {
                         color: (MESSAGE_TEXT_COLOR),
-                        text_style: MESSAGE_TEXT_STYLE { font_size: 11 },
+                        text_style: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                     }
                 }
 
                 subsection_alias_id := SubsectionLabel {
-                    draw_text +: { text_style: theme.font_regular { font_size: 12 } }
+                    draw_text +: { text_style: theme.font_regular { font_size: (12 * mod.widgets.RINX_TEXT_SCALE) } }
                 }
 
                 room_alias_and_id_view := View {
@@ -199,7 +199,7 @@ script_mod! {
                         flow: Flow.Right{wrap: true},
                         draw_text +: {
                             color: (MESSAGE_TEXT_COLOR),
-                            text_style: MESSAGE_TEXT_STYLE { font_size: 11 },
+                            text_style: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                         }
                     }
 
@@ -208,20 +208,20 @@ script_mod! {
                         flow: Flow.Right{wrap: true},
                         draw_text +: {
                             color: (SMALL_STATE_TEXT_COLOR),
-                            text_style: MESSAGE_TEXT_STYLE { font_size: 11 },
+                            text_style: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                         }
                     }
                 }
 
                 subsection_topic := SubsectionLabel {
-                    draw_text +: { text_style: theme.font_regular { font_size: 12 } }
+                    draw_text +: { text_style: theme.font_regular { font_size: (12 * mod.widgets.RINX_TEXT_SCALE) } }
                 }
 
                 room_topic := MessageHtml {
                     padding: Inset{left: 20, top: 5, right: 10, bottom: 10}
                     width: Fill,
                     height: Fit,
-                    font_size: 11
+                    font_size: (11 * mod.widgets.RINX_TEXT_SCALE)
                     font_color: (MESSAGE_TEXT_COLOR)
                 }
 
@@ -686,6 +686,7 @@ impl Widget for AddRoomScreen {
                 // Populate the content of the fetched room preview.
                 let room_avatar = fetched_room_summary.avatar(cx, ids!(room_avatar));
                 match &frp.room_avatar {
+                    FetchedRoomAvatar::Members(_) => room_avatar.show_room_avatar(cx, &frp.room_avatar),
                     FetchedRoomAvatar::Text(text) => {
                         room_avatar.show_text(cx, None, None, text);
                     }

@@ -51,10 +51,18 @@ script_mod! {
     }
 }
 
-#[derive(Script, ScriptHook, Widget)]
+#[derive(Script, Widget)]
 pub struct RinxModuleView {
     #[deref] view: View,
     #[rust] app: Option<crate::app::App>,
+}
+
+impl ScriptHook for RinxModuleView {
+    fn on_after_apply(&mut self, vm: &mut ScriptVm, apply: &Apply, _scope: &mut Scope, _value: ScriptValue) {
+        if apply.is_script_reapply() {
+            if let Some(app) = self.app.as_mut() { app.reapply_embedded(vm); }
+        }
+    }
 }
 
 impl RinxModuleView {
@@ -105,6 +113,7 @@ impl AppModule for RinxModule {
     fn open_schema(&self) -> OpenSchema { OpenSchema::new(1) }
 
     fn register(&self, vm: &mut ScriptVm) {
+        crate::theme::init_hosted(vm);
         crate::app::register_widgets(vm);
         script_mod(vm);
     }
@@ -233,5 +242,45 @@ mod tests {
         for tool in &manifest.tools {
             assert_eq!(tool.confirms_itself(), tool.name == "send_message", "{}", tool.name);
         }
+    }
+}
+
+#[cfg(test)]
+mod theme_tests {
+    use super::*;
+    use crate::theme::{self, Accent, Appearance, Selection};
+
+    #[test]
+    fn theme_reload_reaches_dynamically_owned_rinx_content() {
+        let mut cx = Cx::new(Box::new(|_, _| {}));
+        let mut wrapper = cx.with_vm(|vm| {
+            theme::tests::install(vm, Selection::default());
+            RinxModule.register(vm);
+            let value = script_eval!(vm, {mod.widgets.RinxModuleView {}});
+            let mut wrapper = RinxModuleView::script_from_value(vm,value);
+            // Construct actual Rinx content without Startup: no account restore,
+            // networking, kernel or production profile access in this test.
+            let component = crate::app::App::script_component(vm);
+            let value = script_eval!(vm, {#(component) {ui: mod.widgets.RinxContent {}}});
+            let app = crate::app::App::script_from_value(vm,value);
+            wrapper.view.children.push((id!(content),app.content()));
+            wrapper.app = Some(app);
+            wrapper
+        });
+        let content = wrapper.app.as_ref().unwrap().content();
+        let uid = content.widget_uid();
+        let title = content.label(&cx, ids!(octoscript_apps_modal.content.catalog_title));
+        assert!(!title.is_empty());
+        let original_ink = title.borrow().unwrap().draw_text.color;
+        cx.with_vm(|vm| vm.with_reload(|vm| {
+            theme::tests::install(vm,Selection {appearance: Appearance::Dark,accent: Accent::Violet});
+            RinxModule.register(vm);
+            let value = script_eval!(vm, {mod.widgets.RinxModuleView {}});
+            wrapper.script_apply(vm,&Apply::ScriptReapply,&mut Scope::empty(),value);
+        }));
+        assert_eq!(wrapper.app.as_ref().unwrap().content().widget_uid(),uid);
+        assert_ne!(title.borrow().unwrap().draw_text.color,original_ink);
+        assert_eq!(title.borrow().unwrap().draw_text.color,theme::snapshot(&mut cx).ink);
+        assert!(theme::selection(&mut cx).is_none());
     }
 }

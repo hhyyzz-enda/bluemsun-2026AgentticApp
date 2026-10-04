@@ -31,8 +31,8 @@ script_mod! {
                 width: Fill, height: Fit
                 flow: Flow.Right{wrap: true}
                 draw_text +: {
-                    text_style: USERNAME_TEXT_STYLE { font_size: 11.5 },
-                    color: #000
+                    text_style: USERNAME_TEXT_STYLE { font_size: (11.5 * mod.widgets.RINX_TEXT_SCALE) },
+                    color: mod.widgets.RINX_INK
                 }
                 text: "TSP User Verification"
             }
@@ -50,7 +50,7 @@ script_mod! {
                     flow: Flow.Right{wrap: true}
                     draw_text +: {
                         color: (COLOR_FG_ACCEPT_GREEN),
-                        text_style: MESSAGE_TEXT_STYLE { font_size: 11 },
+                        text_style: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                     }
                     text: "✅ Verified via TSP"
                 }
@@ -81,7 +81,7 @@ script_mod! {
                     flow: Flow.Right{wrap: true},
                     draw_text +: {
                         color: (MESSAGE_TEXT_COLOR),
-                        text_style: MESSAGE_TEXT_STYLE { font_size: 11 },
+                        text_style: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                     }
                     text: "Interactively verify this user by associating their TSP identity (DID) with their Matrix User ID:"
                 }

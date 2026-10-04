@@ -63,7 +63,7 @@ script_mod! {
                         self.border_radius
                     )
                 }
-                return sdf.fill_keep(mix(#xffffff00, #xffffff, self.hover))
+                return sdf.fill_keep(mix(#xffffff00, mod.widgets.RINX_SURFACE, self.hover))
             }
         }
 

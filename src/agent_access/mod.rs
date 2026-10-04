@@ -65,6 +65,29 @@ impl AgentFramework {
     }
 }
 
+/// The DM room to open with `user`. The SDK's lookup goes by `m.direct` only,
+/// so it can return a room the other person declined or left; messages sent
+/// there reach no one. Prefer a room where they are joined, then one they are
+/// still invited to, and skip rooms they left or were banned from. A room whose
+/// membership cannot be read stays a candidate rather than being lost.
+pub async fn find_dm(client: &Client, user: &UserId) -> Option<Room> {
+    use matrix_sdk::ruma::events::room::member::MembershipState;
+    let mut invited = None;
+    let mut unknown = None;
+    for room in client.get_dm_rooms(user) {
+        match room.get_member(user).await {
+            Ok(Some(member)) => match member.membership() {
+                MembershipState::Join => return Some(room),
+                MembershipState::Invite => { invited.get_or_insert(room); }
+                _ => {}
+            },
+            Ok(None) => {}
+            Err(_) => { unknown.get_or_insert(room); }
+        }
+    }
+    invited.or(unknown)
+}
+
 /// Keep the SDK's encrypted default for people. Explicitly registered bots can
 /// use a new unencrypted DM; existing rooms and their encryption never change.
 pub async fn create_dm(client: &Client, user: &UserId) -> matrix_sdk::Result<Room> {

@@ -11,8 +11,8 @@ script_mod! {
         align: Align{x: 0.0, y: 0.5}
         flow: Flow.Right{wrap: true},
         draw_text +: {
-            text_style: TITLE_TEXT {font_size: 15},
-            color: #000
+            text_style: TITLE_TEXT {font_size: (15 * mod.widgets.RINX_TEXT_SCALE)},
+            color: mod.widgets.RINX_INK
         }
     }
 
@@ -23,7 +23,7 @@ script_mod! {
         flow: Flow.Right { wrap: true },
         draw_text +: {
             color: (COLOR_TEXT),
-            text_style: theme.font_bold { font_size: 13 },
+            text_style: theme.font_bold { font_size: (13 * mod.widgets.RINX_TEXT_SCALE) },
         }
     }
 
@@ -70,8 +70,8 @@ script_mod! {
         align: Align{x: 0.5}
         margin: Inset{bottom: 25}
         draw_text +: {
-            text_style: TITLE_TEXT {font_size: 13},
-            color: #000
+            text_style: TITLE_TEXT {font_size: (13 * mod.widgets.RINX_TEXT_SCALE)},
+            color: mod.widgets.RINX_INK
         }
     }
 
@@ -80,8 +80,8 @@ script_mod! {
         width: Fill, height: Fit
         flow: Flow.Right{wrap: true}
         draw_text +: {
-            text_style: REGULAR_TEXT {font_size: 11.5},
-            color: #000
+            text_style: REGULAR_TEXT {font_size: (11.5 * mod.widgets.RINX_TEXT_SCALE)},
+            color: mod.widgets.RINX_INK
         }
     }
 

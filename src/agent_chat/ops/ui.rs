@@ -186,13 +186,13 @@ async fn worker(
 script_mod! {
     use mod.prelude.widgets.*
     use mod.widgets.*
-    let Text = Label {width: Fill height: Fit flow: Flow.Right{wrap: true} draw_text +: {color: #x333333 text_style: theme.font_regular{font_size: 11}}}
+    let Text = Label {width: Fill height: Fit flow: Flow.Right{wrap: true} draw_text +: {color: mod.widgets.RINX_INK text_style: theme.font_regular{font_size: (11 * mod.widgets.RINX_TEXT_SCALE)}}}
     let Button = RobrixNeutralIconButton {width: Fill height: 40 spacing: 0 icon_walk: Walk{width: 0 height: 0}}
-    let Input = TextInput {width: Fill height: 38 draw_text +: {text_style: theme.font_regular{font_size: 11}}}
+    let Input = TextInput {width: Fill height: 38 draw_text +: {text_style: theme.font_regular{font_size: (11 * mod.widgets.RINX_TEXT_SCALE)}}}
     mod.widgets.AgentOpsPanel = #(AgentOpsPanel::register_widget(vm)) {
         ..mod.widgets.SolidView
         width: Fill height: Fill flow: Down padding: Inset{top: 32 left: 16 right: 16 bottom: 12} spacing: 8
-        draw_bg.color: #xf7f7f7
+        draw_bg.color: mod.widgets.RINX_PAGE
         View {width: Fill height: 40 align: Align{y: 0.5}
             close := Button {width: 65 text: #(crate::i18n::tr("Back")) i18n_text: "Back"}
             Text {text: #(crate::i18n::tr("Agent Operations")) i18n_text: "Agent Operations"}

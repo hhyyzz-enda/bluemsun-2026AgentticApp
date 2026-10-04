@@ -24,9 +24,9 @@ script_mod! {
 
     let ChatSwitchButton = NavigationBarButton {
         width: Fill height: 32
-        draw_bg +: {color_hover: #xe0e0e0 color_active: #xffffff border_radius: 5}
+        draw_bg +: {color_hover: mod.widgets.RINX_HOVER color_active: mod.widgets.RINX_SURFACE border_radius: 5}
         label := Label {
-            draw_text +: {color: #x191919 text_style: theme.font_regular {font_size: 11.5}}
+            draw_text +: {color: mod.widgets.RINX_INK text_style: theme.font_regular {font_size: (11.5 * mod.widgets.RINX_TEXT_SCALE)}}
         }
     }
     let ChatViewSwitch = SolidView {
@@ -35,7 +35,7 @@ script_mod! {
         draw_bg.color: MOBILE_BG
         RoundedView {
             width: Fill height: Fill flow: Right padding: 2
-            draw_bg +: {color: #xe2e2e2 border_radius: 6}
+            draw_bg +: {color: mod.widgets.RINX_FIELD border_radius: 6}
             all_chats := ChatSwitchButton {label.text: #(crate::i18n::tr("All Chats")) label.i18n_text: "All Chats"}
             joined_spaces_tab := ChatSwitchButton {label.text: #(crate::i18n::tr("Spaces")) label.i18n_text: "Spaces"}
         }
@@ -63,7 +63,7 @@ script_mod! {
 
         Mobile := SolidView {
             width: Fill height: Fill flow: Down
-            draw_bg.color: #xffffff
+            draw_bg.color: mod.widgets.RINX_SURFACE
             title_bar := MobileTitle {
                 title.text: #(crate::i18n::tr("Chats")) title.i18n_text: "Chats"
                 controls.right.visible: true
@@ -74,11 +74,11 @@ script_mod! {
                 draw_bg.color: MOBILE_BG
                 room_filter_input_bar := RoomFilterInputBar {
                     height: 36
-                    draw_bg +: {color: #xffffff border_size: 0 border_radius: 5}
+                    draw_bg +: {color: mod.widgets.RINX_SURFACE border_size: 0 border_radius: 5}
                     input +: {
                         empty_text: #(crate::i18n::tr("Search")) i18n_empty_text: "Search"
-                        draw_text.text_style.font_size: 11.5
-                        draw_bg +: {color: #xffffff color_hover: #xffffff color_focus: #xffffff color_empty: #xffffff}
+                        draw_text.text_style.font_size: (11.5 * mod.widgets.RINX_TEXT_SCALE)
+                        draw_bg +: {color: mod.widgets.RINX_SURFACE color_hover: mod.widgets.RINX_SURFACE color_focus: mod.widgets.RINX_SURFACE color_empty: mod.widgets.RINX_SURFACE}
                     }
                 }
             }

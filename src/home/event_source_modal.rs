@@ -21,7 +21,7 @@ script_mod! {
         align: Align{x: 0.5, y: 0.5}
         icon_walk: Walk{width: 14, height: 14, margin: 0}
         draw_icon.svg: (ICON_COPY)
-        draw_icon.color: #666
+        draw_icon.color: mod.widgets.RINX_MUTED
         draw_bg +: {
             border_size: 0,
             color: #0000
@@ -62,8 +62,8 @@ script_mod! {
             title := Label {
                 width: Fill, height: Fit,
                 draw_text +: {
-                    text_style: TITLE_TEXT {font_size: 16},
-                    color: #000
+                    text_style: TITLE_TEXT {font_size: (16 * mod.widgets.RINX_TEXT_SCALE)},
+                    color: mod.widgets.RINX_INK
                 }
                 text: #(crate::i18n::tr("View Event Source")) i18n_text: "View Event Source"
             }
@@ -75,7 +75,7 @@ script_mod! {
                 align: Align{x: 0.5, y: 0.5}
                 icon_walk: Walk{width: 18, height: 18, margin: 0}
                 draw_icon.svg: (ICON_CLOSE)
-                draw_icon.color: #666
+                draw_icon.color: mod.widgets.RINX_MUTED
                 draw_bg +: {
                     border_size: 0
                     color: #0000
@@ -96,8 +96,8 @@ script_mod! {
             Label {
                 width: Fit, height: Fit,
                 draw_text +: {
-                    text_style: REGULAR_TEXT {font_size: 11},
-                    color: #666
+                    text_style: REGULAR_TEXT {font_size: (11 * mod.widgets.RINX_TEXT_SCALE)},
+                    color: mod.widgets.RINX_MUTED
                 }
                 text: #(crate::i18n::tr("Room ID:")) i18n_text: "Room ID:"
             }
@@ -106,8 +106,8 @@ script_mod! {
                 // the top margin is a hack to fix vertical alignment
                 margin: Inset{top: 1, left: 4}
                 draw_text +: {
-                    text_style: theme.font_code {font_size: 10},
-                    color: #000
+                    text_style: theme.font_code {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)},
+                    color: mod.widgets.RINX_INK
                 }
                 text: #(crate::i18n::tr("<Unknown Room ID>")) i18n_text: "<Unknown Room ID>"
             }
@@ -127,8 +127,8 @@ script_mod! {
             Label {
                 width: Fit, height: Fit,
                 draw_text +: {
-                    text_style: REGULAR_TEXT {font_size: 11},
-                    color: #666
+                    text_style: REGULAR_TEXT {font_size: (11 * mod.widgets.RINX_TEXT_SCALE)},
+                    color: mod.widgets.RINX_MUTED
                 }
                 text: #(crate::i18n::tr("Event ID:")) i18n_text: "Event ID:"
             }
@@ -137,8 +137,8 @@ script_mod! {
                 // the top margin is a hack to fix vertical alignment
                 margin: Inset{top: 1, left: 4}
                 draw_text +: {
-                    text_style: theme.font_code {font_size: 10},
-                    color: #000
+                    text_style: theme.font_code {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)},
+                    color: mod.widgets.RINX_INK
                 }
                 text: #(crate::i18n::tr("<Unknown Event ID>")) i18n_text: "<Unknown Event ID>"
             }
@@ -162,8 +162,8 @@ script_mod! {
             source_label := Label {
                 width: Fill, height: Fit,
                 draw_text +: {
-                    text_style: TITLE_TEXT {font_size: 13},
-                    color: #000
+                    text_style: TITLE_TEXT {font_size: (13 * mod.widgets.RINX_TEXT_SCALE)},
+                    color: mod.widgets.RINX_INK
                 }
                 text: #(crate::i18n::tr("Latest event source")) i18n_text: "Latest event source"
             }
@@ -186,7 +186,7 @@ script_mod! {
                     width: Fill,
                     height: Fit { max: FitBound.Abs(1500.0) }
                     word_wrap: true
-                    draw_text +: { text_style +: { font_size: 11 } }
+                    draw_text +: { text_style +: { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) } }
                 }
                 text: #(crate::i18n::tr("<Unknown Event Source>"))
             }

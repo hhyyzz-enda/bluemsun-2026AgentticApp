@@ -359,9 +359,7 @@ dependencies = [
 
 [[package]]
 name = "octosense-app-contract"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6df5ab53906a90e05be4e32693728539486f404bd8639d2782534338631200bf"
+version = "1.2.0"
 dependencies = [
  "blake3",
  "serde",

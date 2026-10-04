@@ -1,5 +1,6 @@
 //! A small indicator widget next to a message that indicates its send status.
 
+use crate::theme::Snapshot as ThemeSnapshot;
 use std::sync::Arc;
 
 use makepad_widgets::*;
@@ -7,13 +8,15 @@ use matrix_sdk::{HttpError, QueueWedgeError, media::MediaError, ruma::{api::erro
 use matrix_sdk_base::crypto::{OlmError, SessionRecipientCollectionError};
 use matrix_sdk_ui::timeline::{EventSendState, EventTimelineItem};
 
-use crate::{LivePtr, shared::styles::{COLOR_FG_ACCEPT_GREEN, COLOR_FG_DANGER_RED}, sliding_sync::is_offline, utils::format_decimal_file_size, widget_ref_from_live_ptr};
+use crate::{
+    LivePtr, sliding_sync::is_offline, utils::format_decimal_file_size, widget_ref_from_live_ptr,
+};
 
 script_mod! {
     use mod.prelude.widgets.*
     use mod.widgets.*
 
-    mod.widgets.SEND_STATUS_ICON_COLOR = #8C8C8C
+    mod.widgets.SEND_STATUS_ICON_COLOR = mod.widgets.RINX_MUTED
 
     mod.widgets.SendStatusIndicator = #(SendStatusIndicator::register_widget(vm)) {
         width: Fit,
@@ -53,7 +56,7 @@ script_mod! {
             check := Icon {
                 draw_icon +: {
                     svg: (ICON_CHECKMARK),
-                    color: #FFFFFF,
+                    color: mod.widgets.RINX_ON_ACCENT,
                 }
                 icon_walk: Walk{width: 8.5, height: Fit}
             }
@@ -75,9 +78,9 @@ script_mod! {
                         let dot_r = w * 0.5
                         let gap = w * 0.4
                         sdf.box(0.0, 0.0, w, self.rect_size.y - dot_r * 2.0 - gap, dot_r)
-                        sdf.fill(#ffffff)
+                        sdf.fill(mod.widgets.RINX_ON_ACCENT)
                         sdf.circle(dot_r, self.rect_size.y - dot_r, dot_r)
-                        sdf.fill(#ffffff)
+                        sdf.fill(mod.widgets.RINX_ON_ACCENT)
                         return sdf.result
                     }
                 }
@@ -89,7 +92,7 @@ script_mod! {
             margin: Inset{top: 1.0},
             flow: Flow.Right { wrap: false },
             draw_text +: {
-                text_style: theme.font_regular { font_size: 8.0 },
+                text_style: theme.font_regular { font_size: (8.0 * mod.widgets.RINX_TEXT_SCALE) },
                 color: (mod.widgets.SEND_STATUS_ICON_COLOR),
             }
             text: ""
@@ -102,7 +105,7 @@ script_mod! {
             max_lines: 2,
             text_overflow: Ellipsis,
             draw_text +: {
-                text_style: theme.font_regular { font_size: 9.5 },
+                text_style: theme.font_regular { font_size: (9.5 * mod.widgets.RINX_TEXT_SCALE) },
                 color: (COLOR_FG_DANGER_RED),
             }
             text: #(crate::i18n::tr("Send failed, tap to retry.")) i18n_text: "Send failed, tap to retry."
@@ -115,7 +118,7 @@ script_mod! {
             max_lines: 2,
             text_overflow: Ellipsis,
             draw_text +: {
-                text_style: theme.font_regular { font_size: 9.5 },
+                text_style: theme.font_regular { font_size: (9.5 * mod.widgets.RINX_TEXT_SCALE) },
                 color: (mod.widgets.SEND_STATUS_ICON_COLOR),
             }
             text: #(crate::i18n::tr("Will send when online.")) i18n_text: "Will send when online."
@@ -128,7 +131,7 @@ script_mod! {
             max_lines: 2,
             text_overflow: Ellipsis,
             draw_text +: {
-                text_style: theme.font_regular { font_size: 9.5 },
+                text_style: theme.font_regular { font_size: (9.5 * mod.widgets.RINX_TEXT_SCALE) },
                 color: (mod.widgets.SEND_STATUS_ICON_COLOR),
             }
             text: #(crate::i18n::tr("Waiting on an earlier message.")) i18n_text: "Waiting on an earlier message."
@@ -205,21 +208,37 @@ pub enum SendStatusIndicatorAction {
     None,
 }
 
-#[derive(Script, Widget, ScriptHook)]
+#[derive(Script, Widget)]
 pub struct SendStatusIndicator {
-    #[deref] view: View,
-    #[walk] walk: Walk,
-    #[layout] layout: Layout,
-    #[redraw] #[area] #[rust] area: Area,
+    #[rust]
+    appearance: ThemeSnapshot,
+    #[deref]
+    view: View,
+    #[walk]
+    walk: Walk,
+    #[layout]
+    layout: Layout,
+    #[redraw]
+    #[area]
+    #[rust]
+    area: Area,
 
-    #[live] sending_icon: Option<LivePtr>,
-    #[live] queued_icon: Option<LivePtr>,
-    #[live] sent_icon: Option<LivePtr>,
-    #[live] failed_icon: Option<LivePtr>,
-    #[live] progress_label: Option<LivePtr>,
-    #[live] failed_label: Option<LivePtr>,
-    #[live] queued_label: Option<LivePtr>,
-    #[live] blocked_label: Option<LivePtr>,
+    #[live]
+    sending_icon: Option<LivePtr>,
+    #[live]
+    queued_icon: Option<LivePtr>,
+    #[live]
+    sent_icon: Option<LivePtr>,
+    #[live]
+    failed_icon: Option<LivePtr>,
+    #[live]
+    progress_label: Option<LivePtr>,
+    #[live]
+    failed_label: Option<LivePtr>,
+    #[live]
+    queued_label: Option<LivePtr>,
+    #[live]
+    blocked_label: Option<LivePtr>,
 
     /// `None` means this indicator isn't shown by a message.
     #[rust] info: Option<SendStatusInfo>,
@@ -227,6 +246,44 @@ pub struct SendStatusIndicator {
     #[rust] has_failed: bool,
     #[rust] icon_widget: Option<(SendStatusIcon, WidgetRef)>,
     #[rust] label_widget: Option<(SendStatusLabel, LabelRef)>,
+}
+
+impl ScriptHook for SendStatusIndicator {
+    fn on_after_apply(
+        &mut self,
+        vm: &mut ScriptVm,
+        apply: &Apply,
+        scope: &mut Scope,
+        _: ScriptValue,
+    ) {
+        self.appearance = crate::theme::snapshot_for_vm(vm);
+        if apply.is_script_reapply() {
+            if let Some((kind, widget)) = &mut self.icon_widget {
+                let template = match kind {
+                    SendStatusIcon::Sending => self.sending_icon,
+                    SendStatusIcon::Queued => self.queued_icon,
+                    SendStatusIcon::Sent => self.sent_icon,
+                    _ => self.failed_icon,
+                };
+                if let Some(template) = template {
+                    widget.script_apply(vm, apply, scope, template);
+                }
+            }
+            if let Some((kind, label)) = &mut self.label_widget {
+                let template = match kind {
+                    SendStatusLabel::Progress => self.progress_label,
+                    SendStatusLabel::Queued => self.queued_label,
+                    SendStatusLabel::Blocked => self.blocked_label,
+                    SendStatusLabel::Failed => self.failed_label,
+                };
+                if let Some(template) = template {
+                    let text = label.text();
+                    label.script_apply(vm, apply, scope, template);
+                    label.set_text(vm.cx_mut(), &text);
+                }
+            }
+        }
+    }
 }
 
 /// Send status icons are small, so we make their hit box a bit larger.
@@ -243,12 +300,21 @@ impl Widget for SendStatusIndicator {
             Hit::FingerHoverIn(..) | Hit::FingerLongPress(_) => {
                 let mut options = CalloutTooltipOptions {
                     position: TooltipPosition::Left,
+                    bg_color: self.appearance.surface,
+                    text_color: self.appearance.ink,
                     ..Default::default()
                 };
                 match self.info.as_ref().map(|d| d.icon) {
-                    Some(SendStatusIcon::Sent) => options.bg_color = COLOR_FG_ACCEPT_GREEN,
-                    Some(SendStatusIcon::Retry | SendStatusIcon::Failed) => options.bg_color = COLOR_FG_DANGER_RED,
-                    _ => { }
+                    Some(SendStatusIcon::Sent) => {
+                        options.bg_color = self.appearance.role("color.status.success.background");
+                        options.text_color =
+                            self.appearance.role("color.status.success.foreground");
+                    }
+                    Some(SendStatusIcon::Retry | SendStatusIcon::Failed) => {
+                        options.bg_color = self.appearance.role("color.status.danger.background");
+                        options.text_color = self.appearance.role("color.status.danger.foreground");
+                    }
+                    _ => {}
                 }
                 cx.widget_action(
                     uid,

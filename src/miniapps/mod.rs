@@ -42,8 +42,11 @@ pub async fn matrix_request(
 
 
 mod catalog_worker;
+mod consent;
 mod library;
 mod package;
+pub mod palpo;
+pub mod presentation;
 mod sandbox;
 pub mod ui;
 pub use crate::host::octos::ContextProvider;
@@ -52,6 +55,7 @@ pub use ui::{MiniAppsAction, MiniAppsPanelWidgetRefExt};
 pub fn script_mod(vm: &mut makepad_widgets::ScriptVm) {
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
+        makepad_widgets::widget_async::register_splash_isolate_mod(crate::theme::script_mod);
         makepad_widgets::widget_async::register_splash_isolate_mod(|vm| {
             octoscript_widgets::design::script_mod(vm);
         });

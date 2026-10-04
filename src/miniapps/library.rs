@@ -2,6 +2,7 @@
 use super::catalog_worker::{Command, Outcome, Worker};
 use crate::shared::navigation_bar_button::NavigationBarButtonWidgetRefExt;
 use makepad_widgets::*;
+use crate::theme::Snapshot as ThemeSnapshot;
 use rinx_miniapp_catalog::{App, Consent, Snapshot, Status, VerifiedBundle, ARTICLE_ID};
 use std::collections::HashMap;
 
@@ -26,21 +27,21 @@ script_mod! {
     mod.widgets.MiniAppLibrary = #(MiniAppLibrary::register_widget(vm)) {
         width: Fill height: Fill flow: Down padding: 16 spacing: 12
         header := View {width: Fill height: 44 flow: Right spacing: 8 align: Align{y: 0.5}
-            back := Button {width: 44 height: 44 text: "" icon_walk: Walk{width: 20 height: 20}
-                draw_icon +: {svg: crate_resource("self://resources/icons/arrow_back.svg") color: #222}}
-            title := Label {width: Fill max_lines: 1 text_overflow: Ellipsis text: "Mini apps" draw_text +: {color: #222 text_style.font_size: 18}}
-            refresh := Button {text: "Refresh"}
-            developer := Button {text: "Developer"}
+            back := RinxButton {width: 44 height: 44 text: "" icon_walk: Walk{width: 20 height: 20}
+                draw_icon +: {svg: crate_resource("self://resources/icons/arrow_back.svg") color: mod.widgets.RINX_INK}}
+            title := Label {width: Fill max_lines: 1 text_overflow: Ellipsis text: "Mini apps" draw_text +: {color: mod.widgets.RINX_INK text_style.font_size: (18 * mod.widgets.RINX_TEXT_SCALE)}}
+            refresh := RinxButton {text: "Refresh"}
+            developer := RinxButton {text: "Developer"}
         }
-        status := Label {width: Fill height: Fit draw_text.color: #555 text: "Loading App Hub…"}
+        status := Label {width: Fill height: Fit draw_text.color: mod.widgets.RINX_MUTED text: "Loading App Hub…"}
         collection := View {width: Fill height: Fill flow: Down spacing: 12
             tabs := View {width: Fill height: 44 flow: Right spacing: 6
-                recent := Button {width: Fill text: "Recent"}
-                mine := Button {width: Fill text: "My apps"}
-                browse := Button {width: Fill text: "Browse"}
+                recent := RinxButton {width: Fill text: "Recent"}
+                mine := RinxButton {width: Fill text: "My apps"}
+                browse := RinxButton {width: Fill text: "Browse"}
             }
-            search := TextInput {width: Fill height: 40 empty_text: "Find mini apps"}
-            empty := Label {visible: false width: Fill height: Fit draw_text.color: #777}
+            search := RinxInput {width: Fill height: 40 empty_text: "Find mini apps"}
+            empty := Label {visible: false width: Fill height: Fit draw_text.color: mod.widgets.RINX_MUTED}
             list := PortalList {width: Fill height: Fill
                 Filler := View {width: Fill height: 84}
                 App := View {width: Fill height: 84 flow: Down
@@ -48,40 +49,46 @@ script_mod! {
                         width: Fill height: 76 flow: Right spacing: 12 padding: 10 align: Align{y: 0.5}
                         icon := Image {width: 48 height: 48}
                         copy := View {width: Fill height: Fit flow: Down spacing: 5
-                            name := Label {width: Fill max_lines: 1 text_overflow: Ellipsis draw_text +: {color: #222 text_style.font_size: 15}}
-                            subtitle := Label {width: Fill max_lines: 1 text_overflow: Ellipsis draw_text +: {color: #777 text_style.font_size: 11}}
+                            name := Label {width: Fill max_lines: 1 text_overflow: Ellipsis draw_text +: {color: mod.widgets.RINX_INK text_style.font_size: (15 * mod.widgets.RINX_TEXT_SCALE)}}
+                            subtitle := Label {width: Fill max_lines: 1 text_overflow: Ellipsis draw_text +: {color: mod.widgets.RINX_MUTED text_style.font_size: (11 * mod.widgets.RINX_TEXT_SCALE)}}
                         }
-                        state := Label {draw_text +: {color: #555 text_style.font_size: 10}}
+                        state := Label {draw_text +: {color: mod.widgets.RINX_MUTED text_style.font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}}
                     }
                 }
             }
         }
         details := ScrollYView {visible: false width: Fill height: Fill flow: Down spacing: 16
-            description := Label {width: Fill draw_text.color: #333}
-            publisher := Label {width: Fill draw_text.color: #666}
-            permissions := Label {width: Fill draw_text.color: #333}
-            account := Label {width: Fill draw_text.color: #555}
+            description := Label {width: Fill draw_text.color: mod.widgets.RINX_INK}
+            publisher := Label {width: Fill draw_text.color: mod.widgets.RINX_MUTED}
+            permissions := Label {width: Fill draw_text.color: mod.widgets.RINX_INK}
+            account := Label {width: Fill draw_text.color: mod.widgets.RINX_MUTED}
             room_group := View {width: Fill height: Fit flow: Down spacing: 8
-                Label {text: "Allow access to a conversation" draw_text.color: #555}
+                Label {text: "Allow access to a conversation" draw_text.color: mod.widgets.RINX_MUTED}
                 room := DropDown {width: Fill labels: ["No conversation access"]}
             }
-            availability := Label {width: Fill draw_text.color: #555}
+            availability := Label {width: Fill draw_text.color: mod.widgets.RINX_MUTED}
             actions := View {width: Fill height: Fit flow: Right spacing: 12
-                primary := Button {height: 44 text: "Add"}
-                remove := Button {height: 44 text: "Remove"}
+                primary := RinxPrimaryButton {height: 44 text: "Add"}
+                remove := RinxButton {height: 44 text: "Remove"}
             }
-            remove_note := Label {width: Fill text: "Removing an app keeps its saved documents." draw_text.color: #777}
+            remove_note := Label {width: Fill text: "Removing an app keeps its saved documents." draw_text.color: mod.widgets.RINX_MUTED}
             remove_confirm := View {visible: false width: Fill height: Fit flow: Right spacing: 12
-                cancel := Button {height: 44 text: "Cancel"}
-                confirm := Button {height: 44 text: "Remove app"}
+                cancel := RinxButton {height: 44 text: "Cancel"}
+                confirm := RinxButton {height: 44 text: "Remove app"}
             }
         }
     }
 }
-#[derive(Script, ScriptHook, Widget)]
+#[derive(Script, Widget)]
 pub struct MiniAppLibrary {
     #[deref]
     view: View,
+    #[rust]
+    theme: ThemeSnapshot,
+    #[rust]
+    status_text: String,
+    #[rust]
+    room_labels: Vec<String>,
     #[rust]
     worker: Option<Worker>,
     #[rust]
@@ -107,8 +114,25 @@ pub struct MiniAppLibrary {
     #[rust]
     icons: HashMap<WidgetUid, String>,
 }
+impl ScriptHook for MiniAppLibrary {
+    fn on_after_apply(&mut self, vm: &mut ScriptVm, apply: &Apply, _scope: &mut Scope, _value: ScriptValue) {
+        self.theme = crate::theme::snapshot_for_vm(vm);
+        if apply.is_script_reapply() {
+            let cx = vm.cx_mut();
+            self.view.label(cx, ids!(status)).set_text(cx, &self.status_text);
+            self.view.label(cx, ids!(status)).set_visible(cx, !self.status_text.is_empty());
+            if !self.room_labels.is_empty() {
+                let room = self.view.drop_down(cx, ids!(details.room_group.room));
+                room.set_labels(cx, self.room_labels.clone());
+                let index = self.room_grant.as_ref().and_then(|id| self.rooms.iter().position(|r| r == id)).unwrap_or(0);
+                room.set_selected_item(cx, index);
+            }
+        }
+    }
+}
 impl MiniAppLibrary {
     fn status(&mut self, cx: &mut Cx, text: &str) {
+        self.status_text = text.to_owned();
         self.view.label(cx, ids!(status)).set_text(cx, text);
         self.view
             .label(cx, ids!(status))
@@ -212,6 +236,7 @@ impl MiniAppLibrary {
             self.rooms.push(id);
         }
         let room = self.view.drop_down(cx, ids!(details.room_group.room));
+        self.room_labels = labels.clone();
         room.set_labels(cx, labels);
         room.set_selected_item(cx, 0);
         self.view
@@ -440,9 +465,9 @@ impl Widget for MiniAppLibrary {
         ] {
             let mut button = self.view.button(cx, path);
             let color = if self.tab == tab {
-                vec4(0.08, 0.47, 0.29, 1.0)
+                self.theme.accent
             } else {
-                vec4(0.3, 0.3, 0.3, 1.0)
+                self.theme.muted
             };
             script_apply_eval!(cx, button, {draw_text +: {color: #(color)}});
         }
@@ -555,7 +580,11 @@ impl Widget for MiniAppLibrary {
                     if self.icons.get(&image.widget_uid()) != Some(&key) {
                         let _ = image.load_svg_from_data(
                             cx,
-                            include_bytes!("../../resources/icons/add_attachment.svg"),
+                            if id == crate::system_apps::ARTICLE_ID {
+                                include_bytes!("../../resources/icons/file.svg")
+                            } else {
+                                include_bytes!("../../resources/icons/squares_filled.svg")
+                            },
                         );
                         if source.starts_with("https://") {
                             let _ = image.load_image_http_by_url_async(cx, source);

@@ -35,10 +35,11 @@ jobs:
       - run: cargo test --locked --manifest-path crates/system-apps/Cargo.toml
       - run: bash tools/package-system-apps/check.sh
       - run: python3 tools/test_package_octos.py
-      - run: cargo test --locked --features agent_chat --lib
+      - run: cargo test --locked --features agent_chat,octosense-module --lib
       - run: cargo build --locked --features agent_chat
       - run: cargo check --locked --no-default-features --features agent_chat
       - run: python3 tools/wechat-ux/check_i18n.py
+      - run: python3 tools/check_theme_literals.py
   article-core:
     name: Portable article core
     runs-on: ubuntu-latest
@@ -51,3 +52,4 @@ jobs:
         with:
           workspaces: crates/article-core
       - run: cargo test --locked --manifest-path crates/article-core/Cargo.toml
+      - run: cargo test --locked --manifest-path crates/theme-contract/Cargo.toml

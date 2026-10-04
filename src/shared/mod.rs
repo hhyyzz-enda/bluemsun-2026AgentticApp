@@ -31,10 +31,14 @@ pub mod restore_status_view;
 pub mod design_tokens;
 pub mod image_viewer;
 pub mod mobile_details;
+pub mod web_browser;
+pub mod web_browser_session;
+pub mod web_browser_window;
 
 
 pub fn script_mod(vm: &mut ScriptVm) {
     // Order matters here, as some widget definitions depend on others.
+    crate::theme::script_mod(vm);
     cached_widget::script_mod(vm);
     styles::script_mod(vm);
     design_tokens::script_mod(vm);
@@ -63,4 +67,6 @@ pub fn script_mod(vm: &mut ScriptVm) {
     image_viewer::script_mod(vm);
     progress_bar::script_mod(vm);
     file_upload_modal::script_mod(vm);
+    web_browser::script_mod(vm);
+    web_browser_window::script_mod(vm);
 }

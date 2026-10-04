@@ -4,7 +4,7 @@ use makepad_widgets::*;
 use ruma::OwnedUserId;
 
 use crate::home::room_screen::InviteResultAction;
-use crate::sliding_sync::{MatrixRequest, submit_async_request};
+use crate::sliding_sync::{MatrixRequest, get_client, spawn_async_task, submit_async_request};
 use crate::utils::RoomNameId;
 
 
@@ -18,13 +18,13 @@ script_mod! {
 
         title := ModalTitle {}
 
-        registered_agents := DropDown {width: Fill labels: ["Registered agents"]}
+        registered_agents := DropDown {width: Fill labels: ["People you know"]}
         user_id_input := RobrixTextInput {
             draw_text +: {
-                text_style: REGULAR_TEXT {font_size: 11},
-                color: #000
+                text_style: REGULAR_TEXT {font_size: (11 * mod.widgets.RINX_TEXT_SCALE)},
+                color: mod.widgets.RINX_INK
             }
-            empty_text: #(crate::i18n::tr("@user:example.org")) i18n_empty_text: "@user:example.org",
+            empty_text: #(crate::i18n::tr("Name or @user:example.org")) i18n_empty_text: "Name or @user:example.org",
             autocapitalize: None,
             autocorrect: Disabled,
         }
@@ -72,8 +72,8 @@ script_mod! {
                 align: Align{x: 0.5, y: 0.0}
                 margin: Inset{top: 10}
                 draw_text +: {
-                    text_style: REGULAR_TEXT {font_size: 11},
-                    color: #000
+                    text_style: REGULAR_TEXT {font_size: (11 * mod.widgets.RINX_TEXT_SCALE)},
+                    color: mod.widgets.RINX_INK
                 }
                 text: ""
             }
@@ -104,12 +104,29 @@ enum InviteModalState {
 }
 
 
+/// People the invite dialog can offer, by Matrix ID and display name.
+type Person = (OwnedUserId, Option<String>);
+
+/// Results of the dialog's background lookups, matched to the request that
+/// asked for them so a late answer never overwrites a newer one.
+#[derive(Debug)]
+enum InvitePeopleAction {
+    /// Everyone who shares a joined room with the user.
+    Known { request: u64, people: Vec<Person> },
+    /// The homeserver directory's answer for a typed name.
+    Searched { request: u64, query: String, people: Vec<Person> },
+}
+
 #[derive(Script, ScriptHook, Widget)]
 pub struct InviteModal {
     #[deref] view: View,
     #[rust] state: InviteModalState,
     #[rust] room_name_id: Option<RoomNameId>,
+    /// The dropdown's entries after its "People you know" header.
     #[rust] agents: Vec<OwnedUserId>,
+    /// Registered agents and people who share a room with the user.
+    #[rust] known: Vec<Person>,
+    #[rust] request: u64,
 }
 
 impl Widget for InviteModal {
@@ -125,6 +142,30 @@ impl Widget for InviteModal {
 
 impl WidgetMatchEvent for InviteModal {
     fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions, _scope: &mut Scope) {
+        for action in actions {
+            match action.downcast_ref() {
+                Some(InvitePeopleAction::Known { request, people }) if *request == self.request => {
+                    for person in people {
+                        if !self.known.iter().any(|(id, _)| id == &person.0) {
+                            self.known.push(person.clone());
+                        }
+                    }
+                    self.known.sort_by_key(|(id, name)| (name.as_deref().unwrap_or(id.as_str()).to_lowercase(), id.clone()));
+                    let known = self.known.clone();
+                    self.offer(cx, &known);
+                }
+                Some(InvitePeopleAction::Searched { request, query, people }) if *request == self.request => {
+                    let mut matches = self.local_matches(query);
+                    for person in people {
+                        if !matches.iter().any(|(id, _)| id == &person.0) {
+                            matches.push(person.clone());
+                        }
+                    }
+                    self.resolved(cx, query, matches);
+                }
+                _ => {}
+            }
+        }
         if let Some(index) = self.view.drop_down(cx, ids!(registered_agents)).selected(actions) && let Some(user) = index.checked_sub(1).and_then(|i| self.agents.get(i)) {
             self.view.text_input(cx, ids!(user_id_input)).set_text(cx, user.as_str());
         }
@@ -174,8 +215,17 @@ impl WidgetMatchEvent for InviteModal {
                 return;
             }
 
-            // Try to parse the user ID
-            match ruma::UserId::parse(&user_id_str) {
+            // A full Matrix ID is invited as typed; anything else is a name.
+            let parsed = if user_id_str.trim_start().starts_with('@') {
+                ruma::UserId::parse(user_id_str.trim())
+            } else {
+                Err(ruma::IdParseError::MissingLeadingSigil)
+            };
+            if parsed.is_err() && !user_id_str.trim_start().starts_with('@') {
+                self.search(cx, user_id_str.trim().to_owned());
+                return;
+            }
+            match parsed {
                 Ok(user_id) => {
                     if let Some(room_name_id) = &self.room_name_id {
                         submit_async_request(MatrixRequest::InviteUser {
@@ -259,16 +309,146 @@ impl WidgetMatchEvent for InviteModal {
 }
 
 impl InviteModal {
+    /// Put `people` in the dropdown, after its header.
+    fn offer(&mut self, cx: &mut Cx, people: &[Person]) {
+        self.agents = people.iter().map(|(id, _)| id.clone()).collect();
+        let labels = std::iter::once(crate::i18n::tr("People you know").into())
+            .chain(people.iter().map(|(id, name)| match name {
+                Some(name) if !name.is_empty() => format!("{name} ({id})"),
+                _ => id.to_string(),
+            }))
+            .collect();
+        let drop_down = self.view.drop_down(cx, ids!(registered_agents));
+        drop_down.set_labels(cx, labels);
+        drop_down.set_selected_item(cx, 0);
+        drop_down.set_visible(cx, !people.is_empty());
+        self.view.redraw(cx);
+    }
+
+    /// Known people whose name or ID contains `query`, ignoring case.
+    fn local_matches(&self, query: &str) -> Vec<Person> {
+        let needle = query.to_lowercase();
+        self.known
+            .iter()
+            .filter(|(id, name)| {
+                id.as_str().to_lowercase().contains(&needle)
+                    || name.as_deref().is_some_and(|n| n.to_lowercase().contains(&needle))
+            })
+            .cloned()
+            .collect()
+    }
+
+    /// A typed name: ask the homeserver directory too, then resolve.
+    fn search(&mut self, cx: &mut Cx, query: String) {
+        self.request += 1;
+        let request = self.request;
+        self.status(cx, &crate::i18n::format("Searching for {0}…", &[("0", query.clone())]), false);
+        let Some(client) = get_client() else {
+            let matches = self.local_matches(&query);
+            self.resolved(cx, &query, matches);
+            return;
+        };
+        spawn_async_task(async move {
+            let people = match client.search_users(&query, 20).await {
+                Ok(found) => found
+                    .results
+                    .into_iter()
+                    .filter(|u| Some(u.user_id.as_ref()) != client.user_id())
+                    .map(|u| (u.user_id, u.display_name))
+                    .collect(),
+                Err(_) => Vec::new(),
+            };
+            Cx::post_action(InvitePeopleAction::Searched { request, query, people });
+            SignalToUI::set_ui_signal();
+        });
+    }
+
+    /// One match fills the field, ready to invite; several are offered in the
+    /// dropdown; none asks for the full ID.
+    fn resolved(&mut self, cx: &mut Cx, query: &str, matches: Vec<Person>) {
+        match matches.as_slice() {
+            [(id, _)] => {
+                self.view.text_input(cx, ids!(user_id_input)).set_text(cx, id.as_str());
+                self.status(cx, &crate::i18n::format("Found {0}. Press Invite to send.", &[("0", id.to_string())]), false);
+            }
+            [] => self.status(
+                cx,
+                &crate::i18n::format("No one found for \"{0}\". Enter their full ID, like @name:server.", &[("0", query.to_owned())]),
+                true,
+            ),
+            _ => {
+                self.offer(cx, &matches);
+                self.status(cx, &crate::i18n::format("{0} people match. Pick one above.", &[("0", matches.len().to_string())]), false);
+            }
+        }
+    }
+
+    fn status(&mut self, cx: &mut Cx, text: &str, error: bool) {
+        let mut label = self.view.label(cx, ids!(status_label_view.status_label));
+        let text = text.to_owned();
+        if error {
+            script_apply_eval!(cx, label, { text: #(text), draw_text +: { color: mod.widgets.COLOR_FG_DANGER_RED } });
+        } else {
+            script_apply_eval!(cx, label, { text: #(text), draw_text +: { color: mod.widgets.COLOR_ACTIVE_PRIMARY_DARKER } });
+        }
+        self.view.view(cx, ids!(status_label_view)).set_visible(cx, true);
+        self.view.redraw(cx);
+    }
+
+    /// Everyone who shares a joined room with the user, except the user and
+    /// whoever is already in the target room.
+    fn load_known(&mut self, room: ruma::OwnedRoomId) {
+        let Some(client) = get_client() else { return };
+        let request = self.request;
+        spawn_async_task(async move {
+            let me = client.user_id().map(ToOwned::to_owned);
+            let present: Vec<OwnedUserId> = match client.get_room(&room) {
+                Some(target) => target
+                    .members_no_sync(matrix_sdk::RoomMemberships::JOIN | matrix_sdk::RoomMemberships::INVITE)
+                    .await
+                    .map(|members| members.iter().map(|m| m.user_id().to_owned()).collect())
+                    .unwrap_or_default(),
+                None => Vec::new(),
+            };
+            let mut people: Vec<Person> = Vec::new();
+            for joined in client.joined_rooms() {
+                if crate::moments::is_moments(&joined) {
+                    continue;
+                }
+                let Ok(members) = joined.members_no_sync(matrix_sdk::RoomMemberships::JOIN).await else {
+                    continue;
+                };
+                for member in members {
+                    let id = member.user_id().to_owned();
+                    if Some(&id) == me.as_ref() || present.contains(&id) || people.iter().any(|(p, _)| p == &id) {
+                        continue;
+                    }
+                    people.push((id, member.display_name().map(str::to_owned)));
+                    if people.len() >= 500 {
+                        break;
+                    }
+                }
+            }
+            Cx::post_action(InvitePeopleAction::Known { request, people });
+            SignalToUI::set_ui_signal();
+        });
+    }
+
     pub fn show(&mut self, cx: &mut Cx, room_name_id: RoomNameId) {
         self.view.label(cx, ids!(title)).set_text(
             cx,
             &format!("Invite to {room_name_id}"),
         );
         let settings = crate::agent_access::current();
-        self.agents = settings.agent_registry.agent_user_ids();
-        self.view.drop_down(cx, ids!(registered_agents)).set_labels(cx, std::iter::once(crate::i18n::tr("Registered agents").into()).chain(settings.agent_registry.agents().map(|(id, entry)|format!("{} ({id})",entry.display_name.as_deref().unwrap_or(id.as_str())))).collect());
-        self.view.drop_down(cx, ids!(registered_agents)).set_selected_item(cx, 0);
-        self.view.drop_down(cx, ids!(registered_agents)).set_visible(cx, !self.agents.is_empty());
+        self.request += 1;
+        self.known = settings
+            .agent_registry
+            .agents()
+            .map(|(id, entry)| (id.clone(), entry.display_name.clone()))
+            .collect();
+        let known = self.known.clone();
+        self.offer(cx, &known);
+        self.load_known(room_name_id.room_id().clone());
         self.state = InviteModalState::WaitingForUserInput;
         self.room_name_id = Some(room_name_id);
 

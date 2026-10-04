@@ -1,5 +1,6 @@
 //! Native Octos action menu shared by desktop and mobile message layouts.
 use makepad_widgets::*;
+use crate::theme::Snapshot as ThemeSnapshot;
 use super::{octos::Context, approval::ActionStyle};
 
 script_mod! {
@@ -31,8 +32,12 @@ const SLOTS: [&[LiveId]; 6] = [
     ids!(octos_4),
     ids!(octos_5),
 ];
-#[derive(Script, ScriptHook, Widget)]
+#[derive(Script, Widget)]
 pub struct OctosActionCard {
+    #[rust]
+    appearance: ThemeSnapshot,
+    #[rust]
+    restyle: bool,
     #[source]
     source: ScriptObjectRef,
     #[deref]
@@ -41,6 +46,12 @@ pub struct OctosActionCard {
     context: Option<Context>,
     #[rust]
     expiry: Timer,
+}
+impl ScriptHook for OctosActionCard {
+    fn on_after_apply(&mut self, vm: &mut ScriptVm, apply: &Apply, _: &mut Scope, _: ScriptValue) {
+        self.appearance = crate::theme::snapshot_for_vm(vm);
+        self.restyle |= apply.is_script_reapply();
+    }
 }
 impl OctosActionCard {
     fn sync(&mut self, cx: &mut Cx) {
@@ -74,9 +85,9 @@ impl OctosActionCard {
                 button.set_text(cx, crate::i18n::tr(&action.label));
                 button.set_enabled(cx, status.is_none());
                 let color = match action.style {
-                    ActionStyle::Primary => vec4(0.05, 0.46, 0.30, 1.0),
-                    ActionStyle::Danger => vec4(0.75, 0.13, 0.17, 1.0),
-                    ActionStyle::Secondary => vec4(0.25, 0.28, 0.32, 1.0),
+                    ActionStyle::Primary => self.appearance.accent,
+                    ActionStyle::Danger => self.appearance.role("color.status.danger.foreground"),
+                    ActionStyle::Secondary => self.appearance.ink,
                 };
                 script_apply_eval!(cx,button,{draw_text +: {color: #(color) color_hover: #(color) color_down: #(color)} draw_bg +: {border_color: #(color) border_color_hover: #(color) border_color_down: #(color)}});
             }
@@ -86,6 +97,9 @@ impl OctosActionCard {
 }
 impl Widget for OctosActionCard {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        if std::mem::take(&mut self.restyle) {
+            self.sync(cx);
+        }
         self.view.handle_event(cx, event, scope);
         if self.expiry.is_event(event).is_some() {
             self.sync(cx);

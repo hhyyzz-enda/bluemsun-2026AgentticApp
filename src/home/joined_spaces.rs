@@ -33,7 +33,7 @@ script_mod! {
         status := Label {
             width: Fill height: Fit padding: 18
             flow: Flow.Right{wrap: true}
-            draw_text +: {color: #x888888 text_style: theme.font_regular {font_size: 11}}
+            draw_text +: {color: mod.widgets.RINX_MUTED text_style: theme.font_regular {font_size: (11 * mod.widgets.RINX_TEXT_SCALE)}}
             text: #(crate::i18n::tr("Loading joined Spaces…")) i18n_text: "Loading joined Spaces…"
         }
         list := PortalList {
@@ -43,17 +43,17 @@ script_mod! {
                 row := NavigationBarButton {
                     width: Fill height: 56 flow: Right spacing: 10
                     align: Align{y: 0.5} padding: Inset{left: 16 right: 14}
-                    draw_bg +: {color_hover: #xe5e5e5 color_active: #xe5e5e5 border_radius: 0}
+                    draw_bg +: {color_hover: mod.widgets.RINX_BORDER color_active: mod.widgets.RINX_BORDER border_radius: 0}
                     indent := View {width: 0 height: 1}
                     disclosure := View {
                         width: 12 height: 14 flow: Overlay align: Align{x: 0.5 y: 0.5}
                         closed := View {
                             width: 8 height: 12
-                            Icon {icon_walk: Walk{width: 8 height: 12} draw_icon +: {svg: ICON_CHEVRON_RIGHT color: #x888888}}
+                            Icon {icon_walk: Walk{width: 8 height: 12} draw_icon +: {svg: ICON_CHEVRON_RIGHT color: mod.widgets.RINX_MUTED}}
                         }
                         opened := View {
                             width: 12 height: 8
-                            Icon {icon_walk: Walk{width: 12 height: 8} draw_icon +: {svg: ICON_CHEVRON_DOWN color: #x888888}}
+                            Icon {icon_walk: Walk{width: 12 height: 8} draw_icon +: {svg: ICON_CHEVRON_DOWN color: mod.widgets.RINX_MUTED}}
                         }
                     }
                     icon := View {
@@ -62,28 +62,28 @@ script_mod! {
                             width: 22 height: 22
                             Icon {
                                 icon_walk: Walk{width: 22 height: 22}
-                                draw_icon +: {svg: ICON_SQUARES color: #x07c160}
+                                draw_icon +: {svg: ICON_SQUARES color: mod.widgets.RINX_ACCENT}
                             }
                         }
                     }
                     name := Label {
                         width: Fill max_lines: 1 text_overflow: Ellipsis
-                        draw_text +: {color: #x191919 text_style: theme.font_regular {font_size: 12.5}}
+                        draw_text +: {color: mod.widgets.RINX_INK text_style: theme.font_regular {font_size: (12.5 * mod.widgets.RINX_TEXT_SCALE)}}
                     }
                     unread := UnreadBadge {}
                 }
-                SolidView {width: Fill height: 0.5 margin: Inset{left: 48} draw_bg.color: #xe5e5e5}
+                SolidView {width: Fill height: 0.5 margin: Inset{left: 48} draw_bg.color: mod.widgets.RINX_BORDER}
             }
             Browse := View {
                 width: Fill height: 42 flow: Down
                 row := NavigationBarButton {
                     width: Fill height: Fill flow: Right align: Align{y: 0.5}
                     padding: Inset{left: 48 right: 14}
-                    draw_bg +: {color_hover: #xe5e5e5 border_radius: 0}
+                    draw_bg +: {color_hover: mod.widgets.RINX_BORDER border_radius: 0}
                     indent := View {width: 0 height: 1}
                     name := Label {
                         text: #(crate::i18n::tr("Browse rooms ›")) i18n_text: "Browse rooms ›"
-                        draw_text +: {color: #x576b95 text_style: theme.font_regular {font_size: 11}}
+                        draw_text +: {color: mod.widgets.RINX_ACCENT text_style: theme.font_regular {font_size: (11 * mod.widgets.RINX_TEXT_SCALE)}}
                     }
                 }
             }

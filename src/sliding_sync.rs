@@ -43,7 +43,7 @@ use crate::{
     }, login::login_screen::LoginAction, logout::{logout_confirm_modal::LogoutAction, logout_state_machine::{LogoutConfig, is_logout_in_progress, logout_with_state_machine}}, media_cache::{MediaCacheEntry, MediaCacheEntryRef}, persistence::{self, ClientSessionPersisted, load_app_state}, profile::{
         user_profile::UserProfile,
         user_profile_cache::{UserProfileUpdate, enqueue_user_profile_update},
-    }, room::{FetchedRoomAvatar, FetchedRoomPreview, RoomPreviewAction}, room_preview_cache::{RoomPreviewUpdate, enqueue_room_preview_update}, settings::account_settings::AccountManagementUrl, shared::{
+    }, room::{FetchedRoomAvatar, FetchedRoomPreview, RoomAvatarMember, RoomPreviewAction, room_avatar_members}, room_preview_cache::{RoomPreviewUpdate, enqueue_room_preview_update}, settings::account_settings::AccountManagementUrl, shared::{
         attachment_download::{MediaDownloadResult, media_source_mxc}, avatar::AvatarState, file_upload_modal::{AttachmentUpload, FileUploadAttemptId, FileUploadMetadata}, jump_to_bottom_button::UnreadMessageCount, mention_popup::{MentionItem, RoomMentionCandidate}, mentionable_text_input::MentionMatches, popup_list::{PopupKind, enqueue_popup_notification}
     }, space_service_sync::space_service_loop, utils::{self, AVATAR_THUMBNAIL_FORMAT, MatchQuality, RoomNameId, VecDiff, alias_localpart, avatar_from_room_name}, verification::add_verification_event_handlers_and_sync_client
 };
@@ -1074,6 +1074,8 @@ async fn matrix_worker_task(
                 let _fetch_task = Handle::current().spawn(async move {
                     log!("Sending sync room members request for {timeline_kind}...");
                     timeline.fetch_members().await;
+                    let room = timeline.room();
+                    spawn_fetch_room_avatar_inner(room.clone(), RoomNameId::from_room(room).await);
                     log!("Completed sync room members request for {timeline_kind}.");
                     if sender.send(TimelineUpdate::RoomMembersSynced).is_err() {
                         error!("Failed to send synced room members to UI for {timeline_kind}");
@@ -1253,6 +1255,22 @@ async fn matrix_worker_task(
                     log!("Sending request to join room {room_id}...");
                     let known_room = client.get_room(&room_id);
                     let was_invite = known_room.as_ref().is_some_and(|r| r.state() == RoomState::Invited);
+                    // Already joined, but the rooms list may never have been given the room
+                    // (search then offers "Join", which the SDK refuses). Add it and open it.
+                    if let Some(room) = known_room.as_ref().filter(|r| r.state() == RoomState::Joined) {
+                        if !ALL_JOINED_ROOMS.lock().unwrap().contains_key(&room_id) {
+                            warning!("Joined room {room_id} was missing from the rooms list; adding it.");
+                            let service = SYNC_SERVICE.lock().unwrap().as_ref().map(|s| s.room_list_service());
+                            if let Some(service) = service {
+                                let info = RoomListServiceRoomInfo::from_room(room.clone(), &current_user_id(), true).await;
+                                if let Err(e) = add_new_room(&info, &service).await {
+                                    error!("Failed to add joined room {room_id} to the rooms list: {e:?}");
+                                }
+                            }
+                        }
+                        Cx::post_action(JoinRoomResultAction::Joined { room_id });
+                        return;
+                    }
                     let result = match known_room.as_ref() {
                         Some(room) => room.join().await.map(|_| room.clone()),
                         None => client.join_room_by_id(&room_id).await,
@@ -1415,7 +1433,7 @@ async fn matrix_worker_task(
                 }
                 let _create_dm_task = Handle::current().spawn(async move {
                     if !crate::matrix_context::is_current(&client) {return;}
-                    if let Some(room) = client.get_dm_room(&user_profile.user_id) {
+                    if let Some(room) = crate::agent_access::find_dm(&client, &user_profile.user_id).await {
                         log!("Found existing DM room: {}", room.room_id());
                         Cx::post_action(DirectMessageRoomAction::FoundExisting {
                             user_id: user_profile.user_id,
@@ -3323,6 +3341,8 @@ struct RoomListServiceRoomInfo {
     num_unread_mentions: u64,
     display_name: Option<RoomDisplayName>,
     room_avatar: Option<OwnedMxcUri>,
+    avatar_members: Vec<RoomAvatarMember>,
+    member_count: u64,
     canonical_alias: Option<OwnedRoomAliasId>,
     alt_aliases: Vec<OwnedRoomAliasId>,
     /// Only ever set for invited rooms.
@@ -3378,6 +3398,10 @@ impl RoomListServiceRoomInfo {
             num_unread_mentions: room.num_unread_mentions(),
             display_name: display_name.ok(),
             room_avatar: room.avatar_url(),
+            avatar_members: if room.avatar_url().is_none() && !room.is_space() {
+                room_avatar_member_profiles(&room).await
+            } else { Vec::new() },
+            member_count: room.active_members_count(),
             canonical_alias: room.canonical_alias(),
             alt_aliases: room.alt_aliases(),
             inviter_info,
@@ -4116,6 +4140,11 @@ async fn update_room(
         // A room with no avatar image uses a text avatar based on the room name, so we update that too.
         if old_room.room_avatar != new_room.room_avatar
             || (was_name_changed && new_room.room_avatar.is_none())
+            || (new_room.room_avatar.is_none() && (
+                old_room.avatar_members != new_room.avatar_members
+                || old_room.member_count != new_room.member_count
+                || old_room.is_direct != new_room.is_direct
+            ))
         {
             log!("Updating room avatar for room {}", new_room_id);
             spawn_fetch_room_avatar(new_room);
@@ -5744,12 +5773,51 @@ fn spawn_fetch_room_avatar_inner(room: Room, room_name_id: RoomNameId) {
     });
 }
 
-/// Fetches and returns the avatar image for the given room (if one exists),
-/// otherwise returns a text avatar string of the first character of the room name.
+/// Read at most nine profiles from the local store; heroes fill gaps in lazy-loaded rooms.
+async fn room_avatar_member_profiles(room: &Room) -> Vec<RoomAvatarMember> {
+    let mut ids = room.joined_user_ids().await.unwrap_or_default();
+    ids.sort();
+    ids.truncate(9);
+    let mut members = Vec::new();
+    for id in ids {
+        if let Ok(Some(member)) = room.get_member_no_sync(&id).await {
+            members.push(RoomAvatarMember {
+                user_id: id,
+                display_name: member.display_name().map(str::to_owned),
+                avatar_url: member.avatar_url().map(ToOwned::to_owned),
+            });
+        }
+    }
+    for hero in room.heroes().await {
+        if !members.iter().any(|member| member.user_id == hero.user_id) {
+            members.push(RoomAvatarMember {
+                user_id: hero.user_id, display_name: hero.display_name, avatar_url: hero.avatar_url,
+            });
+        }
+    }
+    room_avatar_members(members)
+}
+
+/// Prefer a custom room image; otherwise use member tiles for group chats.
 async fn room_avatar(room: &Room, room_name_id: &RoomNameId) -> FetchedRoomAvatar {
     if let Some(avatar_url) = room.avatar_url() {
         if let Ok(Some(avatar)) = room.avatar(AVATAR_THUMBNAIL_FORMAT.into()).await {
             return FetchedRoomAvatar::Image((avatar_url, avatar).into());
+        }
+    }
+    if !room.is_space() {
+        let mut members = room_avatar_member_profiles(room).await;
+        let group = room.active_members_count() > 2 || members.len() > 2
+            || !room.is_direct().await.unwrap_or(false);
+        if group {
+            // Complete the lazy-loaded member list in the background, without
+            // blocking drawing or fetching every member's photo.
+            if room.state() == RoomState::Joined && members.len() < (room.active_members_count() as usize).min(9) {
+                if room.members(RoomMemberships::JOIN).await.is_ok() {
+                    members = room_avatar_member_profiles(room).await;
+                }
+            }
+            if members.len() >= 2 { return FetchedRoomAvatar::Members(members); }
         }
     }
     // For rooms without an avatar that have only one hero (i.e., a 2-member DM), use their avatar.

@@ -123,7 +123,7 @@ script_mod! {
             width: Fit, height: Fit
             padding: 0
             draw_text +: {
-                text_style: theme.font_regular { font_size: 8.5, top_drop: -0.08 }
+                text_style: theme.font_regular { font_size: (8.5 * mod.widgets.RINX_TEXT_SCALE), top_drop: -0.08 }
                 color: (mod.widgets.RBX_ACCENT)
             }
             text: ""

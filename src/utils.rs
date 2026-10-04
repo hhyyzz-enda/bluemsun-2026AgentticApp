@@ -19,6 +19,10 @@ pub const GEO_URI_SCHEME: &str = "geo:";
 
 /// Opens the given URL or shows an error popup.
 pub fn open_url(url: &str) {
+    if let Some(id) = crate::miniapps::palpo::route(url) {
+        Cx::post_action(crate::miniapps::MiniAppsAction::OpenPalpo(id));
+        return;
+    }
     log!("Opening URL \"{}\"", url);
     if let Err(e) = robius_open::Uri::new(url).open() {
         error!("Failed to open URL {:?}. Error: {:?}", url, e);

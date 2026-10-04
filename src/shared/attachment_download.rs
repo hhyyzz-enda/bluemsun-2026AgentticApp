@@ -38,6 +38,7 @@ pub fn media_source_mxc(source: &MediaSource) -> &OwnedMxcUri {
 pub enum TransferKind {
     Download,
     Share,
+    Preview,
 }
 
 /// Info about a download or share that has begun or recently completed.
@@ -83,7 +84,7 @@ pub enum DownloadDisplayState {
 pub const DOWNLOAD_RESULT_DURATION_SECS: f64 = 5.0;
 
 /// Metadata describing an attachment/media file to be downloaded.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct DownloadableAttachment {
     pub media_source: MediaSource,
     pub filename: String,
@@ -91,9 +92,11 @@ pub struct DownloadableAttachment {
     pub kind: DownloadKind,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum DownloadKind {
     File,
+    Markdown,
+    Theme,
     Audio,
     Video,
     Image,
@@ -106,7 +109,112 @@ impl DownloadKind {
             Self::Audio => Some("audio/*"),
             Self::Video => Some("video/*"),
             Self::File => None,
+            Self::Markdown => Some("text/markdown"),
+            Self::Theme => Some(octosense_theme_contract::MIME),
         }
+    }
+}
+
+pub fn is_theme_attachment(filename: &str, mimetype: Option<&str>) -> bool {
+    filename.to_ascii_lowercase().ends_with(".octotheme")
+        || mimetype.is_some_and(|m| {
+            m.split(';')
+                .next()
+                .unwrap_or("")
+                .trim()
+                .eq_ignore_ascii_case(octosense_theme_contract::MIME)
+        })
+}
+pub fn start_theme_preview(
+    info: DownloadableAttachment,
+    update_sender: TimelineUpdateSenderOption,
+) {
+    let owner = crate::sliding_sync::current_user_id();
+    if info
+        .size
+        .is_some_and(|s| s > octosense_theme_contract::MAX_BYTES as u64)
+    {
+        enqueue_popup_notification("Theme exceeds 256 KB", PopupKind::Error, None);
+        finish_download_indicator(
+            &update_sender,
+            Some(media_source_mxc(&info.media_source)),
+            DownloadOutcome::Failed,
+        );
+        return;
+    }
+    download_media(info, update_sender, move |_title, mxc, bytes, sender| {
+        if owner != crate::sliding_sync::current_user_id()
+            || crate::logout::logout_state_machine::is_logout_in_progress()
+        {
+            finish_download_indicator(&sender, Some(&mxc), DownloadOutcome::Cancelled);
+            return;
+        }
+        let result = octosense_theme_contract::ThemePackage::parse(&bytes);
+        let outcome = if result.is_ok() {
+            DownloadOutcome::Succeeded
+        } else {
+            DownloadOutcome::Failed
+        };
+        makepad_widgets::Cx::post_action(
+            crate::settings::theme_studio::ThemeStudioAction::Imported { owner, result },
+        );
+        finish_download_indicator(&sender, Some(&mxc), outcome);
+    });
+}
+
+pub fn is_markdown_attachment(filename: &str, mimetype: Option<&str>) -> bool {
+    let extension = filename.rsplit('.').next().unwrap_or_default();
+    (filename.contains('.') && (extension.eq_ignore_ascii_case("md") || extension.eq_ignore_ascii_case("markdown")))
+        || mimetype.is_some_and(|mime| matches!(mime.split(';').next().unwrap_or_default().trim().to_ascii_lowercase().as_str(), "text/markdown" | "text/x-markdown"))
+}
+
+pub(crate) fn markdown_source(bytes: Vec<u8>) -> Result<Arc<str>, String> {
+    if bytes.len() > article_core::document::MAX_BODY {
+        return Err("Article exceeds its size limits.".into());
+    }
+    let text = String::from_utf8(bytes).map_err(|_| "Markdown must contain UTF-8 text".to_owned())?;
+    Ok(text.trim_start_matches('\u{feff}').into())
+}
+
+/// Uses Matrix's authenticated media API, including encrypted attachments.
+pub fn start_markdown_preview(info: DownloadableAttachment, update_sender: TimelineUpdateSenderOption) {
+    let account = crate::sliding_sync::current_user_id();
+    let attachment = Some(info.clone());
+    download_media(info, update_sender, move |title, mxc, bytes, sender| {
+        if account != crate::sliding_sync::current_user_id() || crate::logout::logout_state_machine::is_logout_in_progress() {
+            finish_download_indicator(&sender, Some(&mxc), DownloadOutcome::Cancelled);
+            return;
+        }
+        match markdown_source(bytes) {
+            Ok(source) => {
+                makepad_widgets::Cx::post_action(crate::shared::web_browser::WebBrowserAction::OpenMarkdown { title, source, account, attachment });
+                finish_download_indicator(&sender, Some(&mxc), DownloadOutcome::Succeeded);
+            }
+            Err(error) => {
+                enqueue_popup_notification(error, PopupKind::Error, None);
+                finish_download_indicator(&sender, Some(&mxc), DownloadOutcome::Failed);
+            }
+        }
+    });
+}
+
+#[cfg(test)]
+mod markdown_tests {
+    use super::*;
+
+    #[test]
+    fn recognizes_markdown_filenames_and_mime_without_matching_other_attachments() {
+        for name in ["notes.md", "NOTES.MD", "notes.Markdown"] { assert!(is_markdown_attachment(name, None)); }
+        assert!(is_markdown_attachment("notes", Some("text/markdown; charset=utf-8")));
+        assert!(is_markdown_attachment("notes.txt", Some("text/x-markdown")));
+        for name in ["md", "notes.md.exe", "image.png", "notes.txt"] { assert!(!is_markdown_attachment(name, None)); }
+    }
+
+    #[test]
+    fn accepts_utf8_bom_and_rejects_binary_or_oversize_documents() {
+        assert_eq!(&*markdown_source("\u{feff}# 文档".as_bytes().to_vec()).unwrap(), "# 文档");
+        assert!(markdown_source(vec![0xff, 0xfe]).is_err());
+        assert!(markdown_source(vec![b'a'; article_core::document::MAX_BODY + 1]).is_err());
     }
 }
 

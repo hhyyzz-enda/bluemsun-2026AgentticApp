@@ -1,0 +1,78 @@
+{
+  "$kit": {
+    "placements": {
+      "panel": {
+        "component": "panel",
+        "layout": {
+          "x": 0,
+          "y": 0,
+          "w": 300,
+          "h": 270
+        }
+      },
+      "title": {
+        "component": "title",
+        "layout": {
+          "x": 16,
+          "y": 16,
+          "w": 268,
+          "h": 28
+        }
+      },
+      "hint": {
+        "component": "hint",
+        "layout": {
+          "x": 16,
+          "y": 56,
+          "w": 268,
+          "h": 34
+        }
+      },
+      "field": {
+        "component": "field",
+        "layout": {
+          "x": 16,
+          "y": 104,
+          "w": 268,
+          "h": 44
+        }
+      },
+      "button": {
+        "component": "button",
+        "layout": {
+          "x": 16,
+          "y": 168,
+          "w": 140,
+          "h": 44
+        }
+      },
+      "input": {
+        "component": "input",
+        "layout": {
+          "x": 16,
+          "y": 104,
+          "w": 268,
+          "h": 44
+        }
+      },
+      "caption": {
+        "component": "caption",
+        "layout": {
+          "x": 16,
+          "y": 179,
+          "w": 140,
+          "h": 22
+        }
+      },
+      "hit": {
+        "component": "hit",
+        "layout": {
+          "x": 16,
+          "y": 168,
+          "w": 140,
+          "h": 44
+        }
+      }
+    }
+  }
+}

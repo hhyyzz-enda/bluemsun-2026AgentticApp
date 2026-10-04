@@ -7,7 +7,9 @@ use ruma::{
 };
 use serde::{Deserialize, Serialize};
 use crate::{
+    article_app::{backend::ArticleContent, document::Cover},
     home::rooms_list::RoomsListRef,
+    media_cache::MediaCacheEntry,
     shared::{
         navigation_bar_button::{NavigationBarButtonWidgetRefExt, NavigationBarButtonWidgetExt},
         popup_list::{PopupKind, enqueue_popup_notification},
@@ -102,8 +104,31 @@ impl WebMiniApp {
 
 /// Shared native packages and web cards keep distinct launch paths.
 #[derive(Clone, Debug)]
-pub enum SharedMiniApp { Web(WebMiniApp), Article(crate::article_app::ArticlePackage), PublishedArticle { title: String, room: ruma::OwnedRoomId, event: ruma::OwnedEventId } }
+pub enum SharedMiniApp {
+    Web(WebMiniApp),
+    Article(crate::article_app::ArticlePackage),
+    PublishedArticle {
+        title: String,
+        summary: String,
+        cover: Option<(Cover, ruma::events::room::MediaSource)>,
+        room: ruma::OwnedRoomId,
+        event: ruma::OwnedEventId,
+    },
+}
 impl SharedMiniApp {
+    pub(crate) fn published_article(article: ArticleContent, room: ruma::OwnedRoomId, event: ruma::OwnedEventId) -> Self {
+        // show_in_article controls the reader, not the cover on the chat card.
+        let cover = article.document.cover.as_ref().and_then(|cover| {
+            article.assets.get(&cover.asset).map(|asset| (cover.clone(), asset.source.clone()))
+        });
+        Self::PublishedArticle {
+            title: article.document.title,
+            summary: article.document.summary,
+            cover,
+            room,
+            event,
+        }
+    }
     pub fn from_message(message: &MessageType) -> Result<Self, String> {
         if message.msgtype() == crate::article_app::MSGTYPE {
             crate::article_app::ArticlePackage::from_message(message).map(Self::Article)
@@ -136,20 +161,48 @@ script_mod! {
 
     mod.widgets.MiniAppCard = #(MiniAppCard::register_widget(vm)) {
         ..mod.widgets.View
-        visible: false width: Fill height: Fit
+        visible: false width: Fill{max: 440} height: Fit
         open_mini_app := NavigationBarButton {
             width: Fill height: Fit flow: Down spacing: 10 padding: 4
-            draw_bg +: {color_hover: #xf2f2f2 color_active: #xf2f2f2 border_radius: 4}
+            draw_bg +: {color_hover: mod.widgets.RINX_HOVER color_active: mod.widgets.RINX_HOVER border_radius: 4}
             card_title := Label {
                 width: Fill flow: Flow.Right{wrap: true} max_lines: 3
-                draw_text +: {color: #x191919 text_style: theme.font_bold{font_size: 14}}
+                draw_text +: {color: mod.widgets.RINX_INK text_style: RBX_TEXT_BODY_STRONG {}}
+            }
+            card_cover := Image {
+                visible: false width: Fill height: Fit fit: ImageFit.Horizontal
+            }
+            card_summary := Label {
+                visible: false width: Fill height: Fit padding: 0
+                flow: Flow.Right{wrap: true} max_lines: 3 text_overflow: Ellipsis
+                draw_text +: {color: mod.widgets.RINX_MUTED text_style: RBX_TEXT_BODY {}}
             }
             card_origin := Label {
                 width: Fill max_lines: 1 text_overflow: Ellipsis
-                draw_text +: {color: #x777777 text_style: theme.font_regular{font_size: 10}}
+                draw_text +: {color: mod.widgets.RINX_MUTED text_style: RBX_TEXT_META {}}
             }
-            View {width: Fill height: 1 show_bg: true draw_bg.color: #xe8e8e8}
-            Label {text: #(crate::i18n::tr("◉  Mini app")) i18n_text: "◉  Mini app" draw_text +: {color: #x576b95 text_style: theme.font_regular{font_size: 10}}}
+            View {width: Fill height: 1 show_bg: true draw_bg.color: mod.widgets.RINX_BORDER}
+            card_kind := View {
+                width: Fill height: Fit flow: Right spacing: 6 align: Align{y: 0.5}
+                mini_app_icon := View {
+                    width: 14 height: 14
+                    Icon {
+                        icon_walk: Walk{width: 14 height: 14}
+                        draw_icon +: {svg: ICON_SQUARES color: mod.widgets.RINX_ACCENT}
+                    }
+                }
+                blog_icon := View {
+                    visible: false width: 14 height: 14
+                    Icon {
+                        icon_walk: Walk{width: 14 height: 14}
+                        draw_icon +: {svg: ICON_FILE color: mod.widgets.RINX_ACCENT}
+                    }
+                }
+                kind_label := Label {
+                    padding: 0
+                    draw_text +: {color: mod.widgets.RINX_ACCENT text_style: RBX_TEXT_META {}}
+                }
+            }
         }
     }
 
@@ -157,28 +210,28 @@ script_mod! {
         ..mod.widgets.SolidView
         width: Fill height: Fill flow: Down
         padding: Inset{top: mod.widgets.SAFE_INSET_PAD_TOP + #(CAPTION_PADDING) bottom: mod.widgets.SAFE_INSET_PAD_BOTTOM}
-        draw_bg.color: #xf7f7f7
+        draw_bg.color: mod.widgets.RINX_PAGE
         header := View {
             width: Fill height: 54 flow: Right spacing: 8 padding: 8 align: Align{y: 0.5}
             mini_close := RobrixNeutralIconButton {text: #(crate::i18n::tr("Close")) i18n_text: "Close" height: 40}
             heading := Label {
                 text: #(crate::i18n::tr("Share mini app")) i18n_text: "Share mini app" width: Fill max_lines: 1 text_overflow: Ellipsis
-                draw_text +: {color: #x191919 text_style: theme.font_bold{font_size: 14}}
+                draw_text +: {color: mod.widgets.RINX_INK text_style: theme.font_bold{font_size: (14 * mod.widgets.RINX_TEXT_SCALE)}}
             }
             mini_share := RobrixNeutralIconButton {text: #(crate::i18n::tr("Share")) i18n_text: "Share" height: 40 visible: false}
         }
         form := View {
             width: Fill height: Fit flow: Down spacing: 12 padding: 20
-            Label {text: #(crate::i18n::tr("Web address")) i18n_text: "Web address" draw_text +: {color: #x191919}}
+            Label {text: #(crate::i18n::tr("Web address")) i18n_text: "Web address" draw_text +: {color: mod.widgets.RINX_INK}}
             mini_url := TextInput {width: Fill height: 46 empty_text: #(crate::i18n::tr("https://example.com")) i18n_empty_text: "https://example.com"}
-            Label {text: #(crate::i18n::tr("Card title")) i18n_text: "Card title" draw_text +: {color: #x191919}}
+            Label {text: #(crate::i18n::tr("Card title")) i18n_text: "Card title" draw_text +: {color: mod.widgets.RINX_INK}}
             mini_title := TextInput {width: Fill height: 46 empty_text: #(crate::i18n::tr("Name your mini app")) i18n_empty_text: "Name your mini app"}
-            mini_recipient := Label {width: Fill flow: Flow.Right{wrap: true} draw_text.color: #x576b95}
+            mini_recipient := Label {width: Fill flow: Flow.Right{wrap: true} draw_text.color: mod.widgets.RINX_ACCENT}
             mini_choose_chat := RobrixNeutralIconButton {text: #(crate::i18n::tr("Choose chat")) i18n_text: "Choose chat" height: 44}
             View {
                 width: Fill height: Fit flow: Right spacing: 12
                 mini_preview := RobrixNeutralIconButton {text: #(crate::i18n::tr("Preview")) i18n_text: "Preview" height: 44}
-                mini_send := RobrixNeutralIconButton {text: #(crate::i18n::tr("Send")) i18n_text: "Send" height: 44 draw_text.color: #x07a858}
+                mini_send := RobrixNeutralIconButton {text: #(crate::i18n::tr("Send")) i18n_text: "Send" height: 44 draw_text.color: mod.widgets.RINX_ACCENT}
             }
         }
         chat_picker := View {
@@ -188,8 +241,8 @@ script_mod! {
                 width: Fill height: Fill
                 Chat := NavigationBarButton {
                     width: Fill height: 54 padding: 10 align: Align{y: 0.5}
-                    draw_bg +: {color_hover: #xe8e8e8 color_active: #xe8e8e8}
-                    name := Label {width: Fill max_lines: 1 text_overflow: Ellipsis draw_text.color: #x191919}
+                    draw_bg +: {color_hover: mod.widgets.RINX_BORDER color_active: mod.widgets.RINX_BORDER}
+                    name := Label {width: Fill max_lines: 1 text_overflow: Ellipsis draw_text.color: mod.widgets.RINX_INK}
                 }
             }
             mini_picker_cancel := RobrixNeutralIconButton {text: #(crate::i18n::tr("Cancel")) i18n_text: "Cancel" height: 44}
@@ -198,7 +251,7 @@ script_mod! {
             visible: false width: Fill height: Fill flow: Down
             mini_origin := Label {
                 width: Fill height: Fit padding: 10 max_lines: 1 text_overflow: Ellipsis
-                draw_text +: {color: #x576b95 text_style: theme.font_regular{font_size: 10}}
+                draw_text +: {color: mod.widgets.RINX_ACCENT text_style: theme.font_regular{font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}}
             }
             View {
                 width: Fill height: 44 flow: Right spacing: 8 padding: Inset{left: 8 right: 8}
@@ -206,16 +259,16 @@ script_mod! {
                 mini_reload := RobrixNeutralIconButton {text: #(crate::i18n::tr("Reload")) i18n_text: "Reload" height: 40}
                 mini_external := RobrixNeutralIconButton {text: #(crate::i18n::tr("Open in browser")) i18n_text: "Open in browser" height: 40}
             }
-            web_surface := SolidView {width: Fill height: Fill draw_bg.color: #xffffff}
+            web_surface := SolidView {width: Fill height: Fill draw_bg.color: mod.widgets.RINX_SURFACE}
         }
         mini_status := Label {
             width: Fill height: Fit padding: 16 flow: Flow.Right{wrap: true}
-            draw_text +: {color: #x777777 text_style: theme.font_regular{font_size: 11}}
+            draw_text +: {color: mod.widgets.RINX_MUTED text_style: theme.font_regular{font_size: (11 * mod.widgets.RINX_TEXT_SCALE)}}
         }
     }
 }
 
-#[derive(Script, ScriptHook, Widget)]
+#[derive(Script, Widget)]
 pub struct MiniAppCard {
     #[source]
     source: ScriptObjectRef,
@@ -225,6 +278,41 @@ pub struct MiniAppCard {
     app: Option<SharedMiniApp>,
     #[rust]
     timeline: Option<TimelineKind>,
+    #[rust]
+    cover_key: Option<String>,
+}
+
+impl MiniAppCard {
+    fn sync_metadata(&mut self, cx: &mut Cx) {
+        self.visible = self.app.is_some();
+        let (article, kind) = match &self.app {
+            Some(SharedMiniApp::PublishedArticle { .. }) => (true, "Blog"),
+            Some(SharedMiniApp::Article(_)) => (true, "Article editor"),
+            _ => (false, "Mini app"),
+        };
+        self.widget(cx, ids!(mini_app_icon)).set_visible(cx, !article);
+        self.widget(cx, ids!(blog_icon)).set_visible(cx, article);
+        self.label(cx, ids!(kind_label)).set_text(cx, crate::i18n::tr(kind));
+        let summary = match &self.app {
+            Some(SharedMiniApp::PublishedArticle { summary, .. }) => summary.trim(),
+            _ => "",
+        };
+        self.label(cx, ids!(card_summary)).set_text(cx, summary);
+        self.label(cx, ids!(card_summary)).set_visible(cx, !summary.is_empty());
+        self.image(cx, ids!(card_cover)).set_visible(cx, self.cover_key.is_some());
+        if let Some(app) = &self.app {
+            self.label(cx, ids!(card_title)).set_text(cx, app.title());
+            self.label(cx, ids!(card_origin)).set_text(cx, &app.origin());
+        }
+    }
+}
+
+impl ScriptHook for MiniAppCard {
+    fn on_after_apply(&mut self, vm: &mut ScriptVm, apply: &Apply, _scope: &mut Scope, _value: ScriptValue) {
+        if apply.is_script_reapply() {
+            vm.with_cx_mut(|cx| self.sync_metadata(cx));
+        }
+    }
 }
 
 impl Widget for MiniAppCard {
@@ -254,19 +342,53 @@ impl Widget for MiniAppCard {
 }
 
 impl MiniAppCardRef {
-    pub fn set_app(&self, cx: &mut Cx, app: Option<SharedMiniApp>, timeline: &TimelineKind) {
+    pub fn set_app(
+        &self,
+        cx: &mut Cx,
+        app: Option<SharedMiniApp>,
+        timeline: &TimelineKind,
+        fetch_cover: impl FnOnce(&ruma::events::room::MediaSource) -> MediaCacheEntry,
+    ) -> bool {
         let Some(mut inner) = self.borrow_mut() else {
-            return;
+            return true;
         };
-        inner.visible = app.is_some();
-        if let Some(app) = &app {
-            inner.label(cx, ids!(card_title)).set_text(cx, app.title());
-            inner
-                .label(cx, ids!(card_origin))
-                .set_text(cx, &app.origin());
+        let image = inner.image(cx, ids!(card_cover));
+        let cover = match &app {
+            Some(SharedMiniApp::PublishedArticle { cover, .. }) => cover.as_ref(),
+            _ => None,
+        };
+        let key = cover.map(|(cover, source)| format!(
+            "{}:{}:{}",
+            crate::shared::attachment_download::media_source_mxc(source),
+            cover.focal_x,
+            cover.focal_y,
+        ));
+        if inner.cover_key != key {
+            image.set_visible(cx, false);
+            image.set_texture(cx, None);
+            inner.cover_key = None;
+        }
+        let mut fully_drawn = true;
+        if let Some((cover, source)) = cover {
+            if inner.cover_key == key {
+                image.set_visible(cx, true);
+            } else {
+                match fetch_cover(source) {
+                    MediaCacheEntry::Loaded(bytes) => {
+                        let loaded = article_core::assets::crop_cover(&bytes, cover, false)
+                            .is_ok_and(|bytes| image.load_image_from_data(cx, &bytes).is_ok());
+                        image.set_visible(cx, loaded);
+                        if loaded { inner.cover_key = key; }
+                    }
+                    MediaCacheEntry::Requested => fully_drawn = false,
+                    MediaCacheEntry::Failed(_) => {}
+                }
+            }
         }
         inner.app = app;
         inner.timeline = Some(timeline.clone());
+        inner.sync_metadata(cx);
+        fully_drawn
     }
 }
 
@@ -622,6 +744,51 @@ impl MiniAppPanelRef {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn published_article_card_preserves_summary_cover_and_encrypted_source_after_edits() {
+        use crate::article_app::backend::{ARTICLE_KEY, wire_content};
+        use article_core::document::Document;
+        use serde_json::json;
+
+        let mut document = Document::from_markdown("Blog 中文", "A paragraph.").unwrap();
+        document.summary = "A brief introduction 简介".into();
+        document.cover = Some(Cover {
+            asset: "a".repeat(64), focal_x: 250, focal_y: 750, show_in_article: false,
+        });
+        let room = ruma::room_id!("!blog:example.org");
+        let event = ruma::event_id!("$blog:example.org");
+        for source in [
+            json!({"url": "mxc://example.org/cover"}),
+            json!({"file": {
+                "url": "mxc://example.org/encrypted-cover", "v": "v2",
+                "key": {"kty": "oct", "key_ops": ["decrypt", "encrypt"], "alg": "A256CTR", "k": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "ext": true},
+                "iv": "AAAAAAAAAAAAAAAAAAAAAA",
+                "hashes": {"sha256": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}
+            }}),
+        ] {
+            let received = json!({ARTICLE_KEY: {
+                "schema": 2, "version": 1, "document": document,
+                "assets": { "a".repeat(64): {
+                    "asset": {"id": "a".repeat(64), "name": "cover.png", "width": 64, "height": 64, "mime": "image/png", "bytes": 128},
+                    "source": source
+                }}
+            }});
+            let article = ArticleContent::parse(&received).unwrap();
+            for root in [None, Some(event)] {
+                let wire = wire_content(&article.document, 2, &article.assets, root, None, source.get("file").is_some()).unwrap();
+                let card = SharedMiniApp::published_article(ArticleContent::parse(&wire).unwrap(), room.to_owned(), event.to_owned());
+                let SharedMiniApp::PublishedArticle {title, summary, cover, room: target_room, event: target_event} = card else {panic!("expected article")};
+                assert_eq!(title, document.title);
+                assert_eq!(summary, document.summary);
+                let (crop, media) = cover.unwrap();
+                assert_eq!(Some(crop), document.cover);
+                assert_eq!(serde_json::to_value(media).unwrap(), source);
+                assert_eq!(target_room, room);
+                assert_eq!(target_event, event);
+            }
+        }
+    }
+
     #[test]
     fn roundtrip_preserves_title_url_and_readable_fallback() {
         let app = WebMiniApp::new("中文 Mini app", "https://example.com/app?q=a%20b#tab").unwrap();

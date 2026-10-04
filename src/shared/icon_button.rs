@@ -45,7 +45,7 @@ script_mod! {
 
             color: (COLOR_ACTIVE_PRIMARY)
             color_hover: (COLOR_ACTIVE_PRIMARY_DARKER)
-            color_down: #0C5DAA
+            color_down: mod.widgets.RINX_ACCENT_DOWN
             color_disabled: (COLOR_BG_DISABLED)
 
             border_color: #0000
@@ -67,7 +67,7 @@ script_mod! {
             color_hover: (COLOR_PRIMARY)
             color_down: (COLOR_PRIMARY)
             color_disabled: (COLOR_FG_DISABLED)
-            text_style: mod.widgets.REGULAR_TEXT {font_size: 10},
+            text_style: mod.widgets.REGULAR_TEXT {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)},
         }
         text: ""
     }
@@ -79,8 +79,8 @@ script_mod! {
             border_color_hover: (COLOR_FG_ACCEPT_GREEN)
             border_color_down: (COLOR_FG_ACCEPT_GREEN)
             color: (COLOR_BG_ACCEPT_GREEN)
-            color_hover: #D4EED4
-            color_down: #B8E0B8
+            color_hover: mod.widgets.RINX_SUCCESS_BG
+            color_down: mod.widgets.RINX_SUCCESS_BG
         }
         draw_icon.color: (COLOR_FG_ACCEPT_GREEN)
         draw_text +: {
@@ -97,8 +97,8 @@ script_mod! {
             border_color_hover: (COLOR_FG_DANGER_RED)
             border_color_down: (COLOR_FG_DANGER_RED)
             color: (COLOR_BG_DANGER_RED)
-            color_hover: #F0D4D4
-            color_down: #E0B8B8
+            color_hover: mod.widgets.RINX_DANGER_BG
+            color_down: mod.widgets.RINX_DANGER_BG
         }
         draw_icon.color: (COLOR_FG_DANGER_RED)
         draw_text +: {
@@ -115,8 +115,8 @@ script_mod! {
             border_color_hover: (COLOR_BG_DISABLED)
             border_color_down: (COLOR_BG_DISABLED)
             color: (COLOR_SECONDARY)
-            color_hover: #D0D0D0
-            color_down: #C0C0C0
+            color_hover: mod.widgets.RINX_PRESSED
+            color_down: mod.widgets.RINX_PRESSED
         }
         draw_icon.color: (COLOR_TEXT)
         draw_text +: {

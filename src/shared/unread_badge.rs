@@ -5,10 +5,8 @@
 //! is the redundant channel that keeps the two readable for color-blind users
 //! and in isolation, where there is no neighbouring badge to compare against.
 
+use crate::theme::Snapshot as ThemeSnapshot;
 use makepad_widgets::*;
-
-use crate::shared::styles::{COLOR_UNREAD_BADGE_MARKED, COLOR_UNREAD_BADGE_MENTIONS, COLOR_UNREAD_BADGE_MESSAGES};
-
 
 script_mod! {
     use mod.prelude.widgets.*
@@ -52,8 +50,8 @@ script_mod! {
             flow: Flow.Right { wrap: false },
             text: "",
             draw_text +: {
-                color: #ffffff,
-                text_style: REGULAR_TEXT {font_size: 8.0},
+                color: mod.widgets.RINX_ON_ACCENT,
+                text_style: REGULAR_TEXT {font_size: (8.0 * mod.widgets.RINX_TEXT_SCALE)},
             }
         }
     }
@@ -62,17 +60,31 @@ script_mod! {
 
 #[derive(Script, Widget)]
 pub struct UnreadBadge {
-    #[source] source: ScriptObjectRef,
-    #[deref] view: View,
-    #[live] is_marked_unread: bool,
-    #[live] unread_mentions: u64,
-    #[live] unread_messages: u64,
+    #[rust]
+    appearance: ThemeSnapshot,
+    #[source]
+    source: ScriptObjectRef,
+    #[deref]
+    view: View,
+    #[live]
+    is_marked_unread: bool,
+    #[live]
+    unread_mentions: u64,
+    #[live]
+    unread_messages: u64,
     /// The above 3 value that were last drawn (to avoid re-applying their styling).
     #[rust] last_drawn: Option<(bool, u64, u64)>,
 }
 
 impl ScriptHook for UnreadBadge {
-    fn on_after_apply(&mut self, _vm: &mut ScriptVm, apply: &Apply, _scope: &mut Scope, _value: ScriptValue) {
+    fn on_after_apply(
+        &mut self,
+        vm: &mut ScriptVm,
+        apply: &Apply,
+        _scope: &mut Scope,
+        _value: ScriptValue,
+    ) {
+        self.appearance = crate::theme::snapshot_for_vm(vm);
         if apply.is_script_reapply() {
             self.last_drawn = None;
         }
@@ -117,6 +129,15 @@ impl Widget for UnreadBadge {
             return self.view.draw_walk(cx, scope, walk);
         }
         self.last_drawn = Some(now);
+        let foreground = if self.unread_mentions > 0 {
+            self.appearance.role("color.status.danger.background")
+        } else if self.is_marked_unread {
+            self.appearance.on_accent
+        } else {
+            self.appearance.page
+        };
+        let mut label = self.label(cx, ids!(label_count));
+        script_apply_eval!(cx, label, {draw_text.color: #(foreground)});
 
         // If there are unread mentions, show red badge and the number of unread mentions.
         //
@@ -132,7 +153,7 @@ impl Widget for UnreadBadge {
             script_apply_eval!(cx, rounded_view, {
                 draw_bg +: {
                     border_size: #(border_size),
-                    badge_color: #(COLOR_UNREAD_BADGE_MENTIONS)
+                    badge_color: #(self.appearance.role("color.status.danger.foreground"))
                 }
             });
             self.visible = true;
@@ -142,9 +163,9 @@ impl Widget for UnreadBadge {
         else if self.unread_messages > 0 {
             let (border_size, plus_sign) = format_border_and_truncation(self.unread_messages, 0);
             let badge_color = if self.is_marked_unread {
-                COLOR_UNREAD_BADGE_MARKED
+                self.appearance.accent
             } else {
-                COLOR_UNREAD_BADGE_MESSAGES
+                self.appearance.muted
             };
             self.label(cx, ids!(label_count))
                 .set_text(cx, &format!("{}{plus_sign}", std::cmp::min(self.unread_messages, 99)));
@@ -164,7 +185,7 @@ impl Widget for UnreadBadge {
             script_apply_eval!(cx, rounded_view, {
                 draw_bg +: {
                     border_size: 6.0, // larger value = smaller badge size
-                    badge_color: #(COLOR_UNREAD_BADGE_MARKED)
+                    badge_color: #(self.appearance.accent)
                 }
             });
             self.visible = true;

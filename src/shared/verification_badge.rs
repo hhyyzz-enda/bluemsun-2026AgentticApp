@@ -1,11 +1,8 @@
+use crate::theme::Snapshot as ThemeSnapshot;
 use makepad_widgets::*;
 use matrix_sdk::encryption::VerificationState;
 
-use crate::{
-    shared::styles::{COLOR_FG_ACCEPT_GREEN, COLOR_FG_DANGER_RED},
-    sliding_sync::get_client,
-    verification::VerificationStateAction,
-};
+use crate::{sliding_sync::get_client, verification::VerificationStateAction};
 
 
 // First, define the verification icons component layout
@@ -44,7 +41,7 @@ script_mod! {
             draw_icon +: {
                 svg: (mod.widgets.VERIFICATION_YES_BG),
                 get_color: fn() -> vec4 {
-                    return #xFFFFFFFF;
+                    return mod.widgets.RINX_ON_ACCENT;
                 }
             }
         }
@@ -67,7 +64,7 @@ script_mod! {
             draw_icon +: {
                 svg: (mod.widgets.VERIFICATION_NO_BG),
                 get_color: fn() -> vec4 {
-                    return #xFFFFFFFF;
+                    return mod.widgets.RINX_ON_ACCENT;
                 }
             }
         }
@@ -90,7 +87,7 @@ script_mod! {
             draw_icon +: {
                 svg: (mod.widgets.VERIFICATION_UNK_BG),
                 get_color: fn() -> vec4 {
-                    return #xFFFFFFFF;
+                    return mod.widgets.RINX_ON_ACCENT;
                 }
             }
         }
@@ -98,7 +95,7 @@ script_mod! {
             draw_icon +: {
                 svg: (mod.widgets.VERIFICATION_UNK),
                 get_color: fn() -> vec4 {
-                    return #x888888;
+                    return mod.widgets.RINX_MUTED;
                 }
             }
         }
@@ -124,6 +121,8 @@ script_mod! {
 
 #[derive(Script, Widget)]
 pub struct VerificationBadge {
+    #[rust]
+    appearance: ThemeSnapshot,
     #[deref]
     view: View,
     #[rust(VerificationState::Unknown)]
@@ -138,6 +137,7 @@ impl ScriptHook for VerificationBadge {
         _scope: &mut Scope,
         _value: ScriptValue,
     ) {
+        self.appearance = crate::theme::snapshot_for_vm(vm);
         vm.with_cx_mut(|cx| {
             if let Some(client) = get_client() {
                 self.verification_state = client.encryption().verification_state().get();
@@ -187,16 +187,15 @@ impl VerificationBadgeRef {
         match self.borrow().map(|v| v.verification_state) {
             Some(VerificationState::Verified) => (
                 "and verified ",
-                Some(COLOR_FG_ACCEPT_GREEN),
+                self.borrow()
+                    .map(|v| v.appearance.role("color.status.success.foreground")),
             ),
             Some(VerificationState::Unverified) => (
                 "but not verified ",
-                Some(COLOR_FG_DANGER_RED),
+                self.borrow()
+                    .map(|v| v.appearance.role("color.status.danger.foreground")),
             ),
-            _ => (
-                "",
-                None,
-            ),
+            _ => ("", None),
         }
     }
 }

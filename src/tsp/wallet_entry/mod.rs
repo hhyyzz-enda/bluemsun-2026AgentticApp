@@ -32,7 +32,7 @@ script_mod! {
                 margin: Inset{top: 2.4, left: 0}
                 draw_text +: {
                     color: (MESSAGE_TEXT_COLOR),
-                    text_style: theme.font_bold { font_size: 12 },
+                    text_style: theme.font_bold { font_size: (12 * mod.widgets.RINX_TEXT_SCALE) },
                 }
                 text: "[Wallet Name]"
             }
@@ -45,7 +45,7 @@ script_mod! {
                 margin: Inset{top: 2.9, left: 8, bottom: 2}
                 draw_text +: {
                     color: (MESSAGE_TEXT_COLOR),
-                    text_style: theme.font_regular { font_size: 11 },
+                    text_style: theme.font_regular { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                 }
                 text: "[Wallet Path/URL]"
             }
@@ -62,7 +62,7 @@ script_mod! {
                     flow: Flow.Right { wrap: false },
                     draw_text +: {
                         color: (COLOR_FG_ACCEPT_GREEN),
-                        text_style: theme.font_bold { font_size: 11 },
+                        text_style: theme.font_bold { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                     }
                     text: "✅ Default"
                 }
@@ -80,7 +80,7 @@ script_mod! {
                     align: Align { y: 0.5 }
                     draw_text +: {
                         color: (COLOR_FG_DANGER_RED),
-                        text_style: MESSAGE_TEXT_STYLE { font_size: 11 },
+                        text_style: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                     }
                     text: "Wallet not found!"
                 }

@@ -10,7 +10,10 @@ script_mod! {
     mod.widgets.TableSizePicker = set_type_default() do mod.widgets.TableSizePickerBase {
         width: Fit
         height: Fit
-        draw_label +: {color: #x555555 text_style: theme.font_regular{font_size: 12}}
+        color_cell: theme.color_bg_container
+        color_selected: theme.color_focus
+        color_border: theme.color_bevel_outset_2
+        draw_label +: {color: theme.color_text text_style: theme.font_regular{font_size: theme.font_size_p}}
     }
 }
 
@@ -35,12 +38,25 @@ pub enum TableSizePickerAction {
 
 #[derive(Script, ScriptHook, Widget)]
 pub struct TableSizePicker {
-    #[uid] uid: WidgetUid,
-    #[source] source: ScriptObjectRef,
-    #[walk] walk: Walk,
-    #[layout] layout: Layout,
-    #[redraw] #[live] draw_cell: DrawColor,
-    #[live] draw_label: DrawText,
+    #[uid]
+    uid: WidgetUid,
+    #[source]
+    source: ScriptObjectRef,
+    #[walk]
+    walk: Walk,
+    #[layout]
+    layout: Layout,
+    #[redraw]
+    #[live]
+    draw_cell: DrawColor,
+    #[live]
+    draw_label: DrawText,
+    #[live]
+    color_cell: Vec4f,
+    #[live]
+    color_selected: Vec4f,
+    #[live]
+    color_border: Vec4f,
     /// The highlighted size as (rows, columns); (0, 0) before the pointer enters.
     #[rust] hover: (usize, usize),
     #[rust] area: Area,
@@ -86,8 +102,11 @@ impl Widget for TableSizePicker {
         let walk = Walk { width: Size::Fixed(size.x), height: Size::Fixed(size.y), ..walk };
         cx.begin_turtle(walk, self.layout);
         let origin = cx.turtle().rect().pos;
-        let (border, border_on) = (vec4(0.85, 0.85, 0.85, 1.0), vec4(0.027, 0.757, 0.376, 1.0));
-        let (fill, fill_on) = (vec4(1.0, 1.0, 1.0, 1.0), vec4(0.91, 0.973, 0.937, 1.0));
+        let (border, border_on) = (self.color_border, self.color_selected);
+        let (fill, fill_on) = (
+            self.color_cell,
+            self.color_cell * 0.9 + self.color_selected * 0.1,
+        );
         for r in 0..rows {
             for c in 0..cols {
                 let on = r < self.hover.0 && c < self.hover.1;

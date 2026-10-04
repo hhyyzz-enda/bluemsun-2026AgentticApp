@@ -105,7 +105,7 @@ pub(super) async fn invite_respond(room_id: OwnedRoomId, accept: bool) -> Result
 
 pub(super) async fn dm_open(user_id: OwnedUserId) -> Result<String, String> {
     let client = get_client().ok_or("not logged in")?;
-    let (room, created) = match client.get_dm_room(&user_id) {
+    let (room, created) = match crate::agent_access::find_dm(&client, &user_id).await {
         Some(room) => {
             ensure_room_access(room.room_id().as_str(), RoomAccess::Read)?;
             ensure_room_access(room.room_id().as_str(), RoomAccess::Write)?;

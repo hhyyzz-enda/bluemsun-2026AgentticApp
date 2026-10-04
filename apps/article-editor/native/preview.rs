@@ -33,7 +33,7 @@ html,body{{margin:0;background:#{paper:06x};color:#{ink:06x};font-family:"PingFa
 article{{box-sizing:border-box;max-width:760px;margin:0 auto;padding:24px;font-size:{font}px;line-height:{spacing};overflow-wrap:break-word}}
 h1{{font-size:28px;line-height:1.4}} h2{{font-size:22px;color:#{accent:06x};margin-top:28px}}
 h3{{font-size:19px}} p{{margin:16px 0}} .author,figcaption{{font-size:13px;opacity:.7}}
-blockquote{{margin:20px 0;padding:12px 18px;border-left:4px solid #{accent:06x};background:#f0f2ef}}
+blockquote{{margin:20px 0;padding:12px 18px;border-left:4px solid #{accent:06x};background:color-mix(in srgb,#{paper:06x} 95%,#{ink:06x})}}
 figure{{margin:20px auto;text-align:center}} figure img{{width:100%;max-width:100%;height:auto}} a{{color:#{accent:06x}}} hr{{border:0;border-top:1px solid #{accent:06x};margin:24px 0}}
 {}
 </style></head><body><article><h1>{}</h1><p class="author">{}</p>"#,

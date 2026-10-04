@@ -1,0 +1,15 @@
+# level: L0
+theme light
+state draft {shape: text, initial: "L0 draft"}
+event typing {draft: set($value)}
+view root Kit(component: "panel", instance: "panel") {
+    Kit(component: "title", instance: "title", text: "L0 native kit")
+    Kit(component: "hint", instance: "hint", text: "Semantic tokens, same host palette.")
+    Kit(component: "field", instance: "field") {
+        Kit(component: "input", instance: "input", text: draft)
+    }
+    Kit(component: "button", instance: "button") {
+        Kit(component: "caption", instance: "caption", text: "Continue")
+        Kit(component: "hit", instance: "hit")
+    }
+}

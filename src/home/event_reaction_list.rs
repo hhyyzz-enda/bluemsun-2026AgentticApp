@@ -1,3 +1,4 @@
+use crate::theme::Snapshot as ThemeSnapshot;
 use crate::home::room_screen::RoomScreenTooltipActions;
 use crate::profile::user_profile_cache;
 use crate::sliding_sync::{current_user_id, submit_async_request, MatrixRequest, TimelineKind};
@@ -7,38 +8,12 @@ use crate::{LivePtr, widget_ref_from_live_ptr};
 use matrix_sdk::ruma::{OwnedRoomId, OwnedUserId};
 use matrix_sdk_ui::timeline::{ReactionInfo, ReactionsByKeyBySender, TimelineEventItemId};
 
-const EMOJI_BORDER_COLOR_INCLUDE_SELF: Vec4 = Vec4 {
-    x: 0.0,
-    y: 0.6,
-    z: 0.47,
-    w: 1.0,
-}; // DarkGreen
-const EMOJI_BORDER_COLOR_NOT_INCLUDE_SELF: Vec4 = Vec4 {
-    x: 0.714,
-    y: 0.73,
-    z: 0.75,
-    w: 1.0,
-}; // Grey
-
-const EMOJI_BG_COLOR_INCLUDE_SELF: Vec4 = Vec4 {
-    x: 0.89,
-    y: 0.967,
-    z: 0.929,
-    w: 1.0,
-}; // LightGreen
-const EMOJI_BG_COLOR_NOT_INCLUDE_SELF: Vec4 = Vec4 {
-    x: 0.968,
-    y: 0.976,
-    z: 0.98,
-    w: 1.0,
-}; // LightGrey
-
 script_mod! {
     use mod.prelude.widgets.*
     use mod.widgets.*
 
 
-    mod.widgets.COLOR_BUTTON_GREY = #B6BABF
+    mod.widgets.COLOR_BUTTON_GREY = mod.widgets.RINX_FIELD
     mod.widgets.REACTION_LIST_PADDING_RIGHT = 30.0;
 
     mod.widgets.ReactionList = #(ReactionList::register_widget(vm)) {
@@ -61,9 +36,9 @@ script_mod! {
                 // Anything that we apply over must be an `instance`,
                 // and their names must be distinct from the base Button type.
                 reaction_bg_color: instance(mod.widgets.COLOR_BUTTON_GREY)
-                reaction_border_color: instance(#001A11)
+                reaction_border_color: instance(mod.widgets.RINX_BORDER)
                 // Override values from the base Button type.
-                color_hover: #fef65b
+                color_hover: mod.widgets.RINX_HOVER
                 hover: 0.0
                 border_size: 1.5
                 border_radius: 3.0
@@ -89,8 +64,8 @@ script_mod! {
                 }
             }
             draw_text +: {
-                text_style: REGULAR_TEXT {font_size: 10},
-                color: #000000
+                text_style: REGULAR_TEXT {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)},
+                color: mod.widgets.RINX_INK
                 get_color: fn() -> vec4 {
                     return self.color;
                 }
@@ -99,6 +74,7 @@ script_mod! {
     }
 
 }
+
 #[derive(Clone, Debug)]
 pub struct ReactionData {
     /// Original reaction string from the backend before emoji shortcode conversion.
@@ -111,14 +87,23 @@ pub struct ReactionData {
     pub room_id: OwnedRoomId,
 }
 
-#[derive(Script, ScriptHook, Widget)]
+#[derive(Script, Widget)]
 pub struct ReactionList {
-    #[uid] uid: WidgetUid,
-    #[redraw] #[rust] area: Area,
-    #[live] item: Option<LivePtr>,
-    #[rust] children: Vec<(ButtonRef, ReactionData)>,
-    #[layout] layout: Layout,
-    #[walk] walk: Walk,
+    #[rust]
+    appearance: ThemeSnapshot,
+    #[uid]
+    uid: WidgetUid,
+    #[redraw]
+    #[rust]
+    area: Area,
+    #[live]
+    item: Option<LivePtr>,
+    #[rust]
+    children: Vec<(ButtonRef, ReactionData)>,
+    #[layout]
+    layout: Layout,
+    #[walk]
+    walk: Walk,
 
     #[rust] timeline_kind: Option<TimelineKind>,
     #[rust] timeline_event_id: Option<TimelineEventItemId>,
@@ -126,6 +111,35 @@ pub struct ReactionList {
     /// A cheap hash of the last reaction list populuated in this widget.
     /// Consists of: `(reaction count, total senders, num sent by me)`.
     #[rust] last_reaction_counts: Option<(usize, usize, usize)>,
+}
+impl ScriptHook for ReactionList {
+    fn on_after_apply(
+        &mut self,
+        vm: &mut ScriptVm,
+        apply: &Apply,
+        scope: &mut Scope,
+        _: ScriptValue,
+    ) {
+        self.appearance = crate::theme::snapshot_for_vm(vm);
+        if apply.is_script_reapply() {
+            if let Some(template) = self.item {
+                for (button, data) in &mut self.children {
+                    let text = button.text();
+                    button.script_apply(vm, apply, scope, template);
+                    button.set_text(vm.cx_mut(), &text);
+                    let (bg, border) = if data.includes_user {
+                        (self.appearance.selected, self.appearance.accent)
+                    } else {
+                        (self.appearance.field, self.appearance.border)
+                    };
+                    let style = script! {
+                        __script_source__ {draw_bg +: {reaction_bg_color: #(bg) reaction_border_color: #(border)}}
+                    };
+                    button.script_apply_eval(vm, style);
+                }
+            }
+        }
+    }
 }
 impl Widget for ReactionList {
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
@@ -178,9 +192,9 @@ impl Widget for ReactionList {
                         });
                         // update the reaction button before the timeline is updated
                         let (bg_color, border_color) = if !reaction_data.includes_user {
-                            (EMOJI_BG_COLOR_INCLUDE_SELF, EMOJI_BORDER_COLOR_INCLUDE_SELF)
+                            (self.appearance.selected, self.appearance.accent)
                         } else {
-                            (EMOJI_BG_COLOR_NOT_INCLUDE_SELF, EMOJI_BORDER_COLOR_NOT_INCLUDE_SELF)
+                            (self.appearance.field, self.appearance.border)
                         };
                         let mut reaction_button = button_ref.clone();
                         script_apply_eval!(cx, reaction_button, {
@@ -312,12 +326,9 @@ impl ReactionListRef {
                 reaction_senders.len()
             ));
             let (bg_color, border_color) = if reaction_data.includes_user {
-                (EMOJI_BG_COLOR_INCLUDE_SELF, EMOJI_BORDER_COLOR_INCLUDE_SELF)
+                (inner.appearance.selected, inner.appearance.accent)
             } else {
-                (
-                    EMOJI_BG_COLOR_NOT_INCLUDE_SELF,
-                    EMOJI_BORDER_COLOR_NOT_INCLUDE_SELF,
-                )
+                (inner.appearance.field, inner.appearance.border)
             };
             script_apply_eval!(cx, button, {
                 draw_bg +: { reaction_bg_color: #(bg_color), reaction_border_color: #(border_color) }
@@ -356,5 +367,44 @@ impl ReactionListRef {
         } else {
             false
         }
+    }
+}
+
+#[cfg(test)]
+mod theme_tests {
+    use super::*;
+    use crate::theme::{self, Accent, Appearance, Selection};
+
+    #[test]
+    fn retained_reaction_reapplies_without_reentering_the_vm() {
+        let mut cx = Cx::new(Box::new(|_, _| {}));
+        let mut reactions = cx.with_vm(|vm| {
+            theme::tests::install(vm, Selection::default());
+            crate::shared::styles::script_mod(vm);
+            self::super::script_mod(vm);
+            let value = script_eval!(vm, {mod.widgets.ReactionList {}});
+            ReactionList::script_from_value(vm, value)
+        });
+        let button = widget_ref_from_live_ptr(&mut cx, reactions.item).as_button();
+        button.set_text(&mut cx, "👍 2");
+        let uid = button.widget_uid();
+        reactions.children.push((button, ReactionData {
+            reaction: "👍".into(), includes_user: true,
+            reaction_senders: IndexMap::new(),
+            room_id: matrix_sdk::ruma::room_id!("!theme:example.org").to_owned(),
+        }));
+        let old_revision = reactions.appearance.revision;
+        cx.with_vm(|vm| vm.with_reload(|vm| {
+            theme::tests::install(vm, Selection {appearance: Appearance::Dark, accent: Accent::Violet});
+            crate::shared::styles::script_mod(vm);
+            self::super::script_mod(vm);
+            let value = script_eval!(vm, {mod.widgets.ReactionList {}});
+            reactions.script_apply(vm, &Apply::ScriptReapply, &mut Scope::empty(), value);
+            assert!(vm.take_errors().is_empty());
+        }));
+        assert_eq!(reactions.children[0].0.widget_uid(), uid);
+        assert_eq!(reactions.children[0].0.text(), "👍 2");
+        assert!(reactions.children[0].1.includes_user);
+        assert_ne!(reactions.appearance.revision, old_revision);
     }
 }

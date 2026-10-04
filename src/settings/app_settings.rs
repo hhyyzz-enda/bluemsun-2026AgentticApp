@@ -68,9 +68,9 @@ script_mod! {
         flow: Flow.Right{wrap: true}
         margin: Inset{left: 14, top: 0, bottom: 0, right: 5}
         padding: 0,
-        font_size: 11,
-        font_color: #666,
-        text_style_normal: MESSAGE_TEXT_STYLE { font_size: 11 },
+        font_size: (11 * mod.widgets.RINX_TEXT_SCALE),
+        font_color: mod.widgets.RINX_MUTED,
+        text_style_normal: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
     }
 
     // A single item within a Rinx-styled settings DropDown popup menu.
@@ -239,6 +239,8 @@ script_mod! {
             text: #(crate::i18n::tr("App Settings")) i18n_text: "App Settings"
         }
 
+        appearance := AppearanceSettings {}
+
         View {
             width: Fill height: Fit flow: Right align: Align{y: 0.5} spacing: 12
             SubsectionLabel {text: #(crate::i18n::tr("Language")) i18n_text: "Language"}
@@ -307,7 +309,7 @@ script_mod! {
                     padding: 0
                     align: Align{x: 0.5, y: 0.5}
                     draw_text +: {
-                        text_style: mod.widgets.SETTINGS_REGULAR_TEXT_STYLE { font_size: 14 },
+                        text_style: mod.widgets.SETTINGS_REGULAR_TEXT_STYLE { font_size: (14 * mod.widgets.RINX_TEXT_SCALE) },
                     }
                     text: "-"
                 }
@@ -326,7 +328,7 @@ script_mod! {
                     padding: 0
                     align: Align{x: 0.5, y: 0.5}
                     draw_text +: {
-                        text_style: mod.widgets.SETTINGS_REGULAR_TEXT_STYLE { font_size: 14 },
+                        text_style: mod.widgets.SETTINGS_REGULAR_TEXT_STYLE { font_size: (14 * mod.widgets.RINX_TEXT_SCALE) },
                     }
                     text: "+"
                 }
@@ -408,7 +410,7 @@ script_mod! {
                     width: Fit, height: Fit
                     draw_text +: {
                         color: (MESSAGE_TEXT_COLOR),
-                        text_style: MESSAGE_TEXT_STYLE { font_size: 11 },
+                        text_style: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                     }
                     text: #(crate::i18n::tr("pixels")) i18n_text: "pixels"
                 }

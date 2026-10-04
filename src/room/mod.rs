@@ -3,7 +3,7 @@
 use std::sync::Arc;
 use makepad_widgets::ScriptVm;
 use matrix_sdk::{RoomDisplayName, RoomHeroWithProfile, RoomState, SuccessorRoom, room_preview::RoomPreview};
-use ruma::{OwnedRoomAliasId, OwnedRoomId, room::{JoinRuleSummary, RoomType}};
+use ruma::{OwnedMxcUri, OwnedRoomAliasId, OwnedRoomId, OwnedUserId, room::{JoinRuleSummary, RoomType}};
 
 use crate::shared::avatar::AvatarImage;
 use crate::utils::RoomNameId;
@@ -157,11 +157,28 @@ impl FetchedRoomPreview {
 
 static EMPTY_AVATAR: FetchedRoomAvatar = FetchedRoomAvatar::Text(String::new());
 
-/// A fully-fetched room avatar ready to be displayed.
+/// A member used in a room's avatar mosaic. Photos load through the shared avatar cache.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RoomAvatarMember {
+    pub user_id: OwnedUserId,
+    pub display_name: Option<String>,
+    pub avatar_url: Option<OwnedMxcUri>,
+}
+
+/// Keep the same members in the same positions across syncs and display-name edits.
+pub(crate) fn room_avatar_members(mut members: Vec<RoomAvatarMember>) -> Vec<RoomAvatarMember> {
+    members.sort_by(|a, b| a.user_id.cmp(&b.user_id));
+    members.dedup_by(|a, b| a.user_id == b.user_id);
+    members.truncate(9);
+    members
+}
+
+/// A room avatar ready to display; mosaic photos load through the shared cache.
 #[derive(Clone)]
 pub enum FetchedRoomAvatar {
     Text(String),
     Image(AvatarImage),
+    Members(Vec<RoomAvatarMember>),
 }
 impl Default for FetchedRoomAvatar {
     fn default() -> Self {
@@ -178,6 +195,7 @@ impl std::fmt::Debug for FetchedRoomAvatar {
         match self {
             FetchedRoomAvatar::Text(text) => f.debug_tuple("Text").field(text).finish(),
             FetchedRoomAvatar::Image(_) => f.debug_tuple("Image").finish(),
+            FetchedRoomAvatar::Members(members) => f.debug_tuple("Members").field(members).finish(),
         }
     }
 }
@@ -185,6 +203,7 @@ impl PartialEq for FetchedRoomAvatar {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (FetchedRoomAvatar::Text(t1), FetchedRoomAvatar::Text(t2)) => t1 == t2,
+            (FetchedRoomAvatar::Members(m1), FetchedRoomAvatar::Members(m2)) => m1 == m2,
             (FetchedRoomAvatar::Image(i1), FetchedRoomAvatar::Image(i2)) => {
                 Arc::ptr_eq(&i1.data, &i2.data)
             }
@@ -193,3 +212,29 @@ impl PartialEq for FetchedRoomAvatar {
     }
 }
 impl Eq for FetchedRoomAvatar { }
+
+#[cfg(test)]
+mod avatar_tests {
+    use super::*;
+
+    #[test]
+    fn room_avatar_members_are_stable_unique_and_limited() {
+        let members: Vec<_> = (0..12).map(|index| RoomAvatarMember {
+            user_id: format!("@member{index:02}:example.org").try_into().unwrap(),
+            display_name: Some(format!("Member {index}")),
+            avatar_url: None,
+        }).collect();
+        let expected = room_avatar_members(members.clone());
+        assert_eq!(expected.len(), 9);
+        let mut reordered = members.clone();
+        reordered.reverse();
+        reordered.push(members[0].clone());
+        assert_eq!(room_avatar_members(reordered), expected);
+        let mut renamed = members;
+        renamed[0].display_name = Some("Zoe".into());
+        renamed[0].avatar_url = Some("mxc://example.org/new-photo".into());
+        let updated = room_avatar_members(renamed);
+        assert_eq!(updated[0].user_id, expected[0].user_id);
+        assert_ne!(FetchedRoomAvatar::Members(updated), FetchedRoomAvatar::Members(expected));
+    }
+}

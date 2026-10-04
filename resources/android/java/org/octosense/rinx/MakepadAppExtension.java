@@ -1,11 +1,14 @@
 package org.octosense.rinx;
 
 import android.content.Intent;
+import android.content.ComponentCallbacks;
+import android.content.res.Configuration;
 import android.util.Log;
 
 import java.lang.reflect.Field;
 
 import dev.makepad.android.MakepadActivity;
+import dev.makepad.android.MakepadNative;
 
 /**
  * Rinx's hook into Makepad's Android activity (cargo-makepad loads
@@ -25,9 +28,18 @@ public final class MakepadAppExtension implements MakepadActivity.ApplicationExt
     private static final String TAG = "Rinx";
 
     private final MakepadActivity mActivity;
+    private final ComponentCallbacks appearanceCallbacks = new ComponentCallbacks() {
+        @Override public void onConfigurationChanged(Configuration config) { publishAppearance(); }
+        @Override public void onLowMemory() {}
+    };
+    private void publishAppearance() {
+        int mode = mActivity.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        MakepadNative.onAndroidIntegrationEvent("rinx.appearance", mode == Configuration.UI_MODE_NIGHT_YES ? "dark" : "light");
+    }
 
     public MakepadAppExtension(MakepadActivity activity) {
         mActivity = activity;
+        activity.registerComponentCallbacks(appearanceCallbacks);
         try {
             Field requested = MakepadActivity.class.getDeclaredField("mLocationPermissionRequested");
             requested.setAccessible(true);
@@ -42,9 +54,10 @@ public final class MakepadAppExtension implements MakepadActivity.ApplicationExt
         if ("rinx.back".equals(channel)) {
             mActivity.moveTaskToBack(true);
         }
+        if ("rinx.appearance".equals(channel)) { publishAppearance(); }
     }
-    @Override public void onResume() {}
+    @Override public void onResume() { publishAppearance(); }
     @Override public void onPause() {}
     @Override public void onIntent(Intent intent) {}
-    @Override public void onDestroy() {}
+    @Override public void onDestroy() { mActivity.unregisterComponentCallbacks(appearanceCallbacks); }
 }

@@ -112,7 +112,7 @@ pub fn process_room_preview_updates(_cx: &mut Cx) {
 fn fetched_room_avatar_to_avatar_state(avatar: FetchedRoomAvatar) -> AvatarState {
     match avatar {
         FetchedRoomAvatar::Image(bytes) => AvatarState::Loaded(bytes),
-        FetchedRoomAvatar::Text(_) => AvatarState::Known(None),
+        FetchedRoomAvatar::Text(_) | FetchedRoomAvatar::Members(_) => AvatarState::Known(None),
     }
 }
 

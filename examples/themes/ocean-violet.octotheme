@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "id": "ocean-violet",
+  "name": "Ocean Violet",
+  "author": "Rinx reference",
+  "base": "makepad/1",
+  "tokens": {
+    "typography": {
+      "scale": {
+        "$type": "number",
+        "$value": 1.15
+      }
+    },
+    "shape": {
+      "surface": {
+        "radius": {
+          "$type": "dimension",
+          "$value": {
+            "value": 10,
+            "unit": "px"
+          }
+        }
+      }
+    }
+  },
+  "variants": {
+    "light": {
+      "color": {
+        "action": {
+          "primary": {
+            "$type": "color",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.30980392156862746,
+                0.27450980392156865,
+                0.6470588235294118
+              ],
+              "alpha": 1
+            }
+          }
+        }
+      }
+    },
+    "dark": {
+      "color": {
+        "action": {
+          "primary": {
+            "$type": "color",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.7686274509803922,
+                0.7098039215686275,
+                0.9921568627450981
+              ],
+              "alpha": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}

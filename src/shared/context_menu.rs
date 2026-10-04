@@ -24,22 +24,22 @@ script_mod! {
 
         draw_bg +: {
             color: (COLOR_PRIMARY)
-            color_hover: #EBEBEB
-            color_down: #DCDCDC
+            color_hover: mod.widgets.RINX_HOVER
+            color_down: mod.widgets.RINX_PRESSED
             border_radius: 4.0
         }
-        draw_icon.color: #000
+        draw_icon.color: mod.widgets.RINX_INK
         draw_text +: {
-            color: #000, color_hover: #000, color_down: #000
-            text_style: REGULAR_TEXT {font_size: 11}
+            color: mod.widgets.RINX_INK, color_hover: mod.widgets.RINX_INK, color_down: mod.widgets.RINX_INK
+            text_style: REGULAR_TEXT {font_size: (11 * mod.widgets.RINX_TEXT_SCALE)}
         }
     }
 
     mod.widgets.ContextMenuDangerButton = mod.widgets.ContextMenuButton {
         draw_bg +: {
             color: (COLOR_BG_DANGER_RED)
-            color_hover: #F0D4D4
-            color_down: #E0B8B8
+            color_hover: mod.widgets.RINX_DANGER_BG
+            color_down: mod.widgets.RINX_DANGER_BG
         }
         draw_icon.color: (COLOR_FG_DANGER_RED)
         draw_text +: {
@@ -68,7 +68,7 @@ script_mod! {
             color: (COLOR_PRIMARY)
             border_radius: 5.0
             border_size: 0.5
-            border_color: #888
+            border_color: mod.widgets.RINX_MUTED
         }
     }
 }

@@ -3,6 +3,7 @@
 //! This widget is designed to be reused across both Desktop and Mobile variants 
 //! of the RoomsSideBar to avoid code duplication.
 
+use crate::theme::Snapshot as ThemeSnapshot;
 use std::mem::discriminant;
 
 use makepad_widgets::*;
@@ -46,7 +47,7 @@ script_mod! {
             draw_text +: {
                 color: (RBX_FG_PRIMARY)
                 // Regular weight (thinner) — reads as a title via size, not boldness.
-                text_style: REGULAR_TEXT { font_size: 14 }
+                text_style: REGULAR_TEXT { font_size: (14 * mod.widgets.RINX_TEXT_SCALE) }
             }
         },
 
@@ -183,9 +184,12 @@ script_mod! {
     }
 }
 
-#[derive(Script, ScriptHook, Widget)]
+#[derive(Script, Widget)]
 pub struct RoomsListHeader {
-    #[deref] view: View,
+    #[rust]
+    appearance: ThemeSnapshot,
+    #[deref]
+    view: View,
 
     #[rust(State::Idle)] sync_state: State,
 
@@ -193,6 +197,11 @@ pub struct RoomsListHeader {
     #[rust] displayed_space: Option<OwnedRoomId>,
 }
 
+impl ScriptHook for RoomsListHeader {
+    fn on_after_apply(&mut self, vm: &mut ScriptVm, _: &Apply, _: &mut Scope, _: ScriptValue) {
+        self.appearance = crate::theme::snapshot_for_vm(vm);
+    }
+}
 impl Widget for RoomsListHeader {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         if let Event::Actions(actions) = event {
@@ -281,10 +290,25 @@ impl Widget for RoomsListHeader {
         }
 
         // Show tooltips for the sync status icons.
-        for (view, text, bg_color) in [
-            (self.view.view(cx, ids!(loading_spinner)), "Syncing...",   crate::shared::design_tokens::RBX_ACCENT),
-            (self.view.view(cx, ids!(offline_icon)),    "Offline",      crate::shared::design_tokens::RBX_DANGER_FG),
-            (self.view.view(cx, ids!(synced_icon)),     "Fully synced", crate::shared::design_tokens::RBX_SUCCESS_FG),
+        for (view, text, bg_color, text_color) in [
+            (
+                self.view.view(cx, ids!(loading_spinner)),
+                "Syncing...",
+                self.appearance.accent,
+                self.appearance.on_accent,
+            ),
+            (
+                self.view.view(cx, ids!(offline_icon)),
+                "Offline",
+                self.appearance.role("color.status.danger.background"),
+                self.appearance.role("color.status.danger.foreground"),
+            ),
+            (
+                self.view.view(cx, ids!(synced_icon)),
+                "Fully synced",
+                self.appearance.role("color.status.success.background"),
+                self.appearance.role("color.status.success.foreground"),
+            ),
         ] {
             if !view.visible() {
                 continue;
@@ -297,7 +321,7 @@ impl Widget for RoomsListHeader {
                             text: text.to_string(),
                             widget_rect: view.area().rect(cx),
                             options: CalloutTooltipOptions {
-                                text_color: vec4(1.0, 1.0, 1.0, 1.0), // COLOR_PRIMARY
+                                text_color,
                                 bg_color,
                                 position: TooltipPosition::Left,
                                 ..Default::default()

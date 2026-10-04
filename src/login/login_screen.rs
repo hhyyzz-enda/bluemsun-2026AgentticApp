@@ -72,7 +72,7 @@ script_mod! {
                         padding: 0,
                         draw_text +: {
                             color: (COLOR_TEXT)
-                            text_style: TITLE_TEXT {font_size: 16.0}
+                            text_style: TITLE_TEXT {font_size: (16.0 * mod.widgets.RINX_TEXT_SCALE)}
                         }
                         text: #(crate::i18n::tr("Sign in to Rinx")) i18n_text: "Sign in to Rinx"
                     }
@@ -92,14 +92,14 @@ script_mod! {
                             padding: Inset{left: 14, right: 14, top: 14, bottom: 14}
                             show_bg: true
                             draw_bg +: {
-                                color: #fff
+                                color: mod.widgets.RINX_SURFACE
                                 border_size: 1
-                                border_color: #xd2dadd
+                                border_color: mod.widgets.RINX_BORDER
                                 border_radius: 8
                             }
                             Label {
                                 width: Fill, height: Fit
-                                draw_text +: {color: COLOR_TEXT, text_style: REGULAR_TEXT {font_size: 12}}
+                                draw_text +: {color: COLOR_TEXT, text_style: REGULAR_TEXT {font_size: (12 * mod.widgets.RINX_TEXT_SCALE)}}
                                 text: #(crate::i18n::tr("Choose your homeserver")) i18n_text: "Choose your homeserver"
                             }
                             homeserver_input := RobrixTextInput {
@@ -114,7 +114,7 @@ script_mod! {
                             Label {
                                 width: Fill, height: Fit
                                 flow: Flow.Right{wrap: true}
-                                draw_text +: {color: #x6c777b, text_style: REGULAR_TEXT {font_size: 10}}
+                                draw_text +: {color: mod.widgets.RINX_MUTED, text_style: REGULAR_TEXT {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}}
                                 text: #(crate::i18n::tr("Enter a Matrix server name or homeserver URL. Leave blank for matrix.org.")) i18n_text: "Enter a Matrix server name or homeserver URL. Leave blank for matrix.org."
                             }
                         }
@@ -126,7 +126,7 @@ script_mod! {
                         server_status := Label {
                             width: Fill, height: Fit
                             flow: Flow.Right{wrap: true}
-                            draw_text +: {color: COLOR_TEXT, text_style: REGULAR_TEXT {font_size: 10}}
+                            draw_text +: {color: COLOR_TEXT, text_style: REGULAR_TEXT {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}}
                             text: ""
                         }
                     }
@@ -141,9 +141,9 @@ script_mod! {
                             padding: Inset{left: 14, right: 14, top: 10, bottom: 12}
                             show_bg: true
                             draw_bg +: {
-                                color: #fff
+                                color: mod.widgets.RINX_SURFACE
                                 border_size: 1
-                                border_color: #xd2dadd
+                                border_color: mod.widgets.RINX_BORDER
                                 border_radius: 8
                             }
                             View {
@@ -151,7 +151,7 @@ script_mod! {
                                 align: Align{y: 0.5}
                                 Label {
                                     width: Fill, height: Fit
-                                    draw_text +: {color: #x6c777b, text_style: REGULAR_TEXT {font_size: 10}}
+                                    draw_text +: {color: mod.widgets.RINX_MUTED, text_style: REGULAR_TEXT {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}}
                                     text: #(crate::i18n::tr("Selected server")) i18n_text: "Selected server"
                                 }
                                 edit_server_button := RobrixNeutralIconButton {
@@ -160,11 +160,11 @@ script_mod! {
                                     icon_walk: Walk{width: 0, height: 0}
                                     align: Align{x: 0.5, y: 0.5}
                                     draw_bg +: {
-                                        color: #xf2f7f8
-                                        color_hover: #xdcecef
-                                        color_down: #xc9e0e5
+                                        color: mod.widgets.RINX_FIELD
+                                        color_hover: mod.widgets.RINX_HOVER
+                                        color_down: mod.widgets.RINX_PRESSED
                                         border_size: 1
-                                        border_color: #x9cbcc1
+                                        border_color: mod.widgets.RINX_BORDER
                                         border_radius: 5
                                     }
                                     text: #(crate::i18n::tr("Edit")) i18n_text: "Edit"
@@ -174,14 +174,14 @@ script_mod! {
                                 width: Fill, height: Fit
                                 flow: Flow.Right{wrap: false}
                                 max_lines: 1, text_overflow: Ellipsis
-                                draw_text +: {color: COLOR_TEXT, text_style: REGULAR_TEXT {font_size: 12}}
+                                draw_text +: {color: COLOR_TEXT, text_style: REGULAR_TEXT {font_size: (12 * mod.widgets.RINX_TEXT_SCALE)}}
                                 text: ""
                             }
                         }
                         method_status := Label {
                             width: Fill, height: Fit
                             flow: Flow.Right{wrap: true}
-                            draw_text +: {color: COLOR_TEXT, text_style: REGULAR_TEXT {font_size: 10}}
+                            draw_text +: {color: COLOR_TEXT, text_style: REGULAR_TEXT {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}}
                             text: ""
                         }
                         provider_list_container := View {
@@ -240,14 +240,14 @@ script_mod! {
                                     align: Align{x: 0.5, y: 0.5}
                                     show_password_button := RobrixNeutralIconButton {
                                         width: Fit, height: Fit, padding: 5, spacing: 0, margin: 0
-                                        draw_icon +: {svg: (mod.widgets.ICON_EYE_CLOSED), color: #8C8C8C}
+                                        draw_icon +: {svg: (mod.widgets.ICON_EYE_CLOSED), color: mod.widgets.RINX_MUTED}
                                         icon_walk: Walk{width: 18, height: 18, margin: 0}
                                         text: ""
                                     }
                                     hide_password_button := RobrixNeutralIconButton {
                                         visible: false
                                         width: Fit, height: Fit, padding: 5, spacing: 0, margin: 0
-                                        draw_icon +: {svg: (mod.widgets.ICON_EYE_OPEN), color: #8C8C8C}
+                                        draw_icon +: {svg: (mod.widgets.ICON_EYE_OPEN), color: mod.widgets.RINX_MUTED}
                                         icon_walk: Walk{width: 18, height: 18, margin: 0}
                                         text: ""
                                     }

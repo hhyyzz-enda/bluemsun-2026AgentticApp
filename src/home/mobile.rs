@@ -19,10 +19,10 @@ script_mod! {
     use mod.prelude.widgets.*
     use mod.widgets.*
 
-    mod.widgets.MOBILE_BG = #xededed
-    mod.widgets.MOBILE_GREEN = #x07c160
-    mod.widgets.MOBILE_INK = #x191919
-    mod.widgets.MOBILE_MUTED = #x888888
+    mod.widgets.MOBILE_BG = mod.widgets.RINX_PAGE
+    mod.widgets.MOBILE_GREEN = mod.widgets.RINX_ACCENT
+    mod.widgets.MOBILE_INK = mod.widgets.RINX_INK
+    mod.widgets.MOBILE_MUTED = mod.widgets.RINX_MUTED
 
     mod.widgets.MobileAvatar = Avatar {
         width: 48 height: 48
@@ -52,7 +52,7 @@ script_mod! {
         title := Label {
             width: Fill height: Fill
             align: Align{x: 0.5 y: 0.5}
-            draw_text +: {color: mod.widgets.MOBILE_INK text_style: theme.font_bold {font_size: 12.5}}
+            draw_text +: {color: mod.widgets.MOBILE_INK text_style: theme.font_bold {font_size: (12.5 * mod.widgets.RINX_TEXT_SCALE)}}
         }
         controls := View {
             width: Fill height: Fill
@@ -78,27 +78,27 @@ script_mod! {
         width: Fill height: 56
         flow: Right spacing: 16 padding: Inset{left: 20 right: 16}
         align: Align{y: 0.5}
-        draw_bg +: {color_hover: #xdedede color_active: #xdedede border_radius: 0}
+        draw_bg +: {color_hover: mod.widgets.RINX_HOVER color_active: mod.widgets.RINX_HOVER border_radius: 0}
         icon := Icon {
             icon_walk: Walk{width: 24 height: 24}
-            draw_icon +: {color: #x576b95 svg: ICON_PEOPLE}
+            draw_icon +: {color: mod.widgets.RINX_ACCENT svg: ICON_PEOPLE}
         }
         title := Label {
             width: Fill height: Fit max_lines: 1 text_overflow: Ellipsis
-            draw_text +: {color: mod.widgets.MOBILE_INK text_style: theme.font_regular {font_size: 12.5}}
+            draw_text +: {color: mod.widgets.MOBILE_INK text_style: theme.font_regular {font_size: (12.5 * mod.widgets.RINX_TEXT_SCALE)}}
         }
         chevron := Icon {
             icon_walk: Walk{width: 8 height: 13}
-            draw_icon +: {color: #xb2b2b2 svg: ICON_CHEVRON_RIGHT}
+            draw_icon +: {color: mod.widgets.RINX_DISABLED svg: ICON_CHEVRON_RIGHT}
         }
     }
     mod.widgets.MobileSection = SolidView {
         width: Fill height: Fit flow: Down
-        draw_bg.color: #xffffff
+        draw_bg.color: mod.widgets.RINX_SURFACE
     }
     mod.widgets.MobileDivider = SolidView {
         width: Fill height: 0.5 margin: Inset{left: 60}
-        draw_bg.color: #xe5e5e5
+        draw_bg.color: mod.widgets.RINX_BORDER
     }
 
     mod.widgets.MobileHub = #(MobileHub::register_widget(vm)) {
@@ -115,47 +115,47 @@ script_mod! {
                     search := RobrixTextInput {
                         width: Fill height: 36 padding: Inset{left: 12 right: 12 top: 8 bottom: 8}
                         empty_text: #(crate::i18n::tr("Search")) i18n_empty_text: "Search" autocapitalize: None
-                        draw_text +: {color: mod.widgets.MOBILE_INK text_style: theme.font_regular {font_size: 11.5}}
+                        draw_text +: {color: mod.widgets.MOBILE_INK text_style: theme.font_regular {font_size: (11.5 * mod.widgets.RINX_TEXT_SCALE)}}
                         draw_bg +: {
-                            color: #xffffff color_hover: #xffffff color_focus: #xffffff
-                            color_empty: #xffffff border_size: 0 border_radius: 5
+                            color: mod.widgets.RINX_SURFACE color_hover: mod.widgets.RINX_SURFACE color_focus: mod.widgets.RINX_SURFACE
+                            color_empty: mod.widgets.RINX_SURFACE border_size: 0 border_radius: 5
                         }
                     }
                 }
                 shortcuts := mod.widgets.MobileSection {
                     new_friends := mod.widgets.MobileRow {
                         title.text: #(crate::i18n::tr("New Friends")) title.i18n_text: "New Friends"
-                        icon +: {draw_icon +: {svg: ICON_ADD_USER color: #xfa9d3b}}
+                        icon +: {draw_icon +: {svg: ICON_ADD_USER color: mod.widgets.RINX_WARNING_FG}}
                     }
                     mod.widgets.MobileDivider {}
                     groups := mod.widgets.MobileRow {title.text: #(crate::i18n::tr("Group Chats")) title.i18n_text: "Group Chats" icon.draw_icon.color: mod.widgets.MOBILE_GREEN}
                 }
                 status := Label {
                     width: Fill height: Fit padding: 16
-                    draw_text +: {color: mod.widgets.MOBILE_MUTED text_style: theme.font_regular {font_size: 12}}
+                    draw_text +: {color: mod.widgets.MOBILE_MUTED text_style: theme.font_regular {font_size: (12 * mod.widgets.RINX_TEXT_SCALE)}}
                     text: #(crate::i18n::tr("Loading contacts…")) i18n_text: "Loading contacts…"
                 }
                 list := PortalList {
                     width: Fill height: Fill
-                    Filler := SolidView {width: Fill height: 100 draw_bg.color: #xffffff}
+                    Filler := SolidView {width: Fill height: 100 draw_bg.color: mod.widgets.RINX_SURFACE}
                     Contact := View {
                         width: Fill height: Fit flow: Down
                         section := SolidView {
                             width: Fill height: 28 padding: Inset{left: 16} align: Align{y: 0.5}
                             draw_bg.color: mod.widgets.MOBILE_BG
-                            letter := Label {draw_text +: {color: mod.widgets.MOBILE_MUTED text_style: theme.font_regular {font_size: 12}}}
+                            letter := Label {draw_text +: {color: mod.widgets.MOBILE_MUTED text_style: theme.font_regular {font_size: (12 * mod.widgets.RINX_TEXT_SCALE)}}}
                         }
                         row := NavigationBarButton {
                             width: Fill height: 60 flow: Right spacing: 14 padding: Inset{left: 16 right: 16}
                             align: Align{y: 0.5}
                             draw_bg +: {
-                                color_hover: #xe5e5e5 border_radius: 0
-                                get_color: fn() -> vec4 {return #xffffff.mix(self.color_hover, self.hover)}
+                                color_hover: mod.widgets.RINX_BORDER border_radius: 0
+                                get_color: fn() -> vec4 {return mod.widgets.RINX_ON_ACCENT.mix(self.color_hover, self.hover)}
                             }
                             avatar := mod.widgets.MobileAvatar {width: 40 height: 40}
                             name := Label {
                                 width: Fill max_lines: 1 text_overflow: Ellipsis
-                                draw_text +: {color: mod.widgets.MOBILE_INK text_style: theme.font_regular {font_size: 12.5}}
+                                draw_text +: {color: mod.widgets.MOBILE_INK text_style: theme.font_regular {font_size: (12.5 * mod.widgets.RINX_TEXT_SCALE)}}
                             }
                         }
                         mod.widgets.MobileDivider {margin: Inset{left: 70}}
@@ -165,9 +165,9 @@ script_mod! {
             discover := ScrollYView {
                 width: Fill height: Fill flow: Down spacing: 8
                 mod.widgets.MobileSection {
-                    discover_mini_apps := mod.widgets.MobileRow {title.text: "Mini apps" icon.draw_icon.svg: ICON_ADD_ATTACHMENT}
+                    discover_mini_apps := mod.widgets.MobileRow {title.text: "Mini apps" icon.draw_icon.svg: ICON_SQUARES}
                     mod.widgets.MobileDivider {}
-                    discover_article := mod.widgets.MobileRow {title.text: #(crate::i18n::tr("Article editor")) title.i18n_text: "Article editor" icon.draw_icon.svg: ICON_ADD_ATTACHMENT}
+                    discover_article := mod.widgets.MobileRow {title.text: #(crate::i18n::tr("Article editor")) title.i18n_text: "Article editor" icon.draw_icon.svg: ICON_FILE}
                     mod.widgets.MobileDivider {}
                     discover_writing := mod.widgets.MobileRow {title.text: #(crate::i18n::tr("Writing studio")) title.i18n_text: "Writing studio" icon.draw_icon.svg: ICON_WRITING_STUDIO}
                     mod.widgets.MobileDivider {}
@@ -180,7 +180,7 @@ script_mod! {
                 width: Fill height: Fill flow: Down
                 group_status := Label {
                     width: Fill height: Fit padding: 16
-                    draw_text +: {color: mod.widgets.MOBILE_MUTED text_style: theme.font_regular {font_size: 12}}
+                    draw_text +: {color: mod.widgets.MOBILE_MUTED text_style: theme.font_regular {font_size: (12 * mod.widgets.RINX_TEXT_SCALE)}}
                 }
                 group_list := PortalList {
                     width: Fill height: Fill
@@ -189,11 +189,11 @@ script_mod! {
                         group_row := NavigationBarButton {
                             width: Fill height: 72 flow: Right spacing: 14 padding: Inset{left: 16 right: 16}
                             align: Align{y: 0.5}
-                            draw_bg +: {color_hover: #xe5e5e5 border_radius: 0}
+                            draw_bg +: {color_hover: mod.widgets.RINX_BORDER border_radius: 0}
                             avatar := mod.widgets.MobileAvatar {width: 48 height: 48}
                             name := Label {
                                 width: Fill max_lines: 1 text_overflow: Ellipsis
-                                draw_text +: {color: mod.widgets.MOBILE_INK text_style: theme.font_regular {font_size: 12.5}}
+                                draw_text +: {color: mod.widgets.MOBILE_INK text_style: theme.font_regular {font_size: (12.5 * mod.widgets.RINX_TEXT_SCALE)}}
                             }
                         }
                         mod.widgets.MobileDivider {margin: Inset{left: 78}}
@@ -211,14 +211,14 @@ script_mod! {
                             width: Fill height: Fit flow: Down spacing: 12
                             name := Label {
                                 width: Fill max_lines: 1 text_overflow: Ellipsis
-                                draw_text +: {color: mod.widgets.MOBILE_INK text_style: theme.font_bold {font_size: 17}}
+                                draw_text +: {color: mod.widgets.MOBILE_INK text_style: theme.font_bold {font_size: (17 * mod.widgets.RINX_TEXT_SCALE)}}
                             }
                             user_id := Label {
                                 width: Fill max_lines: 1 text_overflow: Ellipsis
-                                draw_text +: {color: mod.widgets.MOBILE_MUTED text_style: theme.font_regular {font_size: 11}}
+                                draw_text +: {color: mod.widgets.MOBILE_MUTED text_style: theme.font_regular {font_size: (11 * mod.widgets.RINX_TEXT_SCALE)}}
                             }
                         }
-                        Icon {icon_walk: Walk{width: 8 height: 13} draw_icon +: {color: #xb2b2b2 svg: ICON_CHEVRON_RIGHT}}
+                        Icon {icon_walk: Walk{width: 8 height: 13} draw_icon +: {color: mod.widgets.RINX_DISABLED svg: ICON_CHEVRON_RIGHT}}
                     }
                 }
                 mod.widgets.MobileSection {
@@ -238,7 +238,7 @@ script_mod! {
                 DetailGap {}
                 DetailSection {message := DetailAction {title.text: #(crate::i18n::tr("Messages")) title.i18n_text: "Messages"}}
                 DetailGap {}
-                DetailSection {contact_block := DetailAction {title +: {text: #(crate::i18n::tr("Block")) i18n_text: "Block" draw_text.color: #xfa5151}}}
+                DetailSection {contact_block := DetailAction {title +: {text: #(crate::i18n::tr("Block")) i18n_text: "Block" draw_text.color: mod.widgets.RINX_DANGER_FG}}}
             }
         }
     }
@@ -410,7 +410,7 @@ impl MobileHub {
         if let Some(image) = avatar_state.update_from_cache(cx) {
             if avatar.show_image(cx, None, |cx, img| utils::load_avatar_image(&img, cx, image)).is_ok() { return; }
         }
-        avatar.show_text(cx, None, None, profile.displayable_name());
+        avatar.show_user_text(cx, &profile.user_id, profile.displayable_name());
     }
 }
 

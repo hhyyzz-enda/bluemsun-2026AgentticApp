@@ -9,7 +9,7 @@ description = "Rinx's mini-app library: App Hub's signed catalog, read under the
 
 [dependencies]
 ## The app contract (OctoSense ADR 0005), by version: never an App Hub commit.
-octosense-app-contract = "1"
+octosense-app-contract = "1.2"
 ## Reading and verifying App Hub's catalog (Rinx's own client, `hub`).
 base64 = "0.22"
 ed25519-dalek = { version = "3", features = ["rand_core"] }
@@ -22,3 +22,8 @@ uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
 tempfile = "3"
+
+# This crate is also tested as its own workspace. Root workspace patches are
+# not inherited here; use the same reviewed source until contract 1.2 ships.
+[patch.crates-io]
+octosense-app-contract = { path = "../../vendor/octosense-app-contract" }

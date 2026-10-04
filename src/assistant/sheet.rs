@@ -20,13 +20,13 @@ script_mod! {
             margin: Inset{top: 12}
             padding: 12
             show_bg: true
-            draw_bg +: { color: #F2F4F5 border_radius: 4.0 }
+            draw_bg +: { color: mod.widgets.RINX_FIELD border_radius: 4.0 }
             message := Label {
                 width: Fill, height: Fit
                 flow: Flow.Right{wrap: true}
                 draw_text +: {
-                    text_style: REGULAR_TEXT {font_size: 11.5},
-                    color: #000
+                    text_style: REGULAR_TEXT {font_size: (11.5 * mod.widgets.RINX_TEXT_SCALE)},
+                    color: mod.widgets.RINX_INK
                 }
             }
         }

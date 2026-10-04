@@ -1,0 +1,149 @@
+{
+  "date": "2026-10-03",
+  "platform": "macOS aarch64",
+  "makepad_revision": "1f3b1dedfbb81424eb8dbf69e5e2c634fa73dc54",
+  "rust_tests": {
+    "rinx_passed": 318,
+    "rinx_ignored": 2,
+    "portable_contract_passed": 7
+  },
+  "suites": {
+    "mvp": {
+      "artifact": "target/theme-mvp-validation/b8bd53fc857d467882b255f6f63cb107/result.json",
+      "result": {
+        "passed": true,
+        "runs": [
+          {
+            "hosted": false,
+            "state_preserved": true,
+            "startup_requests": 1,
+            "timers": 1,
+            "revisions": [
+              1307098819754393570,
+              3035522502051829100,
+              17746242382882179812,
+              5374312330715740578
+            ],
+            "evidence": "target/theme-mvp-validation/b8bd53fc857d467882b255f6f63cb107/standalone/native-runs/75fff303c5bd45f58c77dd85c785a4b8"
+          },
+          {
+            "hosted": true,
+            "state_preserved": true,
+            "startup_requests": 1,
+            "timers": 1,
+            "revisions": [
+              1307098819754393570,
+              3035522502051829100,
+              17746242382882179812,
+              5374312330715740578
+            ],
+            "evidence": "target/theme-mvp-validation/b8bd53fc857d467882b255f6f63cb107/hosted/native-runs/2fccc2b5d90e47aeb270a201276f7cc3"
+          }
+        ],
+        "binary_sha256": "2511d035b19e0702edfb6895083c43af915225545a60af2b3e1147d09eeb1e17",
+        "standalone_restart_restores_selection": true,
+        "narrow_scroll_preserved": true
+      }
+    },
+    "packages": {
+      "artifact": "target/theme-package-validation/326a3e573d494917ac33765b802e864f/result.json",
+      "result": {
+        "passed": true,
+        "evidence": "target/theme-package-validation/326a3e573d494917ac33765b802e864f",
+        "binary_sha256": "2511d035b19e0702edfb6895083c43af915225545a60af2b3e1147d09eeb1e17",
+        "url_card_shares_body_size_and_live_scale": true,
+        "retained_notification_survives_reapply": true,
+        "import_preview_cancel_apply_undo": true,
+        "state_requests_timers_retained": true,
+        "contrast_rejection": true,
+        "render_commit": true,
+        "restart": true,
+        "interrupted_apply_recovers_last_good": true,
+        "narrow_editor_has_apply_and_cancel": true,
+        "hosted_data_snapshot_preserves_state_and_owns_selection": true
+      }
+    },
+    "cards": {
+      "artifact": "target/chat-link-preview-regressions/42b3a86a808248c996d3011c9c2f2fff/report.json",
+      "result": {
+        "passed": true,
+        "checks": [
+          "metadata_cards_are_inside_widget_bounds_and_do_not_overlap_next_message",
+          "card_opens_original_url",
+          "expand_collapse_updates_layout_and_hides_extra_cards",
+          "reused_card_updates_metadata_and_click_target",
+          "narrow_card_keeps_text_inside_bounds",
+          "empty_metadata_uses_compact_hostname_without_blank_summary_or_thumbnail",
+          "clearing_links_removes_cards_and_reserved_height",
+          "desktop_compact_and_bubble_messages_have_bounded_width_and_right_gutter"
+        ]
+      }
+    },
+    "reader": {
+      "artifact": "target/chat-web-browser-regressions/3ea0972982e3416285050c6b6aea2b02/report.json",
+      "result": {
+        "passed": true,
+        "mode": "desktop",
+        "checks": [
+          "chat_link_opens_embedded_webkit_with_redirect_css_javascript_and_image",
+          "five_svg_toolbar_controls_have_consistent_hit_areas_without_text_buttons",
+          "separate_reader_window_keeps_chat_interactive",
+          "another_chat_link_opens_a_new_tab_in_the_same_reader",
+          "switching_tabs_preserves_document_and_scroll_without_reloading",
+          "back_and_forward_navigate_real_webkit_history",
+          "tab_histories_are_independent",
+          "closing_background_tab_keeps_active_page_and_releases_browser",
+          "closing_active_tab_returns_to_surviving_page",
+          "reopen_loads_original_chat_link",
+          "markdown_renders_headings_table_and_code_in_native_document_tab",
+          "markdown_http_link_opens_one_web_tab_and_leaves_document_open",
+          "multiple_documents_preserve_scroll_and_coexist_with_live_webpages",
+          "live_theme_preserves_reader_window_tabs_inactive_document_scroll_and_external_website",
+          "closing_document_tabs_preserves_remaining_documents_and_website",
+          "close_destroys_native_browser_and_returns_to_chat",
+          "closing_last_tab_closes_reader_and_can_reopen_after_cleanup",
+          "native_window_close_destroys_all_tabs_and_keeps_chat",
+          "closing_main_window_closes_reader_and_exits",
+          "restart_restores_reader_window_tab_order_and_active_link_from_disk",
+          "explicitly_closed_reader_stays_closed_after_restart"
+        ],
+        "binary_sha256": "96583085efe6191d80d1b988203efff813dfb49e367e9eb98b297a39076001ce"
+      }
+    },
+    "release": {
+      "artifact": "target/theme-release-validation/e2d404b4b643412f9edb8c310539e543/report.json",
+      "result": {
+        "passed": true,
+        "binary_sha256": "6fb00dd3f995e25afd41037dd2fb23a5822bf935f648bb1589c68d6722f5b73d",
+        "runs": [
+          {
+            "mode": "light",
+            "dominant_color": [
+              255,
+              255,
+              255
+            ],
+            "profile_theme_retained": true,
+            "evidence": "target/theme-release-validation/e2d404b4b643412f9edb8c310539e543/light"
+          },
+          {
+            "mode": "dark",
+            "dominant_color": [
+              53,
+              53,
+              55
+            ],
+            "profile_theme_retained": true,
+            "evidence": "target/theme-release-validation/e2d404b4b643412f9edb8c310539e543/dark"
+          }
+        ]
+      }
+    }
+  },
+  "screenshots": {
+    "docs/screenshots/theme-custom-dark.png": "54ccda5fd7bcbf4127936b7a840f791a91fe4c9b00bc03246749e0d64d39f794",
+    "docs/screenshots/theme-custom-light.png": "76bcb1609badacc54ce92c40c79d6eb4f4e654585d5b493033ff5809c338f370",
+    "docs/screenshots/theme-url-cards.png": "68488c537529d6fc727d0b2263f677f728903825cb07ceadaa03ab8c1be7755a",
+    "docs/screenshots/theme-reader-dark.png": "c1d9c9ab7400e3e84113ed7e28367fa3e380ec74ae5ad2cd8c8e3b84e96db165"
+  }
+}

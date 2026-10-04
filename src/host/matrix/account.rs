@@ -38,7 +38,7 @@ pub(super) async fn user_profile(user_id: OwnedUserId) -> Result<String, String>
 
 pub(super) async fn dm_find(user_id: OwnedUserId) -> Result<String, String> {
     let client = get_client().ok_or("not logged in")?;
-    let Some(room) = client.get_dm_room(&user_id) else {
+    let Some(room) = crate::agent_access::find_dm(&client, &user_id).await else {
         return Ok(serde_json::json!({ "room_id": null, "name": null }).to_string());
     };
     super::policy::ensure_room_access(room.room_id().as_str(), super::policy::RoomAccess::Read)?;

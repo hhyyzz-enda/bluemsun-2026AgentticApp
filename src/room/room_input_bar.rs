@@ -17,7 +17,7 @@
 //! * A "cannot-send-message" notice, which is shown if the user cannot send messages to the room.
 //!
 
-
+use crate::theme::Snapshot as ThemeSnapshot;
 use std::sync::Arc;
 use makepad_widgets::*;
 use robius_speech::{NativeSpeechEvent, NativeSpeechSession, Replacement, SpeechErrorKind};
@@ -29,7 +29,6 @@ use matrix_sdk_ui::timeline::{EmbeddedEvent, EventTimelineItem, TimelineEventIte
 use ruma::{events::room::message::{LocationMessageEventContent, MessageType, ReplyWithinThread, RoomMessageEventContent}, OwnedEventId, OwnedRoomId, OwnedTransactionId};
 use crate::{block_user_modal::{BlockUserModalAction, BlockUserRequest}, home::{editing_pane::{EditingPaneState, EditingPaneWidgetExt, EditingPaneWidgetRefExt}, location_preview::{LocationPreviewWidgetExt, LocationPreviewWidgetRefExt}, room_screen::{MessageAction, populate_preview_of_timeline_item}, rooms_list::RoomsListRef, tombstone_footer::{SuccessorRoomDetails, TombstoneFooterWidgetExt}, upload_progress::{UploadProgressViewWidgetRefExt, UploadState}}, join_leave_room_modal::{JoinLeaveModalKind, JoinLeaveRoomModalAction}, location::init_location_subscriber, profile::user_profile::{ShowUserProfileAction, UserProfile, UserProfileAndRoomId}, room::BasicRoomDetails, settings::app_preferences::{AppPreferencesAction, AppPreferencesGlobal}, shared::{avatar::{AvatarState, AvatarWidgetRefExt}, file_upload_modal::{AttachmentUpload, FileUploadAttemptId, PendingUpload, handle_picked_file, handle_picker_launch_errors}, html_or_plaintext::HtmlOrPlaintextWidgetRefExt, mentionable_text_input::{MentionableTextInputWidgetExt, MentionableTextInputWidgetRefExt, MentionableTextInputState}, popup_list::{PopupKind, enqueue_popup_notification}, room_input_popup_menu::RoomInputPopupMenuAction, slash_commands::{SlashCommandAction, SlashCommandOutcome}}, sliding_sync::{MatrixRequest, TimelineKind, UserPowerLevels, submit_async_request}, utils};
 use crate::room::reply_preview::CollapsiblePreviewWidgetRefExt;
-use crate::shared::design_tokens::{RBX_ACCENT, RBX_BG_DISABLED, RBX_FG_DISABLED, RBX_FG_ON_ACCENT};
 
 script_mod! {
     use mod.prelude.widgets.*
@@ -74,7 +73,7 @@ script_mod! {
             color: (RBX_FG_SECONDARY)
             color_hover: (RBX_FG_SECONDARY)
             color_down: (RBX_FG_SECONDARY)
-            text_style: MESSAGE_TEXT_STYLE { font_size: 16.0 }
+            text_style: MESSAGE_TEXT_STYLE { font_size: (16.0 * mod.widgets.RINX_TEXT_SCALE) }
         }
         text: "",
     }
@@ -90,7 +89,7 @@ script_mod! {
             color: (RBX_FG_PRIMARY)
             color_hover: (RBX_FG_PRIMARY)
             color_down: (RBX_FG_PRIMARY)
-            text_style: MESSAGE_TEXT_STYLE { font_size: 15.0 }
+            text_style: MESSAGE_TEXT_STYLE { font_size: (15.0 * mod.widgets.RINX_TEXT_SCALE) }
         }
         draw_bg +: {
             color: (RBX_BG_SURFACE)
@@ -260,19 +259,19 @@ script_mod! {
                                 icon_walk: Walk{width: 18, height: 18}
                                 draw_icon +: {
                                     svg: crate_resource("self://resources/icons/microphone.svg")
-                                    color: #333
+                                    color: mod.widgets.RINX_INK
                                 }
                                 draw_bg +: {
                                     color: #0000
-                                    color_hover: #xE0E8F0
-                                    color_down: #xD0D8E8
+                                    color_hover: mod.widgets.RINX_HOVER
+                                    color_down: mod.widgets.RINX_PRESSED
                                     // Set from Rust: 1.0 while recording, plus the three
                                     // most recent microphone levels, each normalized 0..=1.
                                     recording: instance(0.0)
                                     level_0: instance(0.0)
                                     level_1: instance(0.0)
                                     level_2: instance(0.0)
-                                    bar_color: instance(vec4(1.0, 1.0, 1.0, 1.0))
+                                    bar_color: instance(mod.widgets.RINX_ON_ACCENT)
                                     pixel: fn() {
                                         let sdf = Sdf2d.viewport(self.pos * self.rect_size)
                                         // Same state blend the stock button face uses.
@@ -345,7 +344,7 @@ script_mod! {
                     align: Align{x: 0.5, y: 0.5}
                     draw_text +: {
                         color: (COLOR_TEXT)
-                        text_style: theme.font_italic {font_size: 12.2}
+                        text_style: theme.font_italic {font_size: (12.2 * mod.widgets.RINX_TEXT_SCALE)}
                     }
                     text: #(crate::i18n::tr("You don't have permission to post to this room.")) i18n_text: "You don't have permission to post to this room.",
                 }
@@ -360,11 +359,11 @@ script_mod! {
         mobile: true
         replying_preview := mod.widgets.MobileReplyingPreview {}
         padding: Inset{left: 8 right: 8 top: 6 bottom: 8}
-        draw_bg.color: #xf7f7f7
+        draw_bg.color: mod.widgets.RINX_PAGE
         overlay_wrapper +: {
             input_bar +: {
                 padding: 0 spacing: 0
-                draw_bg +: {color: #xf7f7f7 border_size: 0 border_radius: 0}
+                draw_bg +: {color: mod.widgets.RINX_PAGE border_size: 0 border_radius: 0}
                 button_row.visible: false
                 message_row +: {
                     align: Align{y: 0.5} spacing: 5
@@ -373,27 +372,27 @@ script_mod! {
                         text_input +: {
                             empty_text: #(crate::i18n::tr("Message")) i18n_empty_text: "Message"
                             padding: Inset{left: 10 right: 35 top: 10 bottom: 10}
-                            draw_text +: {color: #x191919 text_style: theme.font_regular {font_size: 12.5}}
+                            draw_text +: {color: mod.widgets.RINX_INK text_style: theme.font_regular {font_size: (12.5 * mod.widgets.RINX_TEXT_SCALE)}}
                             draw_bg +: {
-                                color: #xffffff color_hover: #xffffff color_focus: #xffffff
-                                color_empty: #xffffff border_radius: 5
+                                color: mod.widgets.RINX_SURFACE color_hover: mod.widgets.RINX_SURFACE color_focus: mod.widgets.RINX_SURFACE
+                                color_empty: mod.widgets.RINX_SURFACE border_radius: 5
                             }
                         }
                     }
                     send_message_button +: {
                         visible: false width: 54 height: 36 margin: 0
                         text: #(crate::i18n::tr("Send")) i18n_text: "Send" icon_walk: Walk{width: 0 height: 0}
-                        draw_text +: {color: #xffffff text_style: theme.font_regular {font_size: 11}}
+                        draw_text +: {color: mod.widgets.RINX_ON_ACCENT text_style: theme.font_regular {font_size: (11 * mod.widgets.RINX_TEXT_SCALE)}}
                     }
                     mobile_emoji_button := mod.widgets.ComposerToolButton {
                         width: 32 height: 36 padding: 4 margin: 0
-                        draw_icon +: {svg: ICON_ADD_REACTION color: #x191919}
+                        draw_icon +: {svg: ICON_ADD_REACTION color: mod.widgets.RINX_INK}
                         icon_walk: Walk{width: 26 height: 26}
                     }
                     mobile_more_button := mod.widgets.ComposerToolButton {
                         width: 32 height: 36 padding: 4 margin: 0
                         align: Align{x: 0.5 y: 0.5}
-                        draw_icon +: {svg: ICON_ADD color: #x191919}
+                        draw_icon +: {svg: ICON_ADD color: mod.widgets.RINX_INK}
                         icon_walk: Walk{width: 22 height: 22}
                     }
                 }
@@ -422,9 +421,14 @@ enum RoomInputBarMode<'a> {
 /// or a notice that the user cannot send messages to this room.
 #[derive(Script, Widget)]
 pub struct RoomInputBar {
-    #[live] mobile: bool,
-    #[source] source: ScriptObjectRef,
-    #[deref] view: View,
+    #[rust]
+    appearance: ThemeSnapshot,
+    #[live]
+    mobile: bool,
+    #[source]
+    source: ScriptObjectRef,
+    #[deref]
+    view: View,
 
     /// Whether the `ReplyingPreview` was visible when the `EditingPane` was shown.
     /// If true, when the `EditingPane` gets hidden, we need to re-show the `ReplyingPreview`.
@@ -467,6 +471,18 @@ pub(super) struct SpeechControls {
 }
 
 impl ScriptHook for RoomInputBar {
+    fn on_after_apply(
+        &mut self,
+        vm: &mut ScriptVm,
+        apply: &Apply,
+        _scope: &mut Scope,
+        _value: ScriptValue,
+    ) {
+        self.appearance = crate::theme::snapshot_for_vm(vm);
+        if apply.is_script_reapply() {
+            vm.with_cx_mut(|cx| self.enable_send_message_button(cx, self.is_send_enabled));
+        }
+    }
     fn on_after_new(&mut self, vm: &mut ScriptVm) {
         vm.with_cx_mut(|cx| {
             let send_on_enter = cx.global::<AppPreferencesGlobal>().0.send_on_enter;
@@ -657,11 +673,23 @@ impl RoomInputBar {
         // a phase change only affects the tooltip, so only that needs redrawing.
         let is_active = new_phase.is_some();
         if is_active != self.speech_controls.phase.is_some() {
-            let bg = if is_active { vec4(0.08, 0.08, 0.08, 1.0) } else { vec4(0.0, 0.0, 0.0, 0.0) };
-            let hover = if is_active { vec4(0.25, 0.25, 0.25, 1.0) } else { vec4(0.88, 0.91, 0.94, 1.0) };
+            let bg = if is_active {
+                self.appearance.accent
+            } else {
+                vec4(0.0, 0.0, 0.0, 0.0)
+            };
+            let hover = if is_active {
+                self.appearance.accent
+            } else {
+                self.appearance.hover
+            };
             // The soundwave animation replaces the icon rather than sitting beside it,
             // so we just hide the microphone icon while recording.
-            let icon = if is_active { vec4(0.0, 0.0, 0.0, 0.0) } else { vec4(0.2, 0.2, 0.2, 1.0) };
+            let icon = if is_active {
+                vec4(0.0, 0.0, 0.0, 0.0)
+            } else {
+                self.appearance.ink
+            };
             let recording = if is_active { 1.0 } else { 0.0 };
             let mut button = self.button(cx, ids!(speech_button));
             script_apply_eval!(cx, button, {
@@ -1320,9 +1348,12 @@ impl RoomInputBar {
         // for encrypted and unencrypted rooms alike (the lock badge on the icon
         // carries the encryption state); greyed out otherwise.
         let (fg_color, bg_color) = if enable {
-            (RBX_FG_ON_ACCENT, if self.mobile { vec4(0.027, 0.757, 0.376, 1.0) } else { RBX_ACCENT })
+            (self.appearance.on_accent, self.appearance.accent)
         } else {
-            (RBX_FG_DISABLED, RBX_BG_DISABLED)
+            (
+                self.appearance.role("color.content.disabled"),
+                self.appearance.field,
+            )
         };
         if self.mobile {
             send_message_button.set_visible(cx, enable);

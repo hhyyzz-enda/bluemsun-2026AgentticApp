@@ -21,8 +21,8 @@ script_mod! {
             width: 72, height: Fit
             align: Align{x: 0.5}
             draw_text +: {
-                text_style: REGULAR_TEXT {font_size: 30},
-                color: #000
+                text_style: REGULAR_TEXT {font_size: (30 * mod.widgets.RINX_TEXT_SCALE)},
+                color: mod.widgets.RINX_INK
             }
         }
         description := Label {
@@ -30,8 +30,8 @@ script_mod! {
             flow: Flow.Right{wrap: true}
             align: Align{x: 0.5}
             draw_text +: {
-                text_style: REGULAR_TEXT {font_size: 9},
-                color: #000
+                text_style: REGULAR_TEXT {font_size: (9 * mod.widgets.RINX_TEXT_SCALE)},
+                color: mod.widgets.RINX_INK
             }
         }
     }

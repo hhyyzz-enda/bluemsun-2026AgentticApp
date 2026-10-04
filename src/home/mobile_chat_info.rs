@@ -23,7 +23,7 @@ script_mod! {
         status := Label {
             width: Fill height: Fit margin: 16
             flow: Flow.Right{wrap: true}
-            draw_text +: {color: #x888888 text_style: theme.font_regular {font_size: 11}}
+            draw_text +: {color: mod.widgets.RINX_MUTED text_style: theme.font_regular {font_size: (11 * mod.widgets.RINX_TEXT_SCALE)}}
         }
         retry := RobrixNeutralIconButton {visible: false text: #(crate::i18n::tr("Retry")) i18n_text: "Retry" height: 44 margin: 12}
         list := PortalList {
@@ -32,14 +32,14 @@ script_mod! {
                 padding: 20 spacing: 8 margin: Inset{bottom: 8}
                 name := Label {
                     width: Fill flow: Flow.Right{wrap: true}
-                    draw_text +: {color: #x191919 text_style: theme.font_bold {font_size: 15}}
+                    draw_text +: {color: mod.widgets.RINX_INK text_style: theme.font_bold {font_size: (15 * mod.widgets.RINX_TEXT_SCALE)}}
                 }
                 topic := Label {
                     width: Fill flow: Flow.Right{wrap: true}
-                    draw_text +: {color: #x777777 text_style: theme.font_regular {font_size: 11}}
+                    draw_text +: {color: mod.widgets.RINX_MUTED text_style: theme.font_regular {font_size: (11 * mod.widgets.RINX_TEXT_SCALE)}}
                 }
                 member_count := Label {
-                    draw_text +: {color: #x888888 text_style: theme.font_regular {font_size: 10}}
+                    draw_text +: {color: mod.widgets.RINX_MUTED text_style: theme.font_regular {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}}
                 }
             }
             Member := mod.widgets.MobileSection {
@@ -47,17 +47,17 @@ script_mod! {
                 row := NavigationBarButton {
                     width: Fill height: 62 flow: Right spacing: 12 padding: Inset{left: 20 right: 20}
                     align: Align{y: 0.5}
-                    draw_bg +: {color_hover: #xdedede color_active: #xdedede border_radius: 0}
+                    draw_bg +: {color_hover: mod.widgets.RINX_HOVER color_active: mod.widgets.RINX_HOVER border_radius: 0}
                     avatar := mod.widgets.MobileAvatar {width: 40 height: 40}
                     View {
                         width: Fill height: Fit flow: Down spacing: 3
                         name := Label {
                             width: Fill max_lines: 1 text_overflow: Ellipsis
-                            draw_text +: {color: #x191919 text_style: theme.font_regular {font_size: 12}}
+                            draw_text +: {color: mod.widgets.RINX_INK text_style: theme.font_regular {font_size: (12 * mod.widgets.RINX_TEXT_SCALE)}}
                         }
                         user_id := Label {
                             width: Fill max_lines: 1 text_overflow: Ellipsis
-                            draw_text +: {color: #x888888 text_style: theme.font_regular {font_size: 9}}
+                            draw_text +: {color: mod.widgets.RINX_MUTED text_style: theme.font_regular {font_size: (9 * mod.widgets.RINX_TEXT_SCALE)}}
                         }
                     }
                 }
@@ -66,18 +66,18 @@ script_mod! {
                 row := NavigationBarButton {
                     width: Fill height: 56 flow: Right spacing: 10
                     padding: Inset{left: 20 right: 20} align: Align{y: 0.5}
-                    draw_bg +: {color_hover: #xdedede color_active: #xdedede border_radius: 0}
+                    draw_bg +: {color_hover: mod.widgets.RINX_HOVER color_active: mod.widgets.RINX_HOVER border_radius: 0}
                     title := Label {
                         width: Fill max_lines: 1 text_overflow: Ellipsis
-                        draw_text +: {color: #x191919 text_style: theme.font_regular {font_size: 12.5}}
+                        draw_text +: {color: mod.widgets.RINX_INK text_style: theme.font_regular {font_size: (12.5 * mod.widgets.RINX_TEXT_SCALE)}}
                     }
                     value := Label {
                         max_lines: 1
-                        draw_text +: {color: #x888888 text_style: theme.font_regular {font_size: 10}}
+                        draw_text +: {color: mod.widgets.RINX_MUTED text_style: theme.font_regular {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}}
                     }
                     Icon {
                         icon_walk: Walk{width: 8 height: 13}
-                        draw_icon +: {color: #xb2b2b2 svg: ICON_CHEVRON_RIGHT}
+                        draw_icon +: {color: mod.widgets.RINX_DISABLED svg: ICON_CHEVRON_RIGHT}
                     }
                 }
                 mod.widgets.MobileDivider {margin: Inset{left: 20}}
@@ -281,7 +281,7 @@ impl Widget for MobileChatInfo {
                         let loaded = profile.avatar_state.update_from_cache(cx).is_some_and(|image| {
                             avatar.show_image(cx, None, |cx, img| utils::load_avatar_image(&img, cx, image)).is_ok()
                         });
-                        if !loaded { avatar.show_text(cx, None, None, profile.displayable_name()); }
+                        if !loaded { avatar.show_user_text(cx, &profile.user_id, profile.displayable_name()); }
                         widget
                     } else {
                         let index_in_actions = index - data.members.len() - 3;

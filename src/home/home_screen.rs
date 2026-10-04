@@ -46,7 +46,7 @@ script_mod! {
 
             show_bg: true
             draw_bg +: {
-                color: #xededed
+                color: mod.widgets.RINX_PAGE
                 pixel: fn() {return self.color}
             }
 
@@ -74,8 +74,8 @@ script_mod! {
                     // padding: Inset{top: 8}
                     title +: {
                         draw_text +: {
-                            color: #x191919
-                            text_style: theme.font_bold {font_size: 12.5}
+                            color: mod.widgets.RINX_INK
+                            text_style: theme.font_bold {font_size: (12.5 * mod.widgets.RINX_TEXT_SCALE)}
                         }
                     }
                 }
@@ -319,7 +319,7 @@ script_mod! {
                                     chat_info_button := RobrixNeutralIconButton {
                                         width: 48 height: 44 padding: 12
                                         text: "···"
-                                        draw_text +: {color: #x191919 text_style: theme.font_bold {font_size: 18}}
+                                        draw_text +: {color: mod.widgets.RINX_INK text_style: theme.font_bold {font_size: (18 * mod.widgets.RINX_TEXT_SCALE)}}
                                         draw_bg +: {color: #x00000000 color_hover: #x00000000 border_size: 0}
                                         icon_walk: Walk{width: 0 height: 0}
                                     }
@@ -328,7 +328,7 @@ script_mod! {
                             body +: {
                                 room_screen := mod.widgets.RoomScreen {
                                     room_screen_wrapper +: {
-                                        draw_bg.color: #xededed
+                                        draw_bg.color: mod.widgets.RINX_PAGE
                                         timeline_and_input_bar +: {
                                             room_input_bar := mod.widgets.MobileRoomInputBar {}
                                         }

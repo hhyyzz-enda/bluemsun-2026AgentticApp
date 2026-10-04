@@ -10,6 +10,9 @@
     {
       "directory": "writing-studio",
       "native": "writing-studio"
+    },
+    {
+      "directory": "palpo"
     }
   ]
 }

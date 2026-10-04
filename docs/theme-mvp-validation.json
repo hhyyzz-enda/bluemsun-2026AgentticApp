@@ -1,0 +1,80 @@
+{
+  "platform": {
+    "os": "macOS 26.6.2",
+    "architecture": "arm64",
+    "renderer": "Makepad / Metal hidden windows"
+  },
+  "makepad_revision": "1f3b1dedfbb81424eb8dbf69e5e2c634fa73dc54",
+  "unit_tests": {
+    "features": "default + octosense-module",
+    "passed": 313,
+    "ignored": 2,
+    "failed": 0
+  },
+  "theme_native": {
+    "passed": true,
+    "runs": [
+      {
+        "hosted": false,
+        "state_preserved": true,
+        "startup_requests": 1,
+        "timers": 1,
+        "revisions": [
+          1307098819754393570,
+          3035522502051829100,
+          17746242382882179812,
+          5374312330715740578
+        ],
+        "evidence": "target/theme-mvp-validation/fd03d5ffcb44491a846f060cf19c06e7/standalone/native-runs/ab1b59abf66945edbaace713a6e1eef1"
+      },
+      {
+        "hosted": true,
+        "state_preserved": true,
+        "startup_requests": 1,
+        "timers": 1,
+        "revisions": [
+          1307098819754393570,
+          3035522502051829100,
+          17746242382882179812,
+          5374312330715740578
+        ],
+        "evidence": "target/theme-mvp-validation/fd03d5ffcb44491a846f060cf19c06e7/hosted/native-runs/5ccc3170dbbb42578c18137b98f7d9d6"
+      }
+    ],
+    "binary_sha256": "303709b32d97127f6266f9223f120fa40d15259504e7352feb9297500ca47bb2",
+    "standalone_restart_restores_selection": true,
+    "narrow_scroll_preserved": true,
+    "evidence": "target/theme-mvp-validation/fd03d5ffcb44491a846f060cf19c06e7"
+  },
+  "catalog_native": {
+    "passed": true,
+    "checks": [
+      {
+        "hosted": false,
+        "catalog_to_native_editor": true,
+        "requires_account_and_consent": true,
+        "provider_form_matches_deployment": true,
+        "evidence": "target/deployment-validation/system-apps-native/53fbeb962b834cb199eac397c2f82a68/standalone/native-runs/7ba650d165104072990907abf564cf9e"
+      },
+      {
+        "hosted": true,
+        "catalog_to_native_editor": true,
+        "requires_account_and_consent": true,
+        "provider_form_matches_deployment": true,
+        "evidence": "target/deployment-validation/system-apps-native/53fbeb962b834cb199eac397c2f82a68/hosted/native-runs/4f755bbdc0044282a562d0d72629c73b"
+      }
+    ],
+    "evidence": "target/deployment-validation/system-apps-native/53fbeb962b834cb199eac397c2f82a68"
+  },
+  "local_builds": [
+    "rinx (fast)",
+    "theme_mvp (fast)",
+    "system_app_catalog (fast)",
+    "octosense-module (no default features, check)"
+  ],
+  "i18n": {
+    "catalog_entries": 1197,
+    "translated_call_sites": 1120,
+    "missing": 0
+  }
+}

@@ -1,0 +1,17 @@
+width: Fill height: Fill flow: Down padding: 16 spacing: 12
+show_bg: true draw_bg.color: mod.widgets.RINX_SURFACE
+if !mod.rinx_theme.reloading() {
+    mod.state = {count: 0}
+    host.request("fixture.start", {}, fn(r){})
+}
+mod.std.start_interval(60.0, || {})
+fn increment() {
+    mod.state.count = mod.state.count + 1
+    ui.count.set_text("Count: " + mod.state.count)
+    host.request("fixture.increment", {count: mod.state.count}, fn(r){})
+}
+script_title := mod.widgets.RinxPageTitle {text: "Splash mini app"}
+script_hint := mod.widgets.RinxHint {width: Fill text: "Shares the host theme and keeps its own state."}
+draft := mod.widgets.RinxInput {width: Fill text: "Mini app draft"}
+count := mod.widgets.RinxLabel {text: "Count: " + mod.state.count}
+increment := mod.widgets.RinxPrimaryButton {text: "Increment" on_click: || increment()}

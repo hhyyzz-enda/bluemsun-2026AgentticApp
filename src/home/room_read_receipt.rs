@@ -30,7 +30,7 @@ script_mod! {
             text_view +: {
                 text +: {
                     draw_text +: {
-                        text_style: theme.font_regular { font_size: 6.0 }
+                        text_style: theme.font_regular { font_size: (6.0 * mod.widgets.RINX_TEXT_SCALE) }
                     }
                 }
             }
@@ -43,7 +43,7 @@ script_mod! {
             flow: Flow.Right { wrap: false },
             draw_text +: {
                 color: #x0,
-                text_style: TITLE_TEXT { font_size: 10}
+                text_style: TITLE_TEXT { font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}
             }
             text: ""
         }

@@ -42,7 +42,7 @@ script_mod! {
                 text_overflow: Ellipsis,
                 draw_text +: {
                     color: (MESSAGE_TEXT_COLOR),
-                    text_style: theme.font_bold { font_size: 12 },
+                    text_style: theme.font_bold { font_size: (12 * mod.widgets.RINX_TEXT_SCALE) },
                 }
             }
         }
@@ -77,7 +77,7 @@ script_mod! {
                 text_overflow: Ellipsis,
                 draw_text +: {
                     color: (MESSAGE_TEXT_COLOR),
-                    text_style: theme.font_bold { font_size: 12 },
+                    text_style: theme.font_bold { font_size: (12 * mod.widgets.RINX_TEXT_SCALE) },
                 }
             }
         }
@@ -127,7 +127,7 @@ script_mod! {
                 flow: Flow.Right{wrap: true},
                 draw_text +: {
                     color: (COLOR_TEXT_WARNING_NOT_FOUND),
-                    text_style: MESSAGE_TEXT_STYLE { font_size: 11 },
+                    text_style: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                 }
                 text: #(crate::i18n::tr("The assistant may not read any chat.")) i18n_text: "The assistant may not read any chat."
             }
@@ -137,7 +137,7 @@ script_mod! {
             margin: 5,
             show_bg: true,
             draw_bg +: {
-                color: #F6F8F9
+                color: mod.widgets.RINX_FIELD
                 border_radius: 4.0
             }
             assistant_rooms_list := FlatList {
@@ -168,7 +168,7 @@ script_mod! {
                 flow: Flow.Right{wrap: true},
                 draw_text +: {
                     color: (COLOR_TEXT_WARNING_NOT_FOUND),
-                    text_style: MESSAGE_TEXT_STYLE { font_size: 11 },
+                    text_style: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                 }
                 text: #(crate::i18n::tr("You haven't blocked anyone.")) i18n_text: "You haven't blocked anyone."
             }
@@ -180,7 +180,7 @@ script_mod! {
 
             show_bg: true,
             draw_bg +: {
-                color: #F6F8F9
+                color: mod.widgets.RINX_FIELD
                 border_radius: 4.0
             }
 

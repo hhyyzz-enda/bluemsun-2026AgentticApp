@@ -45,7 +45,7 @@ script_mod! {
 
     mod.widgets.VersionHtml = mod.widgets.MessageHtml {
         width: Fill, height: Fit
-        font_size: 11.5
+        font_size: (11.5 * mod.widgets.RINX_TEXT_SCALE)
         margin: Inset {top: 4}
         body: ""
     }

@@ -46,7 +46,7 @@ script_mod! {
                 text_view +: {
                     text +: {
                         draw_text +: {
-                            text_style: theme.font_regular { font_size: 6.0 }
+                            text_style: theme.font_regular { font_size: (6.0 * mod.widgets.RINX_TEXT_SCALE) }
                         }
                     }
                 }
@@ -59,7 +59,7 @@ script_mod! {
                 max_lines: 1
                 text_overflow: Ellipsis
                 draw_text +: {
-                    text_style: USERNAME_TEXT_STYLE { font_size: 10 },
+                    text_style: USERNAME_TEXT_STYLE { font_size: (10 * mod.widgets.RINX_TEXT_SCALE) },
                     color: (USERNAME_TEXT_COLOR)
                 }
                 text: #(crate::i18n::tr("<Username not available>"))
@@ -86,14 +86,14 @@ script_mod! {
                                         text_view +: {
                                             text +: {
                                                 draw_text +: {
-                                                    text_style +: { font_size: 7.61 }
+                                                    text_style +: { font_size: (7.61 * mod.widgets.RINX_TEXT_SCALE) }
                                                 }
                                             }
                                         }
                                     }
                                     title +: {
                                         draw_text +: {
-                                            text_style +: { font_size: 9.3 }
+                                            text_style +: { font_size: (9.3 * mod.widgets.RINX_TEXT_SCALE) }
                                         }
                                     }
                                 }
@@ -118,22 +118,22 @@ script_mod! {
         width: Fit, height: Fit
         spacing: 4
         padding: Inset{ top: 4, bottom: 4, left: 8, right: 8 }
-        draw_icon +: { color: #666666 }
+        draw_icon +: { color: mod.widgets.RINX_MUTED }
         icon_walk: Walk{ width: 10, height: 10 }
         draw_text +: {
-            text_style: theme.font_regular { font_size: 10.0, line_spacing: 1.2 }
-            color: #666666
-            color_hover: #666666
-            color_down: #666666
+            text_style: theme.font_regular { font_size: (10.0 * mod.widgets.RINX_TEXT_SCALE), line_spacing: 1.2 }
+            color: mod.widgets.RINX_MUTED
+            color_hover: mod.widgets.RINX_MUTED
+            color_down: mod.widgets.RINX_MUTED
         }
         draw_bg +: {
             color: (COLOR_BG_PREVIEW)
             color_hover: (COLOR_BG_PREVIEW_HOVER)
-            color_down: #A8DBBF
+            color_down: mod.widgets.RINX_PRESSED
             border_size: 1.0
-            border_color: #CCCCCC
-            border_color_hover: #CCCCCC
-            border_color_down: #CCCCCC
+            border_color: mod.widgets.RINX_BORDER
+            border_color_hover: mod.widgets.RINX_BORDER
+            border_color_down: mod.widgets.RINX_BORDER
             border_radius: 4.0
         }
     }
@@ -203,7 +203,7 @@ script_mod! {
 
                 draw_text +: {
                     text_style: USERNAME_TEXT_STYLE {},
-                    color: #222,
+                    color: mod.widgets.RINX_INK,
                 }
                 text: #(crate::i18n::tr("Replying to:")) i18n_text: "Replying to:"
             }
@@ -245,24 +245,24 @@ script_mod! {
         }
         panel := RoundedView {
             width: Fill height: Fit flow: Down spacing: 3 padding: 8
-            draw_bg +: {color: #xe3e3e3 border_radius: 4}
+            draw_bg +: {color: mod.widgets.RINX_FIELD border_radius: 4}
             header := View {
                 width: Fill height: Fit flow: Right spacing: 4
                 replying_label := Label {
                     visible: false text: #(crate::i18n::tr("Replying to:")) i18n_text: "Replying to:"
-                    draw_text +: {color: #x777777 text_style: theme.font_regular {font_size: 9}}
+                    draw_text +: {color: mod.widgets.RINX_MUTED text_style: theme.font_regular {font_size: (9 * mod.widgets.RINX_TEXT_SCALE)}}
                 }
                 reply_preview_avatar := Avatar {visible: false width: 0 height: 0}
                 reply_preview_username := Label {
                     width: Fill max_lines: 1 text_overflow: Ellipsis
-                    draw_text +: {color: #x777777 text_style: theme.font_regular {font_size: 9}}
+                    draw_text +: {color: mod.widgets.RINX_MUTED text_style: theme.font_regular {font_size: (9 * mod.widgets.RINX_TEXT_SCALE)}}
                 }
             }
             reply_preview_body := HtmlOrPlaintext {
                 plaintext_view +: {pt_label +: {
-                    draw_text +: {color: #x666666 text_style: theme.font_regular {font_size: 9}}
+                    draw_text +: {color: mod.widgets.RINX_MUTED text_style: theme.font_regular {font_size: (9 * mod.widgets.RINX_TEXT_SCALE)}}
                 }}
-                html_view +: {html +: {font_size: 9 font_color: #x666666}}
+                html_view +: {html +: {font_size: (9 * mod.widgets.RINX_TEXT_SCALE) font_color: mod.widgets.RINX_MUTED}}
             }
         }
     }
@@ -281,7 +281,7 @@ script_mod! {
         }
         cancel_reply_button := RobrixNeutralIconButton {
             width: 44 height: 44 padding: 12 margin: 0
-            draw_icon +: {svg: ICON_CLOSE color: #x777777}
+            draw_icon +: {svg: ICON_CLOSE color: mod.widgets.RINX_MUTED}
             icon_walk: Walk{width: 16 height: 16}
             draw_bg +: {color: #x00000000 color_hover: #x00000000 border_size: 0}
         }

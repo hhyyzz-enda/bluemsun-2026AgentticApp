@@ -1,0 +1,43 @@
+{
+  "capabilities": [
+    "storage",
+    "palpo.intent.new",
+    "palpo.session.open",
+    "palpo.session.disconnect",
+    "palpo.catalog.list",
+    "palpo.projects.list",
+    "palpo.requests.list",
+    "palpo.requests.create",
+    "palpo.fleets.list",
+    "palpo.fleets.register",
+    "palpo.fleets.install",
+    "palpo.fleets.set_state",
+    "palpo.fleets.migrate",
+    "palpo.fleets.queue",
+    "palpo.fleets.export",
+    "palpo.fleets.connect",
+    "palpo.agents.list",
+    "palpo.agents.register",
+    "palpo.agents.rename",
+    "palpo.agents.retire",
+    "palpo.activity.list",
+    "palpo.accounts.list",
+    "palpo.inbox.list",
+    "palpo.inbox.submit",
+    "palpo.inbox.get",
+    "palpo.inbox.decide",
+    "palpo.inbox.activate",
+    "palpo.inbox.seen",
+    "palpo.inbox.snooze"
+  ],
+  "id": "im.palpo.operations",
+  "integrity": {
+    "bundle_blake3": "25e82095e7e9a68b300e1553cda7b53702cdfd531e6fee73cde6b417aab3da0a"
+  },
+  "name": "Palpo",
+  "requires": [
+    "palpo-admin-v1"
+  ],
+  "schema": 1,
+  "version": "0.1.0"
+}

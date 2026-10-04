@@ -109,7 +109,7 @@ script_mod! {
             text_overflow: Ellipsis
             draw_text +: {
                 color: (RBX_NAV_FG)
-                text_style: REGULAR_TEXT {font_size: 9}
+                text_style: REGULAR_TEXT {font_size: (9 * mod.widgets.RINX_TEXT_SCALE)}
             }
         }
 
@@ -144,7 +144,7 @@ script_mod! {
             draw_text +: {
                 // Light nav-rail foreground: this label sits on the navy rail.
                 color: (RBX_NAV_FG),
-                text_style: REGULAR_TEXT {font_size: 8, line_spacing: 1.1}
+                text_style: REGULAR_TEXT {font_size: (8 * mod.widgets.RINX_TEXT_SCALE), line_spacing: 1.1}
             }
         }
     }
@@ -285,6 +285,7 @@ impl SpacesBarEntry {
         if self.last_avatar.as_ref() != Some(avatar) {
             let avatar_ref = self.inner.view.avatar(cx, ids!(avatar));
             match avatar {
+                FetchedRoomAvatar::Members(_) => avatar_ref.show_room_avatar(cx, avatar),
                 FetchedRoomAvatar::Text(text) => avatar_ref.show_text(cx, None, None, text),
                 FetchedRoomAvatar::Image(image) => {
                     let res = avatar_ref.show_image(

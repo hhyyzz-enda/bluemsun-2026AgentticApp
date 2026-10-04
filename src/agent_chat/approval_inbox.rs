@@ -50,16 +50,16 @@ script_mod! {
     use mod.widgets.*
     mod.widgets.ApprovalInbox = #(ApprovalInbox::register_widget(vm)) {
         ..mod.widgets.SolidView
-        width: Fill height: Fill flow: Down spacing: 10 padding: Inset{top: 32 left: 16 right: 16 bottom: 12} draw_bg.color: #xf7f7f7
+        width: Fill height: Fill flow: Down spacing: 10 padding: Inset{top: 32 left: 16 right: 16 bottom: 12} draw_bg.color: mod.widgets.RINX_PAGE
         View {width: Fill height: 40 spacing: 8
             close := RobrixNeutralIconButton {text: #(crate::i18n::tr("Back")) i18n_text: "Back"}
             refresh := RobrixNeutralIconButton {text: #(crate::i18n::tr("Refresh approval rooms")) i18n_text: "Refresh approval rooms"}
         }
-        status := Label {width: Fill height: Fit flow: Flow.Right{wrap: true} draw_text.color: #x333333}
+        status := Label {width: Fill height: Fit flow: Flow.Right{wrap: true} draw_text.color: mod.widgets.RINX_INK}
         rooms := PortalList {width: Fill height: Fill
             Row := View {width: Fill height: Fit flow: Down padding: 8 spacing: 8
-                title := Label {width: Fill height: Fit flow: Flow.Right{wrap: true} draw_text.color: #x333333}
-                detail := Label {width: Fill height: Fit flow: Flow.Right{wrap: true} draw_text.color: #x666666}
+                title := Label {width: Fill height: Fit flow: Flow.Right{wrap: true} draw_text.color: mod.widgets.RINX_INK}
+                detail := Label {width: Fill height: Fit flow: Flow.Right{wrap: true} draw_text.color: mod.widgets.RINX_MUTED}
                 open := RobrixNeutralIconButton {text: #(crate::i18n::tr("Open approvals")) i18n_text: "Open approvals"}
             }
         }

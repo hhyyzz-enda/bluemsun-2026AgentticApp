@@ -34,7 +34,7 @@ script_mod! {
                 draw_text +: {
                     color: (mod.widgets.WELCOME_TEXT_COLOR),
                     text_style: theme.font_bold {
-                        font_size: 22.0
+                        font_size: (22.0 * mod.widgets.RINX_TEXT_SCALE)
                     }
                 }
             }
@@ -44,7 +44,7 @@ script_mod! {
                 padding: Inset{top: 12, left: 0.}
                 font_size: 14.
                 font_color: (mod.widgets.WELCOME_TEXT_COLOR)
-                text_style_normal: theme.font_regular { font_size: 14.0 }
+                text_style_normal: theme.font_regular { font_size: (14.0 * mod.widgets.RINX_TEXT_SCALE) }
                 a: {
                     padding: Inset{left: 8., right: 8., top: 4., bottom: 5.},
                     // draw_text +: {

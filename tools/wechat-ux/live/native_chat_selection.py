@@ -11,6 +11,7 @@ import uuid
 from native_probe import NativeApp
 
 PLAIN = "Alpha 中文 👩‍💻 bravo & <literal>\nSecond line has selectable words.\nThird line ends here."
+WRAPPED = "Wrapped 中文 text crosses several visual lines without losing spaces or emoji 👩‍💻."
 
 
 def main():
@@ -41,6 +42,8 @@ def main():
                 pass
             time.sleep(.25)
         app.wait_text("Ready")
+        # Flush the first native layout before using widget coordinates.
+        app.capture("ready")
 
         def state():
             app.click_id("inspect")
@@ -100,6 +103,40 @@ def main():
         app.click(rx + 20, link)
         assert state()["link_clicks"] == 1
         report["checks"].append("short_and_returning_drag_suppress_links_normal_click_preserved")
+
+        wx, wy, ww, wh = next(w["r"] for w in app.snap() if w["i"] == "wrapped")
+        assert wh > 40
+        drag([(wx, wy + 5), (wx + ww + 20, wy + wh + 5)])
+        s = state()
+        assert s["wrapped"] == s["copy"] == WRAPPED, s
+        report["checks"].append("soft_wrapped_drag_preserves_unicode_spaces_and_clamps_outside_body")
+
+        def double_click_with_jitter(x, y):
+            time.sleep(.55)  # Start a fresh native multi-click sequence.
+            app.request("/click", x=x, y=y, wait=1)
+            app.request("/m", k="down", x=x, y=y, wait=1)
+            app.request("/m", k="move", x=x + 1, y=y, wait=1)
+            app.request("/m", k="up", x=x + 1, y=y, wait=1)
+
+        double_click_with_jitter(px + 20, line)
+        s = state()
+        assert s["plain"] == s["copy"] == PLAIN, s
+        app.capture("double-click-whole-message")
+        app.request("/m", k="move", x=px + 150, y=line, wait=1)
+        assert state()["copy"] == PLAIN
+        report["checks"].append("double_click_selects_entire_message_and_survives_jitter_and_hover")
+
+        double_click_with_jitter(rx + 15, ry + 14)
+        s = state()
+        assert not s["plain"] and "Rich bold 中文" in s["copy"] and "after the link." in s["copy"], s
+        report["checks"].append("double_click_selects_entire_rich_message")
+
+        # A subsequent single press must immediately replace the whole selection;
+        # every character boundary updates it, even with sub-threshold movement.
+        time.sleep(.55)
+        drag([(px, line), (px + 38, line)])
+        assert state()["copy"] == "Alpha"
+        report["checks"].append("drag_replaces_whole_message_selection")
 
         drag([(px, line), (px + 38, line)])
         app.click_id("menu_button")

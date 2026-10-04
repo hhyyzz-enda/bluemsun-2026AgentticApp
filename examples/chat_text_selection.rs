@@ -21,6 +21,7 @@ script_mod! {
                     Label {text: "Native chat selection · offline fixture"}
                     plain := HtmlOrPlaintext {selectable: true}
                     rich := HtmlOrPlaintext {selectable: true}
+                    wrapped := HtmlOrPlaintext {selectable: true width: 160}
                     preview := HtmlOrPlaintext {}
                     controls := View {
                         width: Fill height: Fit flow: Right spacing: 8
@@ -49,6 +50,8 @@ impl MatchEvent for App {
             "Alpha 中文 👩‍💻 bravo & <literal>\nSecond line has selectable words.\nThird line ends here.");
         self.ui.html_or_plaintext(cx, ids!(rich)).show_html(cx,
             "<p>Rich <b>bold 中文</b> and <i>italic words</i>.</p><p><a href='https://example.org/'>Selectable link text</a> after the link.</p>");
+        self.ui.html_or_plaintext(cx, ids!(wrapped)).show_plaintext(cx,
+            "Wrapped 中文 text crosses several visual lines without losing spaces or emoji 👩‍💻.");
         self.ui.html_or_plaintext(cx, ids!(preview)).show_plaintext(cx, "Preview remains a non-selectable Label.");
     }
 
@@ -84,6 +87,7 @@ impl MatchEvent for App {
             let state = serde_json::json!({
                 "plain": self.ui.html_or_plaintext(cx, ids!(plain)).selected_text(cx),
                 "rich": self.ui.html_or_plaintext(cx, ids!(rich)).selected_text(cx),
+                "wrapped": self.ui.html_or_plaintext(cx, ids!(wrapped)).selected_text(cx),
                 "copy": *response.borrow(),
                 "link_clicks": self.link_clicks,
             });

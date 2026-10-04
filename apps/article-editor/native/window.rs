@@ -17,10 +17,10 @@ script_mod! {
         window.title: #(crate::i18n::tr("Article editor"))
         pass.clear_color: #FFFFFF00
         caption_bar +: {
-            draw_bg.color: #xffffff
+            draw_bg.color: mod.widgets.RINX_PAGE
             caption_label +: {
                 label +: {
-                    draw_text +: { color: #0 }
+                    draw_text +: { color: mod.widgets.RINX_INK }
                     text: #(crate::i18n::tr("Article editor"))
                 }
             }
@@ -47,7 +47,22 @@ pub struct ArticleWindowHost {
     #[rust] closing: bool,
 }
 
-impl ScriptHook for ArticleWindowHost {}
+impl ScriptHook for ArticleWindowHost {
+    fn on_after_apply(
+        &mut self,
+        vm: &mut ScriptVm,
+        apply: &Apply,
+        scope: &mut Scope,
+        _value: ScriptValue,
+    ) {
+        if apply.is_script_reapply() {
+            if let Some(window) = &mut self.window {
+                let value = script_eval!(vm,{mod.widgets.ArticleWindow {}});
+                window.script_apply(vm, apply, scope, value);
+            }
+        }
+    }
+}
 
 impl WidgetNode for ArticleWindowHost {
     fn widget_uid(&self) -> WidgetUid { self.uid }

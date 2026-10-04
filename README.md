@@ -36,6 +36,45 @@ The executable is `rinx`, and the macOS app is `Rinx.app`. HTML/CSS preview is e
 
 Rinx needs a Matrix homeserver supporting native Sliding Sync. Enter account credentials directly in the app. On Linux, install the native dependencies listed in the [inherited build guide](docs/robrix-upstream-readme.md#building--running-robrix-on-desktop); use `rinx` wherever that historical guide names the package or executable `robrix`. Mobile packaging scripts have been renamed for Rinx but require your own signing configuration and device validation.
 
+HTTP(S) link previews follow Robrix's native card implementation: the homeserver's
+`/_matrix/client/v1/media/preview_url` endpoint supplies the title, description,
+and thumbnail. The homeserver must permit URL previews. If Palpo returns
+`403 M_FORBIDDEN` with `URL is not allowed to be previewed`, add the desired domains
+to its [URL-preview configuration](https://github.com/palpo-im/palpo/blob/v0.4.0/palpo-example.toml):
+
+```toml
+[url_preview]
+domain_explicit_allowlist = ["github.com", "example.org"]
+```
+
+Apply that configuration on the homeserver, then restart Rinx to clear failed
+preview requests cached by open timelines. Failed requests are logged as
+`Homeserver link preview failed`; the original URL remains usable.
+
+Chat links and preview cards open in an in-app web reader on macOS, iOS, and
+Android. On desktop, the reader opens in a separate Rinx window so the conversation
+remains usable; on mobile, it opens as an in-app panel. Its SVG toolbar provides
+Close, Back, Forward, Reopen link, and Open in browser, with hover labels. Closing
+the reader leaves the chat open. Each opened chat link gets its own tab, preserving
+its page, scroll position, and navigation history when switching tabs. A tab's
+close button closes only that tab; closing the last tab closes the reader.
+The header identifies the selected tab's original opened link, and Reopen link
+returns to it. The embedded reader uses
+the platform browser engine and does not depend on the homeserver preview API.
+
+Markdown attachments (`.md`, `.markdown`, or a Markdown MIME type) have an Open
+button alongside Download and Share. They use Matrix's authenticated media
+download, including decryption, and open as native document tabs in the same
+reader. Shared article cards also open there. Documents keep their own scroll
+position; their HTTP links open web tabs. The article editor remains separate.
+
+Open reader tabs and the selected tab are saved per account and restored after
+restarting Rinx. Closing a tab or the reader explicitly removes it from the saved
+session. Restored webpages load their original chat links; browser navigation
+history and scroll positions are retained only while Rinx stays running.
+Markdown and article tabs reload through Matrix, without saving document bodies
+in the reader session file.
+
 ```sh
 cargo test --locked --features agent_chat --lib
 cargo test --locked --manifest-path crates/article-core/Cargo.toml

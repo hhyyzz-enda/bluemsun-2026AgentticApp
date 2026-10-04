@@ -56,7 +56,7 @@ script_mod! {
                 align: Align{x: 0.5}
                 draw_text +: {
                     text_style: REGULAR_TEXT {
-                        font_size: 9,
+                        font_size: (9 * mod.widgets.RINX_TEXT_SCALE),
                     },
                     color: #A,
                 }

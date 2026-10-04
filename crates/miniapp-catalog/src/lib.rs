@@ -143,6 +143,7 @@ pub fn compatible(
         if !matches!(cap.as_str(), "storage" | "net" | "images" | "clipboard")
             && !cap.starts_with("matrix.")
             && !cap.starts_with("octos.")
+            && !octosense_app_contract::palpo::SERVICES.contains(&cap.as_str())
         {
             return Err(format!("Rinx does not yet provide the {cap} service"));
         }

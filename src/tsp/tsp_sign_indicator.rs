@@ -1,8 +1,8 @@
 //! An indicator badge shown next to a message that has a TSP signature.
 
+use crate::theme::Snapshot as ThemeSnapshot;
 use makepad_widgets::*;
 
-use crate::shared::styles::*;
 
 script_mod! {
     link tsp_enabled
@@ -28,7 +28,7 @@ script_mod! {
             padding: 0,
             margin: 0,
 
-            font_size: 9.5,
+            font_size: (9.5 * mod.widgets.RINX_TEXT_SCALE),
             font_color: (TIMESTAMP_TEXT_COLOR),
             body: "TSP ❔"
         }
@@ -59,12 +59,21 @@ pub enum TspSignState {
 ///   a red exclamation mark '❗' is shown (could also use a red X '❌').
 /// * If the message doesn't contain a TSP signature, nothing at all is shown.
 ///
-#[derive(Script, ScriptHook, Widget)]
+#[derive(Script, Widget)]
 pub struct TspSignIndicator {
-    #[deref] view: View,
-    #[rust] state: TspSignState,
+    #[rust]
+    appearance: ThemeSnapshot,
+    #[deref]
+    view: View,
+    #[rust]
+    state: TspSignState,
 }
 
+impl ScriptHook for TspSignIndicator {
+    fn on_after_apply(&mut self, vm: &mut ScriptVm, _: &Apply, _: &mut Scope, _: ScriptValue) {
+        self.appearance = crate::theme::snapshot_for_vm(vm);
+    }
+}
 impl Widget for TspSignIndicator {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         self.view.handle_event(cx, event, scope);
@@ -85,18 +94,18 @@ impl Widget for TspSignIndicator {
             _ => false,
         };
         if should_hover_in {
-            let (text, bg_color) = match self.state {
+            let (text, text_color) = match self.state {
                 TspSignState::Unknown => (
                     "The sender's TSP signature is unknown.\n\nClick on their avatar to verify their TSP identity.",
-                    COLOR_FG_DISABLED,
+                    self.appearance.muted,
                 ),
                 TspSignState::Verified => (
                     "This message was signed with the user's verified TSP identity.",
-                    COLOR_FG_ACCEPT_GREEN, 
+                    self.appearance.role("color.status.success.foreground"),
                 ),
                 TspSignState::WrongSignature => (
                     "Warning: this message's TSP signature does NOT match the expected sender signature.",
-                    COLOR_FG_DANGER_RED,
+                    self.appearance.role("color.status.danger.foreground"),
                 ),
             };
             cx.widget_action(
@@ -105,7 +114,8 @@ impl Widget for TspSignIndicator {
                     text: text.to_string(),
                     widget_rect: area.rect(cx),
                     options: CalloutTooltipOptions {
-                        bg_color,
+                        text_color,
+                        bg_color: self.appearance.surface,
                         ..Default::default()
                     },
                 },
@@ -124,15 +134,15 @@ impl TspSignIndicator {
         let tsp_html_ref = self.view.html(cx, ids!(tsp_html));
         if let Some(mut tsp_html) = tsp_html_ref.borrow_mut() {
             let (text, font_color) = match state {
-                TspSignState::Unknown => {
-                    ("TSP ❔", COLOR_MESSAGE_NOTICE_TEXT)
-                }
-                TspSignState::Verified => {
-                    ("TSP ✅", COLOR_FG_ACCEPT_GREEN)
-                }
-                TspSignState::WrongSignature => {
-                    ("❗TSP❗", COLOR_FG_DANGER_RED)
-                }
+                TspSignState::Unknown => ("TSP ❔", self.appearance.muted),
+                TspSignState::Verified => (
+                    "TSP ✅",
+                    self.appearance.role("color.status.success.foreground"),
+                ),
+                TspSignState::WrongSignature => (
+                    "❗TSP❗",
+                    self.appearance.role("color.status.danger.foreground"),
+                ),
             };
             tsp_html.set_text(cx, text);
             tsp_html.font_color = font_color;

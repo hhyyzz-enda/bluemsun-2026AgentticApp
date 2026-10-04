@@ -37,8 +37,8 @@ script_mod! {
                 height: Fit,
                 padding: 10,
                 draw_text +: {
-                    text_style: REGULAR_TEXT {font_size: 12},
-                    color: #000
+                    text_style: REGULAR_TEXT {font_size: (12 * mod.widgets.RINX_TEXT_SCALE)},
+                    color: mod.widgets.RINX_INK
                 }
                 empty_text: "Wallet Name",
             }
@@ -48,8 +48,8 @@ script_mod! {
                 height: Fit,
                 padding: 10,
                 draw_text +: {
-                    text_style: REGULAR_TEXT {font_size: 12},
-                    color: #000
+                    text_style: REGULAR_TEXT {font_size: (12 * mod.widgets.RINX_TEXT_SCALE)},
+                    color: mod.widgets.RINX_INK
                 }
                 empty_text: "Wallet Password",
                 autocapitalize: None,
@@ -62,8 +62,8 @@ script_mod! {
                 height: Fit,
                 padding: 10,
                 draw_text +: {
-                    text_style: REGULAR_TEXT {font_size: 12},
-                    color: #000
+                    text_style: REGULAR_TEXT {font_size: (12 * mod.widgets.RINX_TEXT_SCALE)},
+                    color: mod.widgets.RINX_INK
                 }
                 empty_text: "Confirm Wallet Password",
                 autocapitalize: None,
@@ -83,7 +83,7 @@ script_mod! {
                     autocapitalize: None,
                     autocorrect: Disabled,
                     draw_text +: {
-                        text_style: REGULAR_TEXT {font_size: 10.0}
+                        text_style: REGULAR_TEXT {font_size: (10.0 * mod.widgets.RINX_TEXT_SCALE)}
                     }
                 }
 
@@ -96,21 +96,21 @@ script_mod! {
                     align: Align{x: 0.5, y: 0.5} // center horizontally and vertically
 
                     left_line := LineH {
-                        draw_bg.color: #C8C8C8
+                        draw_bg.color: mod.widgets.RINX_BORDER
                     }
 
                     Label {
                         width: Fit, height: Fit
                         padding: 0
                         draw_text +: {
-                            color: #777777
-                            text_style: REGULAR_TEXT {font_size: 9}
+                            color: mod.widgets.RINX_MUTED
+                            text_style: REGULAR_TEXT {font_size: (9 * mod.widgets.RINX_TEXT_SCALE)}
                         }
                         text: "Wallet File Name (optional)"
                     }
 
                     right_line := LineH {
-                        draw_bg.color: #C8C8C8
+                        draw_bg.color: mod.widgets.RINX_BORDER
                     }
                 }
             }
@@ -139,7 +139,7 @@ script_mod! {
         status_label := ModalBody {
             align: Align{x: 0.5, y: 0.0}
             draw_text +: {
-                text_style: REGULAR_TEXT {font_size: 11}
+                text_style: REGULAR_TEXT {font_size: (11 * mod.widgets.RINX_TEXT_SCALE)}
             }
             text: "status label"
         }

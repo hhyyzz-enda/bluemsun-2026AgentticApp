@@ -1,7 +1,7 @@
-
+use crate::theme::Snapshot as ThemeSnapshot;
 use makepad_widgets::*;
 
-use crate::{shared::{popup_list::{enqueue_popup_notification, PopupKind}, styles::*}, tsp::{create_did_modal::CreateDidModalAction, create_wallet_modal::CreateWalletModalAction, submit_tsp_request, tsp_state_ref, TspIdentityAction, TspRequest, TspWalletAction, TspWalletEntry, TspWalletMetadata}};
+use crate::{shared::{popup_list::{enqueue_popup_notification, PopupKind}}, tsp::{create_did_modal::CreateDidModalAction, create_wallet_modal::CreateWalletModalAction, submit_tsp_request, tsp_state_ref, TspIdentityAction, TspRequest, TspWalletAction, TspWalletEntry, TspWalletMetadata}};
 
 script_mod! {
     link tsp_enabled
@@ -44,7 +44,7 @@ script_mod! {
                 flow: Flow.Right{wrap: true},
                 margin: Inset{top: 8}
                 draw_text +: {
-                    text_style: MESSAGE_TEXT_STYLE { font_size: 11 },
+                    text_style: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                 }
             }
         }
@@ -72,7 +72,7 @@ script_mod! {
                 flow: Flow.Right{wrap: true},
                 draw_text +: {
                     color: (COLOR_TEXT_WARNING_NOT_FOUND),
-                    text_style: MESSAGE_TEXT_STYLE { font_size: 11 },
+                    text_style: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                 }
                 text: "No wallets found. Create or import a wallet."
             }
@@ -84,7 +84,7 @@ script_mod! {
 
             show_bg: true,
             draw_bg +: {
-                color: #F6F8F9
+                color: mod.widgets.RINX_FIELD
                 border_radius: 4.0
             }
 
@@ -196,9 +196,12 @@ impl WalletStatusAndDefault {
 }
 
 /// The view containing all TSP-related settings.
-#[derive(Script, ScriptHook, Widget)]
+#[derive(Script, Widget)]
 pub struct TspSettingsScreen {
-    #[deref] view: View,
+    #[rust]
+    appearance: ThemeSnapshot,
+    #[deref]
+    view: View,
 
     /// The list of wallets that are known by this widget.
     ///
@@ -213,6 +216,11 @@ pub struct TspSettingsScreen {
     #[rust] wallets: Option<WalletState>,
 }
 
+impl ScriptHook for TspSettingsScreen {
+    fn on_after_apply(&mut self, vm: &mut ScriptVm, _: &Apply, _: &mut Scope, _: ScriptValue) {
+        self.appearance = crate::theme::snapshot_for_vm(vm);
+    }
+}
 impl Widget for TspSettingsScreen {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         self.match_event(cx, event);
@@ -230,8 +238,16 @@ impl Widget for TspSettingsScreen {
         let (current_did_text, current_did_text_color, show_republish_button) = match
             self.wallets.as_ref().and_then(|ws| ws.active_identity.as_deref())
         {
-            Some(current_did) => (current_did.to_string(), COLOR_FG_ACCEPT_GREEN, true),
-            None => ("No default identity has been set.".to_string(), COLOR_TEXT_WARNING_NOT_FOUND, false),
+            Some(current_did) => (
+                current_did.to_string(),
+                self.appearance.role("color.status.success.foreground"),
+                true,
+            ),
+            None => (
+                "No default identity has been set.".to_string(),
+                self.appearance.role("color.status.warning.foreground"),
+                false,
+            ),
         };
         let mut current_identity_label = self.view.label(cx, ids!(current_identity_label));
         script_apply_eval!(cx, current_identity_label, {

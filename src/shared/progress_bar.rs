@@ -2,8 +2,6 @@
 
 use makepad_widgets::*;
 
-use crate::shared::styles::COLOR_ACTIVE_PRIMARY;
-
 script_mod! {
     use mod.prelude.widgets.*
     use mod.widgets.*
@@ -97,7 +95,8 @@ impl ProgressBar {
 
     /// Restores the default fill color for the progress bar.
     pub fn reset_progress_color(&mut self, cx: &mut Cx) {
-        self.set_progress_color(cx, COLOR_ACTIVE_PRIMARY);
+        let color = crate::theme::snapshot(cx).accent;
+        self.set_progress_color(cx, color);
     }
 }
 

@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "theme": "light",
+  "tokens": {
+    "color.surface.panel": {
+      "value": 4294967295
+    },
+    "color.surface.field": {
+      "value": 4293848814
+    },
+    "color.content.primary": {
+      "value": 4279308561
+    },
+    "color.content.secondary": {
+      "value": 4283782485
+    },
+    "color.action.primary": {
+      "value": 4279073160
+    },
+    "color.action.on_primary": {
+      "value": 4294967295
+    },
+    "color.border.default": {
+      "value": 4288256409
+    },
+    "shape.surface.radius": {
+      "value": 6
+    },
+    "typography.body.size": {
+      "value": 16
+    },
+    "typography.heading.size": {
+      "value": 22.6667
+    },
+    "typography.caption.size": {
+      "value": 14
+    },
+    "typography.family.resource": {
+      "value": "makepad_widgets:resources/IBMPlexSans-Text.ttf"
+    }
+  },
+  "components": {
+    "panel": {
+      "style": {
+        "t": "stack",
+        "bg": {
+          "$token": "color.surface.panel"
+        },
+        "radius": {
+          "$token": "shape.surface.radius"
+        }
+      },
+      "props": {},
+      "slot": true
+    },
+    "title": {
+      "style": {
+        "t": "text",
+        "color": {
+          "$token": "color.content.primary"
+        },
+        "size": {
+          "$token": "typography.heading.size"
+        },
+        "font_src": {
+          "$token": "typography.family.resource"
+        },
+        "weight": 700
+      },
+      "props": {
+        "text": "text"
+      },
+      "slot": false
+    },
+    "hint": {
+      "style": {
+        "t": "text",
+        "color": {
+          "$token": "color.content.secondary"
+        },
+        "size": {
+          "$token": "typography.caption.size"
+        },
+        "font_src": {
+          "$token": "typography.family.resource"
+        }
+      },
+      "props": {
+        "text": "text"
+      },
+      "slot": false
+    },
+    "button": {
+      "style": {
+        "t": "stack",
+        "color": {
+          "$token": "color.action.on_primary"
+        },
+        "bg": {
+          "$token": "color.action.primary"
+        },
+        "radius": {
+          "$token": "shape.surface.radius"
+        },
+        "size": {
+          "$token": "typography.body.size"
+        },
+        "variant": "surface"
+      },
+      "props": {},
+      "slot": true
+    },
+    "input": {
+      "style": {
+        "t": "input",
+        "color": {
+          "$token": "color.content.primary"
+        },
+        "bg": {
+          "$token": "color.surface.field"
+        },
+        "bordercolor": {
+          "$token": "color.border.default"
+        },
+        "radius": {
+          "$token": "shape.surface.radius"
+        },
+        "size": {
+          "$token": "typography.body.size"
+        },
+        "changeto": "l0:{\"k\":\"root\",\"e\":\"typing\",\"v\":\"$$\"}",
+        "font_src": {
+          "$token": "typography.family.resource"
+        },
+        "padleft": 12
+      },
+      "props": {
+        "text": "text"
+      },
+      "slot": false
+    },
+    "field": {
+      "style": {
+        "t": "stack",
+        "variant": "surface",
+        "bg": {
+          "$token": "color.surface.field"
+        },
+        "bordercolor": {
+          "$token": "color.border.default"
+        },
+        "border": 1,
+        "radius": {
+          "$token": "shape.surface.radius"
+        }
+      },
+      "props": {},
+      "slot": true
+    },
+    "caption": {
+      "style": {
+        "t": "text",
+        "color": {
+          "$token": "color.action.on_primary"
+        },
+        "font_src": {
+          "$token": "typography.family.resource"
+        },
+        "size": {
+          "$token": "typography.body.size"
+        },
+        "alignx": 0.5
+      },
+      "props": {
+        "text": "text"
+      },
+      "slot": false
+    },
+    "hit": {
+      "style": {
+        "t": "button"
+      },
+      "props": {},
+      "slot": false
+    }
+  }
+}

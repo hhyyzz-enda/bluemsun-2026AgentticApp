@@ -92,7 +92,7 @@ script_mod! {
                 text_view +: {
                     text +: {
                         draw_text +: {
-                            text_style: theme.font_regular { font_size: 40.0 }
+                            text_style: theme.font_regular { font_size: (40.0 * mod.widgets.RINX_TEXT_SCALE) }
                         }
                     }
                 }
@@ -103,8 +103,8 @@ script_mod! {
                 align: Align{x: 0.5}
                 flow: Flow.Right{wrap: true}
                 draw_text +: {
-                    color: #000,
-                    text_style: USERNAME_TEXT_STYLE { font_size: 12 },
+                    color: mod.widgets.RINX_INK,
+                    text_style: USERNAME_TEXT_STYLE { font_size: (12 * mod.widgets.RINX_TEXT_SCALE) },
                 }
                 text: #(crate::i18n::tr("User Name"))
             }
@@ -115,7 +115,7 @@ script_mod! {
                 flow: Flow.Right{wrap: true}
                 draw_text +: {
                     color: (MESSAGE_TEXT_COLOR),
-                    text_style: MESSAGE_TEXT_STYLE { font_size: 11 },
+                    text_style: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                 }
                 text: #(crate::i18n::tr("User ID"))
             }
@@ -135,8 +135,8 @@ script_mod! {
                 width: Fill, height: Fit
                 flow: Flow.Right{wrap: true}
                 draw_text +: {
-                    text_style: USERNAME_TEXT_STYLE { font_size: 11.5 },
-                    color: #000
+                    text_style: USERNAME_TEXT_STYLE { font_size: (11.5 * mod.widgets.RINX_TEXT_SCALE) },
+                    color: mod.widgets.RINX_INK
                 }
                 text: #(crate::i18n::tr("Membership in this room")) i18n_text: "Membership in this room"
             }
@@ -147,7 +147,7 @@ script_mod! {
                 flow: Flow.Right{wrap: true}
                 draw_text +: {
                     color: (MESSAGE_TEXT_COLOR),
-                    text_style: MESSAGE_TEXT_STYLE { font_size: 11 },
+                    text_style: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                 }
                 text: #(crate::i18n::tr("Unknown"))
             }
@@ -158,7 +158,7 @@ script_mod! {
                 flow: Flow.Right{wrap: true}
                 draw_text +: {
                     color: (MESSAGE_TEXT_COLOR),
-                    text_style: MESSAGE_TEXT_STYLE { font_size: 11 },
+                    text_style: MESSAGE_TEXT_STYLE { font_size: (11 * mod.widgets.RINX_TEXT_SCALE) },
                 }
                 text: #(crate::i18n::tr("Unknown"))
             }
@@ -176,8 +176,8 @@ script_mod! {
                 width: Fill, height: Fit
                 flow: Flow.Right{wrap: true}
                 draw_text +: {
-                    text_style: USERNAME_TEXT_STYLE { font_size: 11.5 },
-                    color: #000
+                    text_style: USERNAME_TEXT_STYLE { font_size: (11.5 * mod.widgets.RINX_TEXT_SCALE) },
+                    color: mod.widgets.RINX_INK
                 }
                 text: #(crate::i18n::tr("Actions")) i18n_text: "Actions"
             }
@@ -249,7 +249,7 @@ script_mod! {
             user_profile_view := UserProfileView { }
 
             mobile_profile := SolidView {
-                visible: false width: Fill height: Fill flow: Down draw_bg.color: #xededed
+                visible: false width: Fill height: Fill flow: Down draw_bg.color: mod.widgets.RINX_PAGE
                 ScrollYView {
                     width: Fill height: Fill flow: Down
                     mp_card := DetailContactCard {}
@@ -272,7 +272,7 @@ script_mod! {
                     DetailGap {}
                     DetailSection {mp_message := DetailAction {title.text: #(crate::i18n::tr("Messages")) title.i18n_text: "Messages"}}
                     DetailGap {}
-                    mp_block_section := DetailSection {mp_block := DetailAction {title +: {text: #(crate::i18n::tr("Block")) i18n_text: "Block" draw_text.color: #xfa5151}}}
+                    mp_block_section := DetailSection {mp_block := DetailAction {title +: {text: #(crate::i18n::tr("Block")) i18n_text: "Block" draw_text.color: mod.widgets.RINX_DANGER_FG}}}
                 }
             }
 
@@ -614,11 +614,11 @@ impl Widget for UserProfileSlidingPane {
         info.avatar_state
             .image()
             .and_then(|image| avatar_ref.show_image(cx, None, |cx, img| utils::load_avatar_image(&img, cx, image)).ok())
-            .unwrap_or_else(|| avatar_ref.show_text(cx, None, None, info.displayable_name()));
+            .unwrap_or_else(|| avatar_ref.show_user_text(cx, &info.user_id, info.displayable_name()));
         let mobile_avatar = self.avatar(cx, ids!(mp_card.avatar));
         info.avatar_state.image()
             .and_then(|image| mobile_avatar.show_image(cx, None, |cx, img| utils::load_avatar_image(&img, cx, image)).ok())
-            .unwrap_or_else(|| mobile_avatar.show_text(cx, None, None, info.displayable_name()));
+            .unwrap_or_else(|| mobile_avatar.show_user_text(cx, &info.user_id, info.displayable_name()));
 
         // Set the membership status and role in the room.
         self.label(cx, ids!(membership_title_label)).set_text(cx, &info.membership_title());

@@ -336,7 +336,9 @@ pub fn parse_approval_request(content: &serde_json::Value) -> Option<ApprovalReq
         || project.is_empty()
         || !project_room_id.starts_with('!')
         || !project_room_id.contains(':')
-        || !is_lowercase_hex(request_suffix, 32)
+        // TS hagency mints 32 hex; the Rust port mints 40 (its persisted
+        // custody uses that length), so both are well-formed ids.
+        || !(is_lowercase_hex(request_suffix, 32) || is_lowercase_hex(request_suffix, 40))
         || upstream_request_id.is_empty()
         || !is_lowercase_hex(input_digest, 64)
         || !matches!(runtime, "claude" | "codex")
@@ -625,6 +627,18 @@ mod tests {
         assert!(request.reusable_scope.is_none());
         assert_eq!(request.title(), "Bash · codex");
         assert!(request.summary().contains("cargo test --lib"));
+    }
+
+    #[test]
+    fn parses_a_rust_port_request_id() {
+        // The Rust hagency port mints `approval_` + 40 hex; TS mints 32.
+        let mut content = two_action_request(1_000);
+        content[APPROVAL_EVENT_KEY]["request_id"] =
+            serde_json::json!(format!("approval_{}", "ab".repeat(20)));
+        assert!(parse_approval_request(&content).is_some());
+        content[APPROVAL_EVENT_KEY]["request_id"] =
+            serde_json::json!(format!("approval_{}", "a".repeat(39)));
+        assert!(parse_approval_request(&content).is_none(), "other lengths stay refused");
     }
 
     #[test]

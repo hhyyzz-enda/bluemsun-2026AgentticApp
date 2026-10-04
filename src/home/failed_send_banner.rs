@@ -31,7 +31,7 @@ script_mod! {
         draw_bg +: {
             color: (COLOR_PRIMARY)
             border_radius: 5.0
-            border_color: #E34B4F
+            border_color: mod.widgets.RINX_DANGER_FG
             border_size: 2.0
         }
 
@@ -43,7 +43,7 @@ script_mod! {
             max_lines: 2,
             draw_text +: {
                 color: (COLOR_FG_DANGER_RED),
-                text_style: REGULAR_TEXT {font_size: 10}
+                text_style: REGULAR_TEXT {font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}
             }
             text: ""
         }

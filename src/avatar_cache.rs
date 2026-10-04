@@ -32,7 +32,7 @@ static PENDING_AVATAR_UPDATES: SegQueue<AvatarUpdate> = SegQueue::new();
 
 /// Enqueues a new avatar update and signals the UI
 /// such that the new update will be handled by the avatar sliding pane widget.
-fn enqueue_avatar_update(update: AvatarUpdate) {
+pub fn enqueue_avatar_update(update: AvatarUpdate) {
     PENDING_AVATAR_UPDATES.push(update);
     SignalToUI::set_ui_signal();
 }

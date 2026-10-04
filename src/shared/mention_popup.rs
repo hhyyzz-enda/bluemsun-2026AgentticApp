@@ -44,11 +44,11 @@ script_mod! {
             width: Fill, height: Fit, flow: Down, spacing: 1
             title := Label {
                 width: Fill, height: Fit, max_lines: 1, text_overflow: Ellipsis, padding: 0
-                draw_text +: { color: (COLOR_TEXT), text_style: theme.font_bold {font_size: 11, line_spacing: 1.0} }
+                draw_text +: { color: (COLOR_TEXT), text_style: theme.font_bold {font_size: (11 * mod.widgets.RINX_TEXT_SCALE), line_spacing: 1.0} }
             }
             subtitle := Label {
                 width: Fill, height: Fit, max_lines: 1, text_overflow: Ellipsis, padding: 0
-                draw_text +: { color: #555, text_style: theme.font_regular {font_size: 9.5, line_spacing: 1.0} }
+                draw_text +: { color: mod.widgets.RINX_MUTED, text_style: theme.font_regular {font_size: (9.5 * mod.widgets.RINX_TEXT_SCALE), line_spacing: 1.0} }
             }
         }
     }
@@ -62,7 +62,7 @@ script_mod! {
         }
         loading_label := Label {
             height: Fit
-            draw_text +: { color: #555, text_style: theme.font_regular {font_size: 10.5} }
+            draw_text +: { color: mod.widgets.RINX_MUTED, text_style: theme.font_regular {font_size: (10.5 * mod.widgets.RINX_TEXT_SCALE)} }
         }
     }
 
@@ -73,7 +73,7 @@ script_mod! {
         empty_label := Label {
             width: Fill, height: Fit, max_lines: 2, text_overflow: Ellipsis
             align: Align{x: 0.5}
-            draw_text +: { color: #555, text_style: theme.font_regular {font_size: 10.5} }
+            draw_text +: { color: mod.widgets.RINX_MUTED, text_style: theme.font_regular {font_size: (10.5 * mod.widgets.RINX_TEXT_SCALE)} }
         }
     }
 
@@ -83,8 +83,8 @@ script_mod! {
         flow: Overlay
         align: Align{x: 0.0, y: 0.0}
 
-        color_focus: #xB6D3F2
-        color_hover: #xEAEFF5
+        color_focus: mod.widgets.RINX_SELECTED
+        color_hover: mod.widgets.RINX_HOVER
 
         // So the way this works is that we move the popup_frame wrapper view,
         // which allows the `main_content` to just behave like a regular Fill/Fill view.
@@ -120,7 +120,7 @@ script_mod! {
                         width: Fill, height: Fit, max_lines: 1, text_overflow: Ellipsis, padding: 0
                         draw_text +: {
                             color: (COLOR_PRIMARY)
-                            text_style: theme.font_bold {font_size: 13.0, line_spacing: 1.0}
+                            text_style: theme.font_bold {font_size: (13.0 * mod.widgets.RINX_TEXT_SCALE), line_spacing: 1.0}
                         }
                     }
                 }
@@ -567,7 +567,7 @@ fn build_row(cx: &mut Cx, list: &mut PortalList, index: usize, item: &MentionIte
             let new_widget = list.item(cx, index, id!(row));
             new_widget.label(cx, ids!(info.title)).set_text(cx, display_name);
             new_widget.label(cx, ids!(info.subtitle)).set_text(cx, user_id.as_str());
-            *fully_drawn &= set_user_avatar(cx, &new_widget, avatar_url.as_ref(), display_name);
+            *fully_drawn &= set_user_avatar(cx, &new_widget, user_id, avatar_url.as_ref(), display_name);
             new_widget
         }
         MentionItem::NotifyRoom { room_name } => {
@@ -601,7 +601,7 @@ fn build_row(cx: &mut Cx, list: &mut PortalList, index: usize, item: &MentionIte
 }
 
 /// Returns `true` once the avatar is fully drawn, `false` if it's still being fetched.
-fn set_user_avatar(cx: &mut Cx, row: &WidgetRef, avatar_url: Option<&OwnedMxcUri>, display: &str) -> bool {
+fn set_user_avatar(cx: &mut Cx, row: &WidgetRef, user_id: &ruma::UserId, avatar_url: Option<&OwnedMxcUri>, display: &str) -> bool {
     let avatar = row.avatar(cx, ids!(avatar));
     match avatar_url {
         Some(mxc) => match get_or_fetch_avatar(cx, mxc) {
@@ -611,16 +611,16 @@ fn set_user_avatar(cx: &mut Cx, row: &WidgetRef, avatar_url: Option<&OwnedMxcUri
                 true
             }
             AvatarCacheEntry::Requested => {
-                avatar.show_text(cx, None, None, display);
+                avatar.show_user_text(cx, user_id, display);
                 false
             }
             AvatarCacheEntry::Failed => {
-                avatar.show_text(cx, None, None, display);
+                avatar.show_user_text(cx, user_id, display);
                 true
             }
         },
         None => {
-            avatar.show_text(cx, None, None, display);
+            avatar.show_user_text(cx, user_id, display);
             true
         }
     }
@@ -630,9 +630,11 @@ fn set_user_avatar(cx: &mut Cx, row: &WidgetRef, avatar_url: Option<&OwnedMxcUri
 fn set_room_avatar(cx: &mut Cx, row: &WidgetRef, room_id: &OwnedRoomId, avatar_url: Option<&OwnedMxcUri>, name_for_avatar: Option<&str>) -> bool {
     let avatar = row.avatar(cx, ids!(avatar));
     if cx.has_global::<RoomsListRef>() {
-        if let Some(FetchedRoomAvatar::Image(image)) = cx.get_global::<RoomsListRef>().get_room_avatar(room_id) {
-            let _ = avatar.show_image(cx, None, |cx, img| utils::load_avatar_image(&img, cx, &image));
-            return true;
+        if let Some(fetched) = cx.get_global::<RoomsListRef>().get_room_avatar(room_id) {
+            if !matches!(fetched, FetchedRoomAvatar::Text(_)) {
+                avatar.show_room_avatar(cx, &fetched);
+                return true;
+            }
         }
     }
     let mut fully_drawn = true;

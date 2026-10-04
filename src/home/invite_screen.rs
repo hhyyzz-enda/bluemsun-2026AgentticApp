@@ -55,7 +55,7 @@ script_mod! {
                 text_view +: {
                     text +: {
                         draw_text +: {
-                            text_style: TITLE_TEXT { font_size: 10.0 }
+                            text_style: TITLE_TEXT { font_size: (10.0 * mod.widgets.RINX_TEXT_SCALE) }
                         }
                     }
                 }
@@ -71,9 +71,9 @@ script_mod! {
                 text: ""
                 draw_text +: {
                     text_style: TITLE_TEXT {
-                        font_size: 15,
+                        font_size: (15 * mod.widgets.RINX_TEXT_SCALE),
                     },
-                    color: #000
+                    color: mod.widgets.RINX_INK
                 }
             }
 
@@ -85,9 +85,9 @@ script_mod! {
                 text: ""
                 draw_text +: {
                     text_style: TITLE_TEXT {
-                        font_size: 10,
+                        font_size: (10 * mod.widgets.RINX_TEXT_SCALE),
                     },
-                    color: #888
+                    color: mod.widgets.RINX_MUTED
                 }
             }
 
@@ -105,9 +105,9 @@ script_mod! {
             text: "",
             draw_text +: {
                 text_style: REGULAR_TEXT {
-                    font_size: 15,
+                    font_size: (15 * mod.widgets.RINX_TEXT_SCALE),
                 },
-                color: #000
+                color: mod.widgets.RINX_INK
             }
         }
 
@@ -124,7 +124,7 @@ script_mod! {
                 text_view +: {
                     text +: {
                         draw_text +: {
-                            text_style: TITLE_TEXT { font_size: 13.0 }
+                            text_style: TITLE_TEXT { font_size: (13.0 * mod.widgets.RINX_TEXT_SCALE) }
                         }
                     }
                 }
@@ -138,9 +138,9 @@ script_mod! {
                 flow: Flow.Right{wrap: true},
                 draw_text +: {
                     text_style: TITLE_TEXT {
-                        font_size: 18,
+                        font_size: (18 * mod.widgets.RINX_TEXT_SCALE),
                     },
-                    color: #000
+                    color: mod.widgets.RINX_INK
                 }
             }
         }
@@ -189,7 +189,7 @@ script_mod! {
             flow: Flow.Right{wrap: true},
             draw_text +: {
                 color: (COLOR_FG_ACCEPT_GREEN),
-                text_style: theme.font_bold {font_size: 12}
+                text_style: theme.font_bold {font_size: (12 * mod.widgets.RINX_TEXT_SCALE)}
             }
             text: ""
         }
@@ -454,10 +454,9 @@ impl Widget for InviteScreen {
                 ).is_ok();
             }
             if !drew_avatar {
-                inviter_avatar.show_text(
+                inviter_avatar.show_user_text(
                     cx,
-                    None,
-                    None, // don't make this avatar clickable.
+                    &inviter.user_id,
                     inviter.display_name.as_deref().unwrap_or_else(|| inviter.user_id.as_str()),
                 );
             }
@@ -487,6 +486,7 @@ impl Widget for InviteScreen {
         let room_view = self.view.view(cx, ids!(room_view));
         let room_avatar = room_view.avatar(cx, ids!(room_avatar));
         match &info.room_avatar() {
+            FetchedRoomAvatar::Members(_) => room_avatar.show_room_avatar(cx, info.room_avatar()),
             FetchedRoomAvatar::Text(text) => {
                 room_avatar.show_text(
                     cx,

@@ -1,4 +1,4 @@
-//! An avatar holds either an image thumbnail or a single-character text label.
+//! An avatar shows a photo, an initial, or a tiled group of room members.
 //!
 //! The Avatar view (either text or image) is masked by a circle.
 //!
@@ -16,9 +16,47 @@ use ruma::OwnedMxcUri;
 use crate::{
     avatar_cache::{self, AvatarCacheEntry},
     profile::{user_profile::{ShowUserProfileAction, UserProfile, UserProfileAndRoomId}, user_profile_cache},
+    room::{FetchedRoomAvatar, RoomAvatarMember},
     sliding_sync::{submit_async_request, MatrixRequest, TimelineKind},
     utils,
 };
+
+// Avatar colors identify people, independently of the interface accent/theme.
+// All of these backgrounds retain at least 4.5:1 contrast with white initials.
+const AVATAR_COLORS: [u32; 12] = [
+    0x356cb0, 0x7556a8, 0xad4874, 0x257d75, 0xb55a30, 0xb74747,
+    0x4a6b83, 0x515da8, 0x926b28, 0x677c32, 0x287c97, 0x905587,
+];
+
+fn avatar_color(identity: &str) -> Vec4 {
+    let hash = blake3::hash(identity.as_bytes());
+    let index = u16::from_le_bytes([hash.as_bytes()[0], hash.as_bytes()[1]]) as usize;
+    let rgb = AVATAR_COLORS[index % AVATAR_COLORS.len()];
+    vec4(((rgb >> 16) & 255) as f32 / 255., ((rgb >> 8) & 255) as f32 / 255., (rgb & 255) as f32 / 255., 1.)
+}
+
+/// Center short first rows, as in a group-chat avatar, while keeping every tile square.
+fn member_tile_rects(count: usize, size: Vec2d) -> Vec<Rect> {
+    let count = count.min(9);
+    if count == 0 { return Vec::new(); }
+    let columns = if count > 4 { 3 } else if count > 1 { 2 } else { 1 };
+    let rows = count.div_ceil(columns);
+    let side = size.x.min(size.y).max(0.0);
+    let padding = side * 0.05;
+    let gap = side * 0.025;
+    let tile = (side - 2.0 * padding - (columns - 1) as f64 * gap) / columns as f64;
+    let first_row = count - (rows - 1) * columns;
+    let mut rects = Vec::with_capacity(count);
+    for row in 0..rows {
+        let row_count = if row == 0 { first_row } else { columns };
+        let x = (size.x - row_count as f64 * tile - (row_count - 1) as f64 * gap) / 2.0;
+        let y = (size.y - rows as f64 * tile - (rows - 1) as f64 * gap) / 2.0;
+        for column in 0..row_count {
+            rects.push(Rect {pos: dvec2(x + column as f64 * (tile + gap), y + row as f64 * (tile + gap)), size: dvec2(tile, tile)});
+        }
+    }
+    rects
+}
 
 script_mod! {
     use mod.prelude.widgets.*
@@ -78,6 +116,25 @@ script_mod! {
                 }
             }
         }
+
+        members_view := RoundedView {
+            visible: false width: Fill height: Fill flow: Overlay
+            draw_bg +: {color: mod.widgets.RINX_BORDER border_radius: 4.0}
+        }
+        member_template: View {
+            flow: Overlay
+            tile_text := SolidView {
+                width: Fill height: Fill align: Align{x: 0.5 y: 0.5}
+                draw_bg +: {color: instance(#fff)} // theme-content: replaced with each member's stable identity color before drawing.
+                text := Label {
+                    width: Fit height: Fit padding: 0
+                    draw_text +: {color: #fff text_style: theme.font_bold {font_size: 8.0}} // theme-content: white initials contrast with the fixed identity palette.
+                }
+            }
+            tile_image := Image {
+                visible: false width: Fill height: Fill fit: ImageFit.CropToFill
+            }
+        }
     }
 }
 
@@ -92,6 +149,7 @@ enum AvatarDisplayState {
     ImageLoading,
     /// Showing the fully-decoded avatar image.
     Image,
+    Members,
 }
 
 #[derive(Script, Widget)]
@@ -103,6 +161,12 @@ pub struct Avatar {
     /// If `Some`, this Avatar will respond to clicks/taps.
     #[rust] info: Option<UserProfileAndRoomId>,
     #[rust] display_state: AvatarDisplayState,
+    #[rust] text_bg_color: Option<Vec4>,
+    #[rust] text_label: String,
+    #[live] member_template: Option<crate::LivePtr>,
+    #[rust] members: Vec<RoomAvatarMember>,
+    #[rust] member_tiles: Vec<ViewRef>,
+    #[rust] member_images: Vec<Option<OwnedMxcUri>>,
 }
 
 impl ScriptHook for Avatar {
@@ -111,17 +175,34 @@ impl ScriptHook for Avatar {
         if !apply.is_script_reapply() {
             return;
         }
-        let cx = vm.cx_mut();
-        let show_img = self.display_state != AvatarDisplayState::Text
-            && self.image(cx, ids!(img_view.img)).has_content();
-        self.view(cx, ids!(img_view)).set_visible(cx, show_img);
-        self.view(cx, ids!(text_view)).set_visible(cx, !show_img);
+        vm.with_cx_mut(|cx| {
+            self.sync_visibility(cx);
+            if let Some(color) = self.text_bg_color.take() {
+                self.set_background_color(cx, color);
+            }
+            if !self.text_label.is_empty() {
+                self.label(cx, ids!(text_view.text)).set_text(cx, &self.text_label);
+            }
+        });
     }
 }
 
 impl Widget for Avatar {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        if self.display_state == AvatarDisplayState::Members && matches!(event, Event::Signal) {
+            avatar_cache::process_avatar_updates(cx);
+        }
         self.view.handle_event(cx, event, scope);
+
+        // A loading tile's Image is hidden and has no draw area to invalidate yet.
+        // Redraw the enclosing mosaic when its asynchronous decode completes.
+        if self.display_state == AvatarDisplayState::Members {
+            if let Event::Actions(actions) = event {
+                if actions.iter().any(|action| action.downcast_ref::<AsyncImageLoad>().is_some()) {
+                    self.view.redraw(cx);
+                }
+            }
+        }
 
         // Check to see if this image has been loaded/decoded.
         if self.display_state == AvatarDisplayState::ImageLoading {
@@ -154,6 +235,10 @@ impl Widget for Avatar {
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        if self.display_state == AvatarDisplayState::Members {
+            let size = cx.peek_walk_turtle(walk).size;
+            self.draw_members(cx, size);
+        }
         self.view.draw_walk(cx, scope, walk)
     }
 
@@ -162,10 +247,95 @@ impl Widget for Avatar {
         self.set_text_label(cx, v);
         self.view(cx, ids!(img_view)).set_visible(cx, false);
         self.view(cx, ids!(text_view)).set_visible(cx, true);
+        self.view(cx, ids!(members_view)).set_visible(cx, false);
     }
 }
 
 impl Avatar {
+    fn sync_visibility(&self, cx: &mut Cx) {
+        let members = self.display_state == AvatarDisplayState::Members;
+        let image = matches!(self.display_state, AvatarDisplayState::Image | AvatarDisplayState::ImageLoading)
+            && self.image(cx, ids!(img_view.img)).has_content();
+        self.view(cx, ids!(members_view)).set_visible(cx, members);
+        self.view(cx, ids!(img_view)).set_visible(cx, image);
+        self.view(cx, ids!(text_view)).set_visible(cx, !members && !image);
+    }
+
+    fn show_members(&mut self, cx: &mut Cx, members: &[RoomAvatarMember]) {
+        if members.is_empty() {
+            self.show_text(cx, None, None, "?");
+            return;
+        }
+        let members = &members[..members.len().min(9)];
+        if self.members != members {
+            self.members = members.to_vec();
+            self.member_tiles.clear();
+            self.member_images = vec![None; members.len()];
+            for member in members {
+                let tile = crate::widget_ref_from_live_ptr(cx, self.member_template).as_view();
+                let mut background = tile.child(id!(tile_text)).as_view();
+                let color = avatar_color(member.user_id.as_str());
+                script_apply_eval!(cx, background, {draw_bg.color: #(color)});
+                tile.child(id!(tile_text)).child(id!(text)).as_label().set_text(cx, &utils::user_name_first_letter(
+                    member.display_name.as_deref().unwrap_or(member.user_id.as_str())
+                ).unwrap_or("?").to_uppercase());
+                self.member_tiles.push(tile);
+            }
+            if let Some(mut view) = self.view(cx, ids!(members_view)).borrow_mut() {
+                view.children = self.member_tiles.iter().enumerate().map(|(index, tile)| {
+                    (LiveId::from_num(id!(member_tile).0, index as u64), WidgetRef::clone(tile))
+                }).collect();
+                cx.widget_tree_mark_dirty(view.widget_uid());
+            }
+        }
+        self.display_state = AvatarDisplayState::Members;
+        self.info = None;
+        self.view.cursor = Some(MouseCursor::Default);
+        self.sync_visibility(cx);
+        self.view.redraw(cx);
+    }
+
+    fn draw_members(&mut self, cx: &mut Cx, size: Vec2d) {
+        let rects = member_tile_rects(self.members.len(), size);
+        for (index, ((member, tile), rect)) in self.members.iter().zip(&self.member_tiles).zip(rects).enumerate() {
+            if let Some(mut view) = tile.borrow_mut() {
+                view.walk = Walk {
+                    width: Size::Fixed(rect.size.x), height: Size::Fixed(rect.size.y),
+                    margin: Inset {left: rect.pos.x, top: rect.pos.y, ..Default::default()},
+                    ..Default::default()
+                };
+            }
+            let background = tile.child(id!(tile_text)).as_view();
+            let label = tile.child(id!(tile_text)).child(id!(text)).as_label();
+            if let Some(mut label) = label.borrow_mut() {
+                label.draw_text.text_style.font_size = (rect.size.y * 0.46) as f32;
+            }
+            let image = tile.child(id!(tile_image)).as_image();
+            if let Some(uri) = &member.avatar_url {
+                if self.member_images[index].as_ref() != Some(uri) {
+                    if let AvatarCacheEntry::Loaded(data) = avatar_cache::get_or_fetch_avatar(cx, uri) {
+                        let avatar = AvatarImage::from((uri.clone(), data));
+                        // An immutable MXC image that cannot decode should keep
+                        // its initials, without retrying the bad bytes every frame.
+                        self.member_images[index] = Some(uri.clone());
+                        let _ = utils::load_avatar_image(&image, cx, &avatar);
+                    }
+                }
+            }
+            let loaded = self.member_images[index].is_some() && image.has_content();
+            image.set_visible(cx, loaded);
+            background.set_visible(cx, !loaded);
+        }
+    }
+
+    fn set_background_color(&mut self, cx: &mut Cx, color: Vec4) {
+        if self.text_bg_color.replace(color) == Some(color) {
+            return;
+        }
+        let mut text_view = self.view(cx, ids!(text_view));
+        script_apply_eval!(cx, text_view, {draw_bg.color: #(color)});
+    }
+
     /// Internal function to sets the text label to the first grapheme of `v`.
     ///
     /// Specifically does NOT change the avatar's display state or image/text view visibility.
@@ -173,6 +343,7 @@ impl Avatar {
         let f = utils::user_name_first_letter(v)
             .unwrap_or("?").to_uppercase();
         self.label(cx, ids!(text_view.text)).set_text(cx, &f);
+        self.text_label = f;
     }
 
     /// Sets the text content of this avatar, making the user name visible
@@ -192,6 +363,9 @@ impl Avatar {
         info: Option<AvatarTextInfo>,
         username: T,
     ) {
+        let bg_color = bg_color.unwrap_or_else(|| avatar_color(
+            info.as_ref().map(|info| info.user_id.as_str()).unwrap_or(username.as_ref())
+        ));
         if let Some(AvatarTextInfo { user_id, username, room_id }) = info {
             self.info = Some(UserProfileAndRoomId {
                 user_profile: UserProfile {
@@ -208,13 +382,7 @@ impl Avatar {
         }
         self.set_text(cx, username.as_ref());
 
-        // Apply background color if provided
-        if let Some(bgc) = bg_color {
-            let mut text_view = self.view(cx, ids!(text_view));
-            script_apply_eval!(cx, text_view, {
-                draw_bg.color: #(bgc)
-            });
-        }
+        self.set_background_color(cx, bg_color);
     }
 
     /// Sets the image content of this avatar, making the image visible
@@ -248,8 +416,11 @@ impl Avatar {
             self.display_state = if has_content { AvatarDisplayState::Image } else { AvatarDisplayState::ImageLoading };
             self.view(cx, ids!(img_view)).set_visible(cx, has_content);
             self.view(cx, ids!(text_view)).set_visible(cx, !has_content);
+            self.view(cx, ids!(members_view)).set_visible(cx, false);
 
             if let Some(AvatarImageInfo { user_id, username, room_id, img_data }) = info {
+                self.set_background_color(cx, avatar_color(user_id.as_str()));
+                self.set_text_label(cx, username.as_deref().unwrap_or(user_id.as_str()));
                 self.info = Some(UserProfileAndRoomId {
                     user_profile: UserProfile {
                         user_id,
@@ -361,6 +532,8 @@ impl Avatar {
         let username = username_opt
             .clone()
             .unwrap_or_else(|| avatar_user_id.to_string());
+        let bg_color = avatar_color(avatar_user_id.as_str());
+        self.set_background_color(cx, bg_color);
 
         // Set the sender's avatar image, or use the username if no image is available.
         avatar_img_opt.and_then(|image| {
@@ -383,7 +556,7 @@ impl Avatar {
         }).unwrap_or_else(|| {
             self.show_text(
                 cx,
-                None,
+                Some(bg_color),
                 is_clickable.then(|| AvatarTextInfo::from((
                     avatar_user_id.to_owned(),
                     username_opt,
@@ -397,6 +570,24 @@ impl Avatar {
 }
 
 impl AvatarRef {
+    /// Displays a room photo, a member mosaic, or the room's initial.
+    pub fn show_room_avatar(&self, cx: &mut Cx, avatar: &FetchedRoomAvatar) {
+        match avatar {
+            FetchedRoomAvatar::Text(text) => self.show_text(cx, None, None, text),
+            FetchedRoomAvatar::Image(image) => {
+                let _ = self.show_image(cx, None, |cx, img| utils::load_avatar_image(&img, cx, image));
+            }
+            FetchedRoomAvatar::Members(members) => {
+                if let Some(mut inner) = self.borrow_mut() { inner.show_members(cx, members); }
+            }
+        }
+    }
+
+    /// Shows a non-clickable user's initials with the same color as their chat avatar.
+    pub fn show_user_text(&self, cx: &mut Cx, user_id: &UserId, username: &str) {
+        self.show_text(cx, Some(avatar_color(user_id.as_str())), None, username);
+    }
+
     /// See [`Avatar::show_text()`].
     pub fn show_text<T: AsRef<str>>(
         &self,
@@ -557,5 +748,33 @@ impl AvatarState {
     /// i.e. it is `Known(Some)` or `Loaded`.
     pub fn has_avatar(&self) -> bool {
         matches!(self, Self::Known(Some(_)) | Self::Loaded(_))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn member_tiles_are_square_bounded_and_separated() {
+        for side in [18., 36., 48., 96.] {
+            for count in 1..=9 {
+                let rects = member_tile_rects(count, dvec2(side, side));
+                assert_eq!(rects.len(), count);
+                for (index, rect) in rects.iter().enumerate() {
+                    assert!(rect.size.x > 0. && rect.size.x == rect.size.y);
+                    assert!(rect.pos.x >= 0. && rect.pos.y >= 0.);
+                    assert!(rect.pos.x + rect.size.x <= side && rect.pos.y + rect.size.y <= side);
+                    for other in &rects[..index] {
+                        assert!(rect.pos.x >= other.pos.x + other.size.x
+                            || other.pos.x >= rect.pos.x + rect.size.x
+                            || rect.pos.y >= other.pos.y + other.size.y
+                            || other.pos.y >= rect.pos.y + rect.size.y);
+                    }
+                }
+            }
+        }
+        assert!(member_tile_rects(0, dvec2(36., 36.)).is_empty());
+        assert_eq!(member_tile_rects(100, dvec2(36., 36.)).len(), 9);
     }
 }

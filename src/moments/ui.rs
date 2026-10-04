@@ -150,21 +150,21 @@ script_mod! {
     use mod.prelude.widgets.*
     use mod.widgets.*
     let ActionButton = RobrixNeutralIconButton {width: Fill height: 40 spacing: 0 icon_walk: Walk{width: 0 height: 0}
-        draw_bg +: {color: #x00000000 color_hover: #xe4e4e4 color_down: #xd0d0d0}
+        draw_bg +: {color: #x00000000 color_hover: mod.widgets.RINX_HOVER color_down: mod.widgets.RINX_PRESSED}
     }
-    let Hint = Label {width: Fill height: Fit flow: Flow.Right{wrap: true} draw_text +: {color: #x888888 text_style: theme.font_regular{font_size: 10}}}
-    let Body = Label {width: Fill height: Fit flow: Flow.Right{wrap: true} draw_text +: {color: #x191919 text_style: theme.font_regular{font_size: 12}}}
+    let Hint = Label {width: Fill height: Fit flow: Flow.Right{wrap: true} draw_text +: {color: mod.widgets.RINX_MUTED text_style: theme.font_regular{font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}}}
+    let Body = Label {width: Fill height: Fit flow: Flow.Right{wrap: true} draw_text +: {color: mod.widgets.RINX_INK text_style: theme.font_regular{font_size: (12 * mod.widgets.RINX_TEXT_SCALE)}}}
     // A photo cropped to fill its square grid cell, like WeChat Moments.
     let Photo = TextOrImage {width: Fill height: Fill
         image_view +: {height: Fill image +: {width: Fill height: Fill fit: ImageFit.CropToFill}}
-        text_view +: {height: Fill label +: {max_lines: 2 draw_text.text_style.font_size: 9}}
+        text_view +: {height: Fill label +: {max_lines: 2 draw_text.text_style.font_size: (9 * mod.widgets.RINX_TEXT_SCALE)}}
     }
     // Keeps its third of the row even when its photo is hidden, so a partly
     // filled row doesn't stretch its photos.
     let Cell = View {width: Fill height: Fill}
     mod.widgets.MomentsPanel = #(MomentsPanel::register_widget(vm)) {
         ..mod.widgets.SolidView
-        width: Fill height: Fill flow: Down draw_bg.color: #xededed
+        width: Fill height: Fill flow: Down draw_bg.color: mod.widgets.RINX_PAGE
         padding: Inset{top: SAFE_INSET_PAD_TOP + #(CAPTION) bottom: SAFE_INSET_PAD_BOTTOM}
         header := DetailHeader {title.text: #(crate::i18n::tr("Moments")) title.i18n_text: "Moments"}
         moments_status := Hint {margin: Inset{left: 16 right: 16 top: 6 bottom: 6}}
@@ -177,15 +177,15 @@ script_mod! {
             }
             moments_feed := PortalList {width: Fill height: Fill
                 Cover := SolidView {width: Fill height: 158 flow: Down padding: 22 align: Align{y: 1.0} spacing: 8
-                    draw_bg.color: #x344d43
-                    cover_name := Label {width: Fill flow: Flow.Right{wrap: true} draw_text +: {color: #xffffff text_style: theme.font_bold{font_size: 19}}}
-                    Label {text: #(crate::i18n::tr("Small moments, shared with friends")) i18n_text: "Small moments, shared with friends" draw_text +: {color: #xc5d9cd text_style: theme.font_regular{font_size: 10}}}
+                    draw_bg.color: mod.widgets.RINX_FIELD
+                    cover_name := Label {width: Fill flow: Flow.Right{wrap: true} draw_text +: {color: mod.widgets.RINX_INK text_style: theme.font_bold{font_size: (19 * mod.widgets.RINX_TEXT_SCALE)}}}
+                    Label {text: #(crate::i18n::tr("Small moments, shared with friends")) i18n_text: "Small moments, shared with friends" draw_text +: {color: mod.widgets.RINX_MUTED text_style: theme.font_regular{font_size: (10 * mod.widgets.RINX_TEXT_SCALE)}}}
                 }
                 Post := NavigationBarButton {width: Fill height: Fit flow: Right padding: 16 spacing: 12 align: Align{x: 0.0 y: 0.0}
-                    draw_bg +: {color_hover: #xf4f4f4 border_radius: 0 get_color: fn() -> vec4{return #xffffff.mix(self.color_hover,self.hover)}}
+                    draw_bg +: {color_hover: mod.widgets.RINX_HOVER border_radius: 0 get_color: fn() -> vec4{return mod.widgets.RINX_ON_ACCENT.mix(self.color_hover,self.hover)}}
                     post_avatar := MobileAvatar {width: 38 height: 38}
                     View {width: Fill height: Fit flow: Down spacing: 10
-                    post_author := Label {width: Fill max_lines: 1 text_overflow: Ellipsis draw_text +: {color: #x576b95 text_style: theme.font_bold{font_size: 12}}}
+                    post_author := Label {width: Fill max_lines: 1 text_overflow: Ellipsis draw_text +: {color: mod.widgets.RINX_ACCENT text_style: theme.font_bold{font_size: (12 * mod.widgets.RINX_TEXT_SCALE)}}}
                     post_body := Body {max_lines: 6 text_overflow: Ellipsis}
                     // Rows are made square-celled at draw time; see `square_album_rows()`.
                     // The transparent backgrounds give the grid and rows a measurable area.
@@ -195,11 +195,11 @@ script_mod! {
                         row2 := View {width: Fill height: 82 flow: Right spacing: 3 show_bg: true draw_bg.color: #x00000000 Cell{a6 := Photo{}} Cell{a7 := Photo{}} Cell{a8 := Photo{}}}
                     }
                     post_meta := Hint {}
-                    post_interactions := Hint {draw_text.color: #x576b95}
-                    SolidView {width: Fill height: 0.5 draw_bg.color: #xe5e5e5}
+                    post_interactions := Hint {draw_text.color: mod.widgets.RINX_ACCENT}
+                    SolidView {width: Fill height: 0.5 draw_bg.color: mod.widgets.RINX_BORDER}
                     }
                 }
-                Filler := SolidView {width: Fill height: 100 draw_bg.color: #xffffff}
+                Filler := SolidView {width: Fill height: 100 draw_bg.color: mod.widgets.RINX_SURFACE}
                 Empty := View {width: Fill height: Fit padding: 24
                     empty_text := Body {text: #(crate::i18n::tr("No posts yet. Post your first moment, or accept a friend's timeline invitation.")) i18n_text: "No posts yet. Post your first moment, or accept a friend's timeline invitation."}
                 }
@@ -207,7 +207,7 @@ script_mod! {
             moments_more := ActionButton {text: #(crate::i18n::tr("Load older / more timelines")) i18n_text: "Load older / more timelines"}
         }
         compose_page := ScrollYView {visible: false width: Fill height: Fill flow: Down padding: 16 spacing: 14
-            composer_audience := Body {draw_text.color: #x576b95}
+            composer_audience := Body {draw_text.color: mod.widgets.RINX_ACCENT}
             Hint {text: #(crate::i18n::tr("Everyone in this timeline can see its posts, comments, likes and members. Invitations apply to this whole timeline. Earlier history may be unavailable to new viewers.")) i18n_text: "Everyone in this timeline can see its posts, comments, likes and members. Invitations apply to this whole timeline. Earlier history may be unavailable to new viewers."}
             moments_body := TextInput {width: Fill height: 150 empty_text: #(crate::i18n::tr("What's on your mind?")) i18n_empty_text: "What's on your mind?" is_multiline: true}
             // Thumbnails of the photos/videos picked for this post, in a 3x3 grid like WeChat.
@@ -230,7 +230,7 @@ script_mod! {
         }
         details_page := View {visible: false width: Fill height: Fill flow: Down
             details_scroll := ScrollYView {width: Fill height: Fill flow: Down padding: 16 spacing: 14
-                detail_author := Body {draw_text.color: #x576b95}
+                detail_author := Body {draw_text.color: mod.widgets.RINX_ACCENT}
                 detail_body := Body {}
                 detail_media := TextOrImage {width: Fill height: 260 visible: false image_view +: {height: Fill image +: {height: Fill fit: ImageFit.Smallest}}}
                 media_controls := View {width: Fill height: 40 flow: Right spacing: 8 visible: false
@@ -239,19 +239,19 @@ script_mod! {
                     media_next := ActionButton {text: #(crate::i18n::tr("Next")) i18n_text: "Next"}
                 }
                 detail_meta := Hint {}
-                detail_likes := Body {draw_text.color: #x576b95}
+                detail_likes := Body {draw_text.color: mod.widgets.RINX_ACCENT}
                 View {width: Fill height: 40 flow: Right spacing: 8
                     moments_like := ActionButton {text: #(crate::i18n::tr("Like")) i18n_text: "Like"}
                     moments_hide := ActionButton {text: #(crate::i18n::tr("Hide author")) i18n_text: "Hide author"}
                 }
                 owner_actions := View {width: Fill height: 40 flow: Right spacing: 8
                     moments_edit := ActionButton {text: #(crate::i18n::tr("Edit post")) i18n_text: "Edit post"}
-                    moments_delete := ActionButton {text: #(crate::i18n::tr("Delete post")) i18n_text: "Delete post" draw_text.color: #xfa5151}
+                    moments_delete := ActionButton {text: #(crate::i18n::tr("Delete post")) i18n_text: "Delete post" draw_text.color: mod.widgets.RINX_DANGER_FG}
                 }
                 Body {text: #(crate::i18n::tr("Comments")) i18n_text: "Comments"}
                 comments := PortalList {width: Fill height: 220
                     Comment := View {width: Fill height: Fit flow: Down padding: Inset{top: 8 bottom: 8} spacing: 4
-                        comment_name := Hint {draw_text.color: #x576b95}
+                        comment_name := Hint {draw_text.color: mod.widgets.RINX_ACCENT}
                         comment_body := Body {}
                         comment_actions := View {width: Fill height: 32 flow: Right
                             comment_edit := ActionButton {text: #(crate::i18n::tr("Edit")) i18n_text: "Edit" height: 32}
@@ -275,16 +275,16 @@ script_mod! {
                     draw_bg +: {pixel: fn() {
                         let sdf = Sdf2d.viewport(self.pos * self.rect_size)
                         sdf.box(0.0, 0.0, 46.0, 28.0, 14.0)
-                        sdf.fill((#xdcdcdc).mix(#x07c160, self.active))
+                        sdf.fill((mod.widgets.RINX_PRESSED).mix(mod.widgets.RINX_ACCENT, self.active))
                         sdf.circle(14.0 + 18.0 * self.active, 14.0, 12.0)
-                        sdf.fill(#xffffff)
+                        sdf.fill(mod.widgets.RINX_SURFACE)
                         return sdf.result
                     }}
                 }
             }
             Hint {text: #(crate::i18n::tr("DM contacts who use Rinx and share this way join your audience automatically, and you join theirs. On by default; your Matrix profile shows that you share this way.")) i18n_text: "DM contacts who use Rinx and share this way join your audience automatically, and you join theirs. On by default; your Matrix profile shows that you share this way."}
             Hint {text: #(crate::i18n::tr("One audience for all your posts. Viewers see each other's comments, likes and membership. Removing a viewer prevents future access after sync; it cannot recall content already received.")) i18n_text: "One audience for all your posts. Viewers see each other's comments, likes and membership. Removing a viewer prevents future access after sync; it cannot recall content already received."}
-            audience_name := Body {draw_text.color: #x576b95}
+            audience_name := Body {draw_text.color: mod.widgets.RINX_ACCENT}
             setup_recovery := View {visible: false width: Fill height: Fit flow: Down spacing: 6
                 Hint {text: #(crate::i18n::tr("If earlier setup never completed, retry after reconnecting. Any duplicate timelines stay separate; their audiences will never be merged.")) i18n_text: "If earlier setup never completed, retry after reconnecting. Any duplicate timelines stay separate; their audiences will never be merged."}
                 moments_retry_setup := ActionButton {text: #(crate::i18n::tr("Retry timeline setup")) i18n_text: "Retry timeline setup"}
@@ -292,7 +292,7 @@ script_mod! {
             audience_list := PortalList {width: Fill height: Fill
                 Member := View {width: Fill height: Fit flow: Down padding: Inset{top: 8 bottom: 8} spacing: 5
                     member_name := Body {} member_id := Hint {}
-                    remove_viewer := ActionButton {text: #(crate::i18n::tr("Remove viewer")) i18n_text: "Remove viewer" height: 32 draw_text.color: #xfa5151}
+                    remove_viewer := ActionButton {text: #(crate::i18n::tr("Remove viewer")) i18n_text: "Remove viewer" height: 32 draw_text.color: mod.widgets.RINX_DANGER_FG}
                 }
                 Choice := View {width: Fill height: Fit flow: Down spacing: 6 padding: 8
                     choice_name := Body {} choose_timeline := ActionButton {text: #(crate::i18n::tr("Use this timeline")) i18n_text: "Use this timeline"}

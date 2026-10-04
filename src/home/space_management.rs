@@ -347,13 +347,13 @@ struct LinkFinished {
 script_mod! {
     use mod.prelude.widgets.*
     use mod.widgets.*
-    let Text = Label {width: Fill height: Fit flow: Flow.Right{wrap: true} draw_text +: {color: #x333333 text_style: theme.font_regular{font_size: 11}}}
+    let Text = Label {width: Fill height: Fit flow: Flow.Right{wrap: true} draw_text +: {color: mod.widgets.RINX_INK text_style: theme.font_regular{font_size: (11 * mod.widgets.RINX_TEXT_SCALE)}}}
     let Action = RobrixNeutralIconButton {height: 40 icon_walk: Walk{width: 0 height: 0} spacing: 0}
     let Input = TextInput {width: Fill height: 40}
     mod.widgets.SpaceManagementPanel = #(SpaceManagementPanel::register_widget(vm)) {
         ..mod.widgets.SolidView
         width: Fill height: Fill flow: Down padding: Inset{top: 32 left: 16 right: 16 bottom: 12} spacing: 8
-        draw_bg.color: #xf7f7f7
+        draw_bg.color: mod.widgets.RINX_PAGE
         View {width: Fill height: 40 spacing: 8 align: Align{y: 0.5}
             close := Action {text: #(crate::i18n::tr("Back")) i18n_text: "Back"}
             refresh := Action {text: #(crate::i18n::tr("Refresh")) i18n_text: "Refresh"}
@@ -383,7 +383,7 @@ script_mod! {
             rooms := PortalList {width: Fill height: Fill
                 Row := View {width: Fill height: Fit flow: Down padding: 8 spacing: 4
                     name := Text {}
-                    id := Text {draw_text.color: #x777777}
+                    id := Text {draw_text.color: mod.widgets.RINX_MUTED}
                     toggle := Action {width: Fill}
                 }
             }

@@ -17,10 +17,10 @@ script_mod! {
         window.title: "Moments"
         pass.clear_color: #FFFFFF00
         caption_bar +: {
-            draw_bg.color: #xededed
+            draw_bg.color: mod.widgets.RINX_PAGE
             caption_label +: {
                 label +: {
-                    draw_text +: { color: #0 }
+                    draw_text +: { color: mod.widgets.RINX_INK }
                     text: "Moments"
                 }
             }
@@ -47,7 +47,22 @@ pub struct MomentsWindowHost {
     #[rust] closing: bool,
 }
 
-impl ScriptHook for MomentsWindowHost {}
+impl ScriptHook for MomentsWindowHost {
+    fn on_after_apply(
+        &mut self,
+        vm: &mut ScriptVm,
+        apply: &Apply,
+        scope: &mut Scope,
+        _value: ScriptValue,
+    ) {
+        if apply.is_script_reapply() {
+            if let Some(window) = &mut self.window {
+                let value = script_eval!(vm, { mod.widgets.MomentsWindow {} });
+                window.script_apply(vm, apply, scope, value);
+            }
+        }
+    }
+}
 
 impl WidgetNode for MomentsWindowHost {
     fn widget_uid(&self) -> WidgetUid { self.uid }
