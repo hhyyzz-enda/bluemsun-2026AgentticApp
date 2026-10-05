@@ -300,6 +300,9 @@ script_mod! {
                 DocRow := mod.widgets.WritingRow {
                     View {width: Fill height: Fit flow: Right align: Align{y: 0.5} spacing: 4
                         doc_title := mod.widgets.WritingStage {width: Fill draw_text +: {text_style: theme.font_bold{font_size: 14.5}}}
+                        // Graft this draft into the article studio for layout,
+                        // a direct "writing -> article" handover per row.
+                        doc_send := mod.widgets.WritingIconButton {width: 36 height: 36 icon_walk: Walk{width: 16 height: 16} draw_icon +: {svg: crate_resource("self://resources/icons/writing-studio.svg")}}
                         doc_delete := mod.widgets.WritingIconButton {width: 36 height: 36 icon_walk: Walk{width: 16 height: 16} draw_icon +: {svg: (mod.widgets.ICON_TRASH)}}
                     }
                     doc_preview := mod.widgets.WritingBody {max_lines: 1}
@@ -1175,6 +1178,27 @@ impl WritingPanel {
         self.show(cx, Page::Edit);
     }
 
+    /// Direct "writing -> article studio" handover from a library row: grafts
+    /// the whole draft into the article editor's library (stable article id,
+    /// version-free) and opens the layout studio on it. Mirrors the Publish →
+    /// Article destination, minus the publish flow.
+    fn send_to_article(&mut self, cx: &mut Cx, doc_id: &str) {
+        let Some(grant) = self.grant.clone() else { return };
+        let doc = studio(|s| s.document(doc_id).cloned());
+        let Some(doc) = doc else {
+            self.status(cx, "Pick a document first");
+            return;
+        };
+        match graft::send_to_article_editor(crate::app_data_dir(), &grant, &doc, now()) {
+            Ok(_) => {
+                // Hand over: open the layout studio on the draft.
+                cx.action(crate::article_app::ArticleAction::Open);
+                self.status(cx, &tr("Sent to the article editor; open the layout studio to continue"));
+            }
+            Err(e) => self.status(cx, &e),
+        }
+    }
+
     /// Publishing is never part of applying: each destination is confirmed
     /// on its own, with the destination named at the moment of execution.
     fn publish(&mut self, cx: &mut Cx) {
@@ -1454,6 +1478,13 @@ impl Widget for WritingPanel {
                     .unwrap_or_default();
                     if !id.is_empty() {
                         self.show_delete_overlay(cx, PendingDeleteKind::Document, &id, &label);
+                    }
+                    break;
+                }
+                if item.button(cx, ids!(doc_send)).clicked(actions) {
+                    let id = studio(|s| s.documents.get(index).map(|d| d.id.clone()));
+                    if let Some(id) = id {
+                        self.send_to_article(cx, &id);
                     }
                     break;
                 }
