@@ -76,6 +76,8 @@ pub enum WritingAction {
     /// from the article editor — pulls that article back here for continued
     /// rewriting. The article's `source_writing` aligns versions.
     ImportArticle { article_id: String },
+    /// Returns to the document library list.
+    BackToLibrary,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -342,6 +344,7 @@ script_mod! {
 
         // -- 02 · Edit: draft, select, request --------------------------------
         edit := ScrollYView {visible: false width: Fill height: Fill flow: Down padding: Inset{left: 24 right: 24 top: 22 bottom: 16} spacing: 14
+            back_btn := mod.widgets.WritingButton {width: Fit text: #(crate::i18n::tr("← Back to library")) i18n_text: "← Back to library"}
             mod.widgets.WritingMeta {text: #(crate::i18n::tr("W R I T I N G   A T E L I E R")) i18n_text: "W R I T I N G   A T E L I E R"}
             SolidView {width: 92 height: 1 draw_bg.color: #x1010101f}
             mod.widgets.WritingStage {text: #(crate::i18n::tr("01 / Drafting")) i18n_text: "01 / Drafting"}
@@ -409,8 +412,15 @@ script_mod! {
                 review_citations := mod.widgets.WritingMeta {width: Fill}
                 mod.widgets.WritingCard {padding: 18 spacing: 8
                     mod.widgets.WritingMeta {text: #(crate::i18n::tr("Changes")) i18n_text: "Changes"}
-                    diff_adds := mod.widgets.WritingLabel {draw_text +: {color: #x101010 text_style: theme.font_bold{font_size: 12.5 line_spacing: 1.5}}}
-                    diff_dels := mod.widgets.WritingLabel {draw_text +: {color: #x10101066 text_style: theme.font_regular{font_size: 12.5 line_spacing: 1.5}}}
+                    diff_list := PortalList {width: Fill height: Flow Down spacing: 4
+                        DiffRow := View {width: Fill height: Fit flow: Down padding: 6 spacing: 0
+                            draw_bg: {
+                                color: #x00000000
+                                border_radius: 4.0
+                            }
+                            diff_text := mod.widgets.WritingLabel {draw_text +: {text_style: theme.font_regular{font_size: 12.5 line_spacing: 1.5}}}
+                        }
+                    }
                 }
                 to_confirm := mod.widgets.WritingPrimary {width: Fill text: #(crate::i18n::tr("Continue to confirm")) i18n_text: "Continue to confirm"}
             }
@@ -561,6 +571,9 @@ pub struct WritingPanel {
     /// the `ArticleImport` page opens.
     #[rust]
     import_articles: Vec<(String, String, u64)>,
+    /// Current review-page diff runs for inline highlighting.
+    #[rust]
+    diff_runs: Vec<(DiffOp, String)>,
 }
 
 /// What the overlay is asking about: either a whole document or a single
@@ -797,21 +810,8 @@ impl WritingPanel {
             String::new()
         };
         self.label(cx, ids!(review_citations)).set_text(cx, &citation_line);
-        // Word-level diff, rendered as change runs: additions in bold ink,
-        // deletions in grey (run-level strikethrough is not available in the
-        // DSL, so deletions read "− …" — noted in the delivery report).
-        let runs = diff::runs(diff::diff(&task.selection.text_snapshot, &proposal));
-        let fmt = |op: DiffOp, prefix: &str| {
-            runs.iter()
-                .filter(|(o, _)| *o == op)
-                .take(8)
-                .map(|(_, t)| format!("{prefix}{}", t.trim()))
-                .filter(|l| l.len() > prefix.len())
-                .collect::<Vec<_>>()
-                .join("   ")
-        };
-        self.label(cx, ids!(diff_adds)).set_text(cx, &fmt(DiffOp::Add, "＋ "));
-        self.label(cx, ids!(diff_dels)).set_text(cx, &fmt(DiffOp::Del, "− "));
+        // Word-level diff runs for inline highlighting in the portal list.
+        self.diff_runs = diff::runs(diff::diff(&task.selection.text_snapshot, &proposal));
     }
 
     fn bind_confirm(&self, cx: &mut Cx) {
@@ -1463,13 +1463,6 @@ impl Widget for WritingPanel {
                 if jumped {
                     break;
                 }
-                if item.as_navigation_bar_button().clicked(actions) {
-                    let id = studio(|s| s.documents.get(index).map(|d| d.id.clone()));
-                    if let Some(id) = id {
-                        self.open_doc(cx, id);
-                    }
-                    break;
-                }
                 if item.button(cx, ids!(doc_delete)).clicked(actions) {
                     let (id, label) = studio(|s| {
                         let d = s.documents.get(index)?;
@@ -1485,6 +1478,13 @@ impl Widget for WritingPanel {
                     let id = studio(|s| s.documents.get(index).map(|d| d.id.clone()));
                     if let Some(id) = id {
                         self.send_to_article(cx, &id);
+                    }
+                    break;
+                }
+                if item.as_navigation_bar_button().clicked(actions) {
+                    let id = studio(|s| s.documents.get(index).map(|d| d.id.clone()));
+                    if let Some(id) = id {
+                        self.open_doc(cx, id);
                     }
                     break;
                 }
@@ -1537,6 +1537,10 @@ impl Widget for WritingPanel {
                     id
                 });
                 self.open_doc(cx, id);
+            }
+            if self.button(cx, ids!(back_btn)).clicked(actions) {
+                self.doc_id = None;
+                self.show(cx, Page::Library);
             }
             // Pull-back: open the article-library picker; a picked article is
             // aligned against the desk and opened for continued rewriting.
@@ -1692,6 +1696,7 @@ impl Widget for WritingPanel {
             let docs = uid == self.portal_list(cx, ids!(doc_list)).widget_uid();
             let tasks = uid == self.portal_list(cx, ids!(task_list)).widget_uid();
             let imports = uid == self.portal_list(cx, ids!(import_list)).widget_uid();
+            let diffs = uid == self.portal_list(cx, ids!(diff_list)).widget_uid();
             if let Some(mut list) = item.borrow_mut::<PortalList>() {
                 let count = studio(|s| {
                     if docs {
@@ -1700,6 +1705,8 @@ impl Widget for WritingPanel {
                         self.doc_id.as_ref().map_or(0, |d| s.tasks_of(d).len())
                     } else if imports {
                         self.import_articles.len()
+                    } else if diffs {
+                        self.diff_runs.len()
                     } else {
                         0
                     }
@@ -1795,6 +1802,22 @@ impl Widget for WritingPanel {
                             row.label(cx, ids!(import_meta)).set_text(cx, &meta);
                         }
                         row.draw_all(cx, &mut Scope::empty());
+                    } else if diffs {
+                        let row = list.item(cx, index, id!(DiffRow));
+                        if let Some((op, text)) = self.diff_runs.get(index) {
+                            let trimmed = text.trim();
+                            if trimmed.is_empty() {
+                                row.label(cx, ids!(diff_text)).set_text(cx, "");
+                            } else {
+                                let prefix = match op {
+                                    DiffOp::Add => "＋ ",
+                                    DiffOp::Del => "− ",
+                                    DiffOp::Keep => "",
+                                };
+                                row.label(cx, ids!(diff_text)).set_text(cx, &format!("{}{}", prefix, trimmed));
+                            }
+                        }
+                        row.draw_all(cx, &mut Scope::empty());
                     }
                 }
             }
@@ -1862,8 +1885,7 @@ impl WritingPanelRef {
                 // on-disk state is already persisted.
                 if let Some(g) = panel.grant.take() {
                     g.revoke()
-                }
-                // Re-issue the store's lease so the surviving face keeps a
+                }                // Re-issue the store's lease so the surviving face keeps a
                 // valid grant for write-through.
                 if let Some(owner) = current_user_id() {
                     studio(|s| {
@@ -1876,6 +1898,12 @@ impl WritingPanelRef {
                 panel.owner = None;
                 cx.stop_timer(panel.sync_timer);
                 modal.close(cx);
+            }
+            WritingAction::BackToLibrary => {
+                panel.doc_id = None;
+                panel.task_id = None;
+                studio(|s| s.focus_doc = None);
+                panel.show(cx, Page::Library);
             }
             // Delete flows: the in-panel buttons call the helpers directly,
             // these variants are the programmatic entry points (e.g. a future
