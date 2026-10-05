@@ -1304,5 +1304,17 @@
   "Theme file sent": "主题文件已发送",
   "Theme imported. Preview it before applying.": "主题已导入，请先预览再应用。",
   "System": "跟随系统",
-  "Duplicate": "创建副本"
+  "Duplicate": "创建副本",
+  "Pull back from the article studio": "从图文工作室拉回",
+  "A R T I C L E   S T U D I O": "图 文 工 作 室",
+  "Pull back into writing": "拉回写作工作室",
+  "Article library": "图文工作室文章库",
+  "Pick an article to pull back for continued rewriting; versions realign automatically.": "选择一篇图文文章拉回写作工作室继续改写，版本会自动对齐。",
+  "Back to library": "返回文档库",
+  "Aligned with the article studio draft": "已与图文工作室草稿对齐",
+  "Imported from the article studio": "已从图文工作室导入",
+  "Both sides changed; imported as a new document": "图文与写作均有修改，已作为新文档导入",
+  "Pulled back": "（图文拉回）",
+  "Article studio": "图文工作室",
+  "Article studio · {time}": "图文工作室 · {time}"
 }

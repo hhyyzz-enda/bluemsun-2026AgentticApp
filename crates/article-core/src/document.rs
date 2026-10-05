@@ -368,12 +368,29 @@ pub struct Document {
     /// Filesystem paths stay in host-only local metadata, never publications.
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub resource_bindings: std::collections::BTreeMap<String, String>,
+    /// Set when the article was sent from the writing studio: the source
+    /// document id and the version at send time, used by the pull-back path
+    /// to align versions instead of forking or overwriting.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_writing: Option<WritingSource>,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ImportedSource {
     pub text: String,
     pub blocks_hash: String,
+}
+
+/// Provenance of an article that was sent over from the writing studio.
+/// Carried on the article document so the reverse trip can find the source
+/// document and realign versions instead of silently forking or overwriting.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WritingSource {
+    pub doc_id: String,
+    pub version: u64,
+    /// When the writing studio sent this draft over (epoch seconds).
+    pub at: u64,
 }
 impl Default for Document {
     fn default() -> Self {
@@ -392,14 +409,16 @@ impl Default for Document {
             reference_definitions: String::new(),
             imported_source: None,
             resource_bindings: Default::default(),
+            source_writing: None,
         }
     }
 }
 impl Document {
     pub fn validate(&self) -> Result<(), String> {
-        if self.schema != 2
+        if !matches!(self.schema, 2 | 3)
             || self.reference_definitions.len() > MAX_BODY
             || self.imported_source.as_ref().is_some_and(|s| s.text.len() > MAX_BODY || s.blocks_hash.len() != 64)
+            || self.source_writing.as_ref().is_some_and(|s| !valid_id(&s.doc_id))
             || !valid_id(&self.id)
             || self.title.chars().count() > 120
             || self.title.chars().any(char::is_control)

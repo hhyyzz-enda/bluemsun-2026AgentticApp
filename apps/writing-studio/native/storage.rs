@@ -46,8 +46,12 @@ fn directory(root: &Path, grant: &Grant) -> PathBuf {
         .join(APP_ID)
 }
 
-fn validate_document(doc: &Document) -> Result<(), String> {
+pub(super) fn validate_document(doc: &Document) -> Result<(), String> {
     if !article_core::document::valid_id(&doc.id)
+        || doc
+            .article_id
+            .as_ref()
+            .is_some_and(|id| !article_core::document::valid_id(id))
         || doc.title.len() > 1000
         || doc.paragraphs.iter().map(|p| p.len()).sum::<usize>() > MAX_TEXT
         || doc.paragraphs.len() > 500
