@@ -412,15 +412,8 @@ script_mod! {
                 review_citations := mod.widgets.WritingMeta {width: Fill}
                 mod.widgets.WritingCard {padding: 18 spacing: 8
                     mod.widgets.WritingMeta {text: #(crate::i18n::tr("Changes")) i18n_text: "Changes"}
-                    diff_list := PortalList {width: Fill height: Flow Down spacing: 4
-                        DiffRow := View {width: Fill height: Fit flow: Down padding: 6 spacing: 0
-                            draw_bg: {
-                                color: #x00000000
-                                border_radius: 4.0
-                            }
-                            diff_text := mod.widgets.WritingLabel {draw_text +: {text_style: theme.font_regular{font_size: 12.5 line_spacing: 1.5}}}
-                        }
-                    }
+                    diff_adds := mod.widgets.WritingLabel {draw_text +: {color: #x101010 text_style: theme.font_bold{font_size: 12.5 line_spacing: 1.5}}}
+                    diff_dels := mod.widgets.WritingLabel {draw_text +: {color: #x10101066 text_style: theme.font_regular{font_size: 12.5 line_spacing: 1.5}}}
                 }
                 to_confirm := mod.widgets.WritingPrimary {width: Fill text: #(crate::i18n::tr("Continue to confirm")) i18n_text: "Continue to confirm"}
             }
@@ -574,6 +567,9 @@ pub struct WritingPanel {
     /// Current review-page diff runs for inline highlighting.
     #[rust]
     diff_runs: Vec<(DiffOp, String)>,
+    /// Library search query; empty shows all docs.
+    #[rust]
+    search_query: String,
 }
 
 /// What the overlay is asking about: either a whole document or a single
@@ -810,8 +806,19 @@ impl WritingPanel {
             String::new()
         };
         self.label(cx, ids!(review_citations)).set_text(cx, &citation_line);
-        // Word-level diff runs for inline highlighting in the portal list.
-        self.diff_runs = diff::runs(diff::diff(&task.selection.text_snapshot, &proposal));
+        // Word-level diff, rendered as change runs.
+        let runs = diff::runs(diff::diff(&task.selection.text_snapshot, &proposal));
+        let fmt = |op: DiffOp, prefix: &str| {
+            runs.iter()
+                .filter(|(o, _)| *o == op)
+                .take(8)
+                .map(|(_, t)| format!("{prefix}{}", t.trim()))
+                .filter(|l| l.len() > prefix.len())
+                .collect::<Vec<_>>()
+                .join("   ")
+        };
+        self.label(cx, ids!(diff_adds)).set_text(cx, &fmt(DiffOp::Add, "＋ "));
+        self.label(cx, ids!(diff_dels)).set_text(cx, &fmt(DiffOp::Del, "− "));
     }
 
     fn bind_confirm(&self, cx: &mut Cx) {
@@ -1696,7 +1703,6 @@ impl Widget for WritingPanel {
             let docs = uid == self.portal_list(cx, ids!(doc_list)).widget_uid();
             let tasks = uid == self.portal_list(cx, ids!(task_list)).widget_uid();
             let imports = uid == self.portal_list(cx, ids!(import_list)).widget_uid();
-            let diffs = uid == self.portal_list(cx, ids!(diff_list)).widget_uid();
             if let Some(mut list) = item.borrow_mut::<PortalList>() {
                 let count = studio(|s| {
                     if docs {
@@ -1705,8 +1711,6 @@ impl Widget for WritingPanel {
                         self.doc_id.as_ref().map_or(0, |d| s.tasks_of(d).len())
                     } else if imports {
                         self.import_articles.len()
-                    } else if diffs {
-                        self.diff_runs.len()
                     } else {
                         0
                     }
@@ -1800,22 +1804,6 @@ impl Widget for WritingPanel {
                                 crate::i18n::format("Article studio · {time}", &[("time", when)])
                             };
                             row.label(cx, ids!(import_meta)).set_text(cx, &meta);
-                        }
-                        row.draw_all(cx, &mut Scope::empty());
-                    } else if diffs {
-                        let row = list.item(cx, index, id!(DiffRow));
-                        if let Some((op, text)) = self.diff_runs.get(index) {
-                            let trimmed = text.trim();
-                            if trimmed.is_empty() {
-                                row.label(cx, ids!(diff_text)).set_text(cx, "");
-                            } else {
-                                let prefix = match op {
-                                    DiffOp::Add => "＋ ",
-                                    DiffOp::Del => "− ",
-                                    DiffOp::Keep => "",
-                                };
-                                row.label(cx, ids!(diff_text)).set_text(cx, &format!("{}{}", prefix, trimmed));
-                            }
                         }
                         row.draw_all(cx, &mut Scope::empty());
                     }
