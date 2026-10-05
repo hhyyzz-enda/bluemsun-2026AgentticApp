@@ -299,7 +299,12 @@ script_mod! {
                 // preview, stats, then the document's rewrite history (newest
                 // first, up to three lines). The whole card stays clickable
                 // (opens the doc); the trash icon absorbs its own clicks.
-                DocRow := mod.widgets.WritingRow {
+                DocRow := View {
+                    width: Fill height: Fit flow: Down padding: 18 spacing: 8 margin: Inset{bottom: 12}
+                    draw_bg +: {
+                        color: #xffffff color_hover: #xf5f5f2 color_active: #xf5f5f2
+                        border_size: 1.0 border_color: #x1010101f border_radius: 16.0
+                    }
                     View {width: Fill height: Fit flow: Right align: Align{y: 0.5} spacing: 4
                         doc_title := mod.widgets.WritingStage {width: Fill draw_text +: {text_style: theme.font_bold{font_size: 14.5}}}
                         // Graft this draft into the article studio for layout,
@@ -1488,13 +1493,14 @@ impl Widget for WritingPanel {
                     }
                     break;
                 }
-                if item.as_navigation_bar_button().clicked(actions) {
-                    let id = studio(|s| s.documents.get(index).map(|d| d.id.clone()));
-                    if let Some(id) = id {
-                        self.open_doc(cx, id);
-                    }
-                    break;
-                }
+                // TODO: whole-row click to open doc
+                // if item.as_navigation_bar_button().clicked(actions) {
+                //     let id = studio(|s| s.documents.get(index).map(|d| d.id.clone()));
+                //     if let Some(id) = id {
+                //         self.open_doc(cx, id);
+                //     }
+                //     break;
+                // }
             }
             for (index, item) in self.portal_list(cx, ids!(task_list)).items_with_actions(actions) {
                 if item.as_navigation_bar_button().clicked(actions) {
