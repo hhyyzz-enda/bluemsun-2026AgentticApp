@@ -2014,7 +2014,7 @@ impl ArticlePanel {
         self.button(cx, ids!(article_save))
             .set_visible(cx, page == Page::Edit);
         self.button(cx, ids!(article_to_writing))
-            .set_visible(cx, page == Page::Edit);
+            .set_visible(cx, matches!(page, Page::Edit | Page::Write));
         self.button(cx, ids!(preview_check))
             .set_visible(cx, page == Page::Preview && !self.reader_only);
         self.button(cx, ids!(css_preview_open)).set_visible(cx, cfg!(feature = "html_preview") && self.doc.is_html_source() && page == Page::Preview && !self.reader_only);
