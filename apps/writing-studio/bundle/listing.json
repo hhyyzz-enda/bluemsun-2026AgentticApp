@@ -1,0 +1,14 @@
+{
+  "summary": "AI-assisted writing studio: draft, request AI rewrites, review diffs, and publish.",
+  "description": "Writing Studio helps you draft documents, request AI rewrites with precise controls (concise, formal, keep citations), review word-level diffs side by side, and publish to chats or export as files. All your drafts are stored locally.",
+  "author": {
+    "name": "Bluemsun Team",
+    "url": "https://github.com/hhyyzz-enda/bluemsun-2026AgentticApp"
+  },
+  "screenshots": [
+    "screenshots/01-library.png",
+    "screenshots/02-editor.png",
+    "screenshots/03-review.png"
+  ],
+  "icon": "assets/icon.svg"
+}
