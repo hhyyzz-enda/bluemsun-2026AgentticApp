@@ -72,6 +72,10 @@ pub enum WritingAction {
     ConfirmDeleteTask(String),
     /// The overlay's "Cancel" button.
     CancelDelete,
+    /// Opens the studio on the article-library picker, or — when dispatched
+    /// from the article editor — pulls that article back here for continued
+    /// rewriting. The article's `source_writing` aligns versions.
+    ImportArticle { article_id: String },
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -83,6 +87,8 @@ enum Page {
     Confirm,
     Done,
     Publish,
+    /// The pull-back picker: articles from the layout studio, newest first.
+    ArticleImport,
 }
 
 const TOP: f64 = if cfg!(target_os = "macos") { 28.0 } else { 0.0 };
@@ -285,6 +291,7 @@ script_mod! {
             mod.widgets.WritingTitle {text: #(crate::i18n::tr("Drafts")) i18n_text: "Drafts"}
             mod.widgets.WritingBody {text: #(crate::i18n::tr("Pick a document, select a passage inside it, and request a rewrite you stay in control of.")) i18n_text: "Pick a document, select a passage inside it, and request a rewrite you stay in control of."}
             new_doc := mod.widgets.WritingPrimary {width: Fill text: #(crate::i18n::tr("New document")) i18n_text: "New document"}
+            import_btn := mod.widgets.WritingButton {width: Fill text: #(crate::i18n::tr("Pull back from the article studio")) i18n_text: "Pull back from the article studio"}
             doc_list := PortalList {width: Fill height: Fill
                 // A draft card: title + delete affordance on a top row,
                 // preview, stats, then the document's rewrite history (newest
@@ -461,6 +468,25 @@ script_mod! {
             publish_back := mod.widgets.WritingButton {width: Fill text: #(crate::i18n::tr("Back to document")) i18n_text: "Back to document"}
         }
 
+        // -- 07 · ArticleImport: pull a layout-studio article back for
+        // continued rewriting. Versions realign on the article provenance.
+        article_import := ScrollYView {visible: false width: Fill height: Fill flow: Down padding: Inset{left: 24 right: 24 top: 22 bottom: 16} spacing: 14
+            mod.widgets.WritingMeta {text: #(crate::i18n::tr("A R T I C L E   S T U D I O")) i18n_text: "A R T I C L E   S T U D I O"}
+            SolidView {width: 92 height: 1 draw_bg.color: #x1010101f}
+            mod.widgets.WritingStage {text: #(crate::i18n::tr("Pull back into writing")) i18n_text: "Pull back into writing"}
+            mod.widgets.WritingTitle {text: #(crate::i18n::tr("Article library")) i18n_text: "Article library"}
+            mod.widgets.WritingBody {text: #(crate::i18n::tr("Pick an article to pull back for continued rewriting; versions realign automatically.")) i18n_text: "Pick an article to pull back for continued rewriting; versions realign automatically."}
+            import_back := mod.widgets.WritingButton {width: Fill text: #(crate::i18n::tr("Back to library")) i18n_text: "Back to library"}
+            import_close := mod.widgets.WritingIconButton {draw_icon +: {svg: ICON_CLOSE}}
+            import_list := PortalList {width: Fill height: Fill
+                // An article row: title and provenance metadata.
+                ImportRow := mod.widgets.WritingRow {
+                    import_title := mod.widgets.WritingStage {draw_text +: {text_style: theme.font_bold{font_size: 14.5}}}
+                    import_meta := mod.widgets.WritingMeta {}
+                }
+            }
+        }
+
         status_wrap := View {width: Fill height: Fit flow: Down padding: Inset{left: 24 right: 24 top: 8 bottom: 16} spacing: 8
             mod.widgets.WritingRule {}
             writing_status := mod.widgets.WritingLabel {draw_text +: {color: #x10101099 text_style: theme.font_regular{font_size: 11 line_spacing: 1.3}}}
@@ -528,6 +554,10 @@ pub struct WritingPanel {
     /// short description shown in the confirm body line.
     #[rust]
     pending_delete: Option<PendingDelete>,
+    /// The pull-back picker list: (article id, title, modified), loaded when
+    /// the `ArticleImport` page opens.
+    #[rust]
+    import_articles: Vec<(String, String, u64)>,
 }
 
 /// What the overlay is asking about: either a whole document or a single
@@ -669,6 +699,7 @@ impl WritingPanel {
             (id!(confirm), Page::Confirm),
             (id!(done), Page::Done),
             (id!(publish), Page::Publish),
+            (id!(article_import), Page::ArticleImport),
         ] {
             self.view(cx, &[id]).set_visible(cx, p == self.page);
         }
@@ -829,6 +860,63 @@ impl WritingPanel {
         studio(|s| s.focus_doc = Some(id));
         self.bind_edit(cx);
         self.show(cx, Page::Edit);
+    }
+
+    /// Loads the article library (newest-modified first) into the pull-back
+    /// picker list.
+    fn load_import_list(&mut self, cx: &mut Cx) {
+        self.import_articles = match &self.grant {
+            Some(grant) => match graft::article_library(crate::app_data_dir(), grant) {
+                Ok(articles) => articles
+                    .into_iter()
+                    .map(|a| (a.id, a.title, a.modified))
+                    .collect(),
+                Err(e) => {
+                    self.status(cx, &e);
+                    Vec::new()
+                }
+            },
+            None => Vec::new(),
+        };
+        self.view.redraw(cx);
+    }
+
+    /// Pulls one article back: graft reads it from the article library and
+    /// aligns it against the desk (original document / fork / fresh import),
+    /// then the result is persisted and opened for editing.
+    fn import_article(&mut self, cx: &mut Cx, article_id: &str) {
+        let Some(grant) = self.grant.clone() else { return };
+        let existing = studio(|s| s.documents.clone());
+        let outcome = match graft::import_article(crate::app_data_dir(), &grant, article_id, &existing, now()) {
+            Ok(outcome) => outcome,
+            Err(e) => {
+                self.status(cx, &e);
+                return;
+            }
+        };
+        let mut doc = outcome.document;
+        let kind = outcome.kind;
+        // A fork gets a visibly distinct title so it never reads as the same
+        // document as the one the writer kept editing.
+        if kind == graft::ImportKind::Forked {
+            doc.title = format!("{} {}", doc.title, tr("Pulled back"));
+        }
+        let doc_id = doc.id.clone();
+        let article_label = doc.article_id.clone().unwrap_or_else(|| article_id.to_owned());
+        let message = match kind {
+            graft::ImportKind::Aligned => tr("Aligned with the article studio draft"),
+            graft::ImportKind::Forked => tr("Both sides changed; imported as a new document"),
+            graft::ImportKind::Imported => tr("Imported from the article studio"),
+        };
+        mutate(&self.grant, |s| {
+            if let Some(original) = s.document_mut(&doc_id) {
+                *original = doc;
+            } else {
+                s.documents.push(doc);
+            }
+            s.log(&doc_id, "import", format!("{message} (article {article_label})"));
+        });
+        self.open_doc(cx, doc_id);
     }
 
     /// Selection + request → task. The passage (or, with no selection, the
@@ -1419,6 +1507,25 @@ impl Widget for WritingPanel {
                 });
                 self.open_doc(cx, id);
             }
+            // Pull-back: open the article-library picker; a picked article is
+            // aligned against the desk and opened for continued rewriting.
+            if self.button(cx, ids!(import_btn)).clicked(actions) {
+                self.load_import_list(cx);
+                self.show(cx, Page::ArticleImport);
+            }
+            for (index, item) in self.portal_list(cx, ids!(import_list)).items_with_actions(actions) {
+                if item.as_navigation_bar_button().clicked(actions) {
+                    if let Some((id, _, _)) = self.import_articles.get(index).cloned() {
+                        self.import_article(cx, &id);
+                    }
+                    break;
+                }
+            }
+            if self.button(cx, ids!(import_back)).clicked(actions)
+                || self.button(cx, ids!(import_close)).clicked(actions)
+            {
+                self.show(cx, Page::Library);
+            }
             // Constraint toggles.
             let mut toggled = false;
             if self.button(cx, ids!(toggle_concise)).clicked(actions) {
@@ -1553,12 +1660,15 @@ impl Widget for WritingPanel {
             let uid = item.widget_uid();
             let docs = uid == self.portal_list(cx, ids!(doc_list)).widget_uid();
             let tasks = uid == self.portal_list(cx, ids!(task_list)).widget_uid();
+            let imports = uid == self.portal_list(cx, ids!(import_list)).widget_uid();
             if let Some(mut list) = item.borrow_mut::<PortalList>() {
                 let count = studio(|s| {
                     if docs {
                         s.documents.len()
                     } else if tasks {
                         self.doc_id.as_ref().map_or(0, |d| s.tasks_of(d).len())
+                    } else if imports {
+                        self.import_articles.len()
                     } else {
                         0
                     }
@@ -1640,6 +1750,19 @@ impl Widget for WritingPanel {
                                 }
                             }
                         });
+                        row.draw_all(cx, &mut Scope::empty());
+                    } else if imports {
+                        let row = list.item(cx, index, id!(ImportRow));
+                        if let Some((_, title, modified)) = self.import_articles.get(index) {
+                            row.label(cx, ids!(import_title)).set_text(cx, title);
+                            let when = fmt_time(*modified);
+                            let meta = if when.is_empty() {
+                                tr("Article studio").to_owned()
+                            } else {
+                                crate::i18n::format("Article studio · {time}", &[("time", when)])
+                            };
+                            row.label(cx, ids!(import_meta)).set_text(cx, &meta);
+                        }
                         row.draw_all(cx, &mut Scope::empty());
                     }
                 }
@@ -1740,6 +1863,23 @@ impl WritingPanelRef {
             }
             WritingAction::CancelDelete => {
                 panel.hide_delete_overlay(cx);
+            }
+            WritingAction::ImportArticle { article_id } => {
+                // From the article editor's "send back to writing" button (or
+                // a future keyboard/remote trigger): make sure the studio face
+                // is live, import the article, and open it for editing.
+                if !panel.active {
+                    panel.active = true;
+                    panel.owner = current_user_id();
+                    if let Some(owner) = current_user_id() {
+                        panel.grant = Some(Grant::new(owner));
+                    }
+                    panel.ensure_loaded();
+                    panel.sync_timer = cx.start_timeout(SYNC_SECS);
+                }
+                let article_id = article_id.clone();
+                panel.import_article(cx, &article_id);
+                modal.open(cx);
             }
         }
     }

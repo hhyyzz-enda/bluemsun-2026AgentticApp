@@ -224,6 +224,9 @@ script_mod! {
                 write_publish := mod.widgets.ArticleIconButton {draw_icon.color: mod.widgets.RINX_ON_ACCENT draw_bg +: {color: mod.widgets.RINX_ACCENT color_hover: mod.widgets.RINX_ACCENT_HOVER color_down: mod.widgets.RINX_ACCENT_DOWN} draw_icon +: {svg: ICON_SEND}}
             }
             article_save := mod.widgets.ArticleIconButton {visible: false draw_icon +: {svg: crate_resource("self://resources/icons/article_save.svg")}}
+            // Send this article back to the writing studio for continued
+            // rewriting; the article's provenance realigns the versions.
+            article_to_writing := mod.widgets.ArticleIconButton {visible: false draw_icon +: {svg: crate_resource("self://resources/icons/writing-studio.svg")}}
             article_done := mod.widgets.ArticleIconButton {visible: false draw_icon.color: mod.widgets.RINX_ACCENT draw_icon +: {svg: ICON_CHECKMARK}}
             article_close := mod.widgets.ArticleIconButton {draw_icon +: {svg: ICON_CLOSE}}
             // Library: a new article, as the atlas's + in the header.
@@ -2010,6 +2013,8 @@ impl ArticlePanel {
             .set_text(cx, tr(heading));
         self.button(cx, ids!(article_save))
             .set_visible(cx, page == Page::Edit);
+        self.button(cx, ids!(article_to_writing))
+            .set_visible(cx, page == Page::Edit);
         self.button(cx, ids!(preview_check))
             .set_visible(cx, page == Page::Preview && !self.reader_only);
         self.button(cx, ids!(css_preview_open)).set_visible(cx, cfg!(feature = "html_preview") && self.doc.is_html_source() && page == Page::Preview && !self.reader_only);
@@ -3080,6 +3085,15 @@ impl Widget for ArticlePanel {
             }
             if self.button(cx, ids!(article_save)).clicked(actions) {
                 self.save(cx);
+            }
+            // Round-trip: continue rewriting in the writing studio. Save first
+            // so the pulled-back article carries the latest layout edits; the
+            // article's provenance realigns the writing-side versions.
+            if self.button(cx, ids!(article_to_writing)).clicked(actions) {
+                if self.save(cx) {
+                    let id = self.doc.id.clone();
+                    cx.action(crate::writing_studio::WritingAction::ImportArticle { article_id: id });
+                }
             }
             if self.page == Page::Library {
                 if self.button(cx, ids!(article_import)).clicked(actions) {

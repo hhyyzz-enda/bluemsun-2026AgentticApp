@@ -152,6 +152,11 @@ pub struct Document {
     pub version: u64,
     #[serde(default)]
     pub modified: u64,
+    /// The article-editor draft this document is currently mirrored in, when
+    /// one exists. Re-sending keeps the same article id; the pull-back path
+    /// uses it to align versions instead of forking or overwriting.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub article_id: Option<String>,
 }
 impl Document {
     pub fn new(title: String, paragraphs: Vec<String>) -> Self {
@@ -161,6 +166,7 @@ impl Document {
             paragraphs,
             version: 1,
             modified: article_core::document::now(),
+            article_id: None,
         }
     }
     /// The editor's text: paragraphs separated by one blank line.
@@ -566,6 +572,7 @@ mod tests {
             ],
             version: 7,
             modified: 0,
+            article_id: None,
         }
     }
     fn task(doc: &Document) -> RewriteTask {

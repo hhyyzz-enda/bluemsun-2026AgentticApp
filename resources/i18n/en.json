@@ -1304,5 +1304,17 @@
   "Theme file sent": "Theme file sent",
   "Theme imported. Preview it before applying.": "Theme imported. Preview it before applying.",
   "System": "System",
-  "Duplicate": "Duplicate"
+  "Duplicate": "Duplicate",
+  "Pull back from the article studio": "Pull back from the article studio",
+  "A R T I C L E   S T U D I O": "A R T I C L E   S T U D I O",
+  "Pull back into writing": "Pull back into writing",
+  "Article library": "Article library",
+  "Pick an article to pull back for continued rewriting; versions realign automatically.": "Pick an article to pull back for continued rewriting; versions realign automatically.",
+  "Back to library": "Back to library",
+  "Aligned with the article studio draft": "Aligned with the article studio draft",
+  "Imported from the article studio": "Imported from the article studio",
+  "Both sides changed; imported as a new document": "Both sides changed; imported as a new document",
+  "Pulled back": "Pulled back",
+  "Article studio": "Article studio",
+  "Article studio · {time}": "Article studio · {time}"
 }
