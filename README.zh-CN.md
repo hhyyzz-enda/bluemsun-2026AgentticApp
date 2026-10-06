@@ -4,6 +4,19 @@
 
 Rinx 是原生 Matrix 客户端，包含聊天、联系人、发现、朋友圈和文章编辑器，支持独立运行及作为 OctoSense 原生模块运行。完整构建与兼容性说明见 [英文文档](README.md)。
 
+---
+
+## 🏆 参赛作品：Writing Studio
+
+**本仓库为 Agentic App 黑客松参赛作品，应用为 Writing Studio（写作工作室）。**
+
+- 📖 应用说明：[apps/writing-studio/README.md](apps/writing-studio/README.md)
+- 📸 截图：[apps/writing-studio/bundle/screenshots/](apps/writing-studio/bundle/screenshots/)
+- 🎬 演示视频：[apps/writing-studio/bundle/基础功能演示.mp4](apps/writing-studio/bundle/基础功能演示.mp4)
+- 🏷️ 提交版本：tag `v1.0.0`
+
+---
+
 ## 本地编译与运行
 
 ```bash

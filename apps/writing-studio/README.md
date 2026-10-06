@@ -18,7 +18,7 @@ AI-assisted writing studio built on Rinx.
 
 ## 环境要求
 
-- Rinx 最新版（基于 makepad）
+- Rinx 宿主：本仓库 main 分支 commit `da0c4bff`
 - Rust 1.98.0+
 - Windows 10/11
 
@@ -76,6 +76,16 @@ cargo run --locked
 - 所有文档数据都保存在本地，不上传服务器
 - AI 改写请求会发送选中的文字到 LLM 服务（智谱），不发送完整文档
 - 不收集任何用户个人信息
+
+## 真实服务 vs 本地数据
+
+| 功能 | 数据来源 |
+|------|----------|
+| 文档存储与编辑 | 本地存储，无外部依赖 |
+| AI 改写 | 接入智谱（Zhipu）真实 LLM 服务 |
+| Matrix 消息发送 | 接入 Rinx 内置 Matrix 客户端 |
+| Diff 对比 | 本地计算，无外部依赖 |
+| 历史记录 | 本地存储 |
 
 ## 截图
 
