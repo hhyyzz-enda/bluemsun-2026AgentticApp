@@ -1,0 +1,9 @@
+[package]
+name = "splash-check"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+makepad-script = { path = "D:/agent/rinx-hackathon/makepad/platform/script" }
+
+[workspace]

@@ -1,0 +1,32 @@
+{
+  "agent": null,
+  "capabilities": [
+    "storage",
+    "net",
+    "octos.turn.start",
+    "matrix.send_message"
+  ],
+  "compute": {
+    "instruction_budget": 8000000,
+    "memory_bytes": 33554432
+  },
+  "id": "bluemsun.writing-studio",
+  "integrity": {
+    "bundle_blake3": "ec6cc12c90136cdab16525ff0ad3a447387d38ece6c146aaa05bdb410416c8f4",
+    "signature": {
+      "key_id": "bluemsun",
+      "value": "90fa3a58349c2bd8366df281d925872a44d0b1ea4ebc0d5bcb03c6e5a988f0edf4ea849ebf4e2c58134a4ec0a779248bf8bbd9923d6e1f2a7a51aa3925a5cb0d"
+    }
+  },
+  "name": "写作工作室 Writing Studio",
+  "network": {
+    "hosts": [
+      "open.bigmodel.cn"
+    ]
+  },
+  "schema": 1,
+  "storage": {
+    "max_bytes": 8388608
+  },
+  "version": "1.0.0"
+}

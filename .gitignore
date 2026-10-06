@@ -16,3 +16,4 @@ testflight.sh
 ## Rendered by packaging/aur/render-pkgbuild.sh, never committed.
 packaging/aur/PKGBUILD
 packaging/aur/.SRCINFO
+apps/writing-studio-hub/tools/splash-check/target/

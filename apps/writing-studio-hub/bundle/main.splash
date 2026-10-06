@@ -1,0 +1,1375 @@
+// =====================================================================
+// 写作工作室 Writing Studio — App Hub 脚本版（main.splash）
+// 由 Rinx 原生小程序 apps/writing-studio/native/*.rs 复刻：
+//   文库 → 起草（选段 + 约束 + 请求）→ 审阅（对照 + diff + 可改提案）
+//   → 确认（预览）→ 应用 / 撤销 → 发布（独立确认，四个目的地）
+//   三级引擎回退：Octos 宿主 → 直连 LLM（llm.json 配置）→ Mock
+//   提案 600 秒过期；文档变更 / 引用丢失阻断应用；删除级联清理。
+// =====================================================================
+
+// ---------- 全局状态 ----------
+let docs = []                 // {id title paragraphs version modified article_id}
+let tasks = []                // 改写任务（见 request_rewrite）
+let undo_stack = []           // {task_id doc_id para before after}（仅内存）
+let decisions = []            // 决定日志（内存镜像，落盘 decisions.jsonl）
+let articles = []             // 图文工作室排版草稿（articles.json）
+let page = "library"
+let return_page = "library"
+let cur_doc = ""
+let cur_task = ""
+let sel_para = -1
+let constraints = {concise: false, formal: false, keep_citations: false}
+let publish_dest = ""
+let pending_delete = nil      // {kind id}
+let preview_on = false
+let llm_config = nil          // {base_url api_key model}
+let id_counter = 0
+let PROPOSAL_TTL = 600        // 提案有效期（秒）
+
+// ---------- 基础工具 ----------
+fn now(){ floor(time_now()) }
+fn new_id(){ id_counter += 1
+    "d" + floor(time_now() * 1000) + "-" + id_counter }
+fn new_tx(){ id_counter += 1
+    "tx-" + floor(time_now() * 1000) + "-" + id_counter }
+
+fn fmt_time(t){
+    if t == 0 { return "" }
+    let d = now() - t
+    if d < 0 { return "" }
+    if d < 60 { return "刚刚" }
+    if d < 3600 { return "" + floor(d / 60) + " 分钟前" }
+    if d < 86400 { return "" + floor(d / 3600) + " 小时前" }
+    "" + floor(d / 86400) + " 天前"
+}
+
+fn join_str(arr, sep){
+    let out = ""
+    for i v in arr {
+        if i > 0 { out = out + sep }
+        out = out + v
+    }
+    out
+}
+
+fn take_chars(s, n){
+    let m = s.match_str(regex("^.{0," + n + "}", "s"))
+    if m == nil { return s }
+    m.value
+}
+
+fn doc_body(d){ join_str(d.paragraphs, "\n\n") }
+
+fn doc_preview(d, limit){
+    let first = ""
+    for p in d.paragraphs {
+        if first == "" && p.trim() != "" { first = p.trim() }
+    }
+    let out = take_chars(first, limit)
+    if out != first { out = out + "…" }
+    out
+}
+
+fn doc_by_id(id){
+    for d in docs { if d.id == id { return d } }
+    nil
+}
+fn task_by_id(id){
+    for t in tasks { if t.id == id { return t } }
+    nil
+}
+fn article_by_id(id){
+    for a in articles { if a.id == id { return a } }
+    nil
+}
+fn tasks_of(doc_id){
+    let out = []
+    for t in tasks { if t.doc_id == doc_id { out.push(t) } }
+    out
+}
+fn set_status(s){ ui.status_label.set_text("" + s) }
+
+// ---------- 引用标记 ----------
+let citation_re = regex("\\[\\^\\d+\\]", "g")
+fn citations_of(text){
+    let found = []
+    for m in text.match_all(citation_re) {
+        let dup = false
+        for f in found { if f == m.value { dup = true } }
+        if !dup { found.push(m.value) }
+    }
+    found
+}
+fn missing_citations(before, after){
+    let lost = []
+    for mk in citations_of(before) {
+        if after.search(mk) < 0 { lost.push(mk) }
+    }
+    lost
+}
+// 引用绝不为简洁牺牲：模型/规则丢掉的标记按原顺序补回段落末尾
+fn reanchor_citations(selection, out){
+    for mk in citations_of(selection) {
+        if out.search(mk) < 0 {
+            if out != "" && !regex("[。\\.！!？?]$", "").test(out) { out = out + "。" }
+            out = out + mk
+        }
+    }
+    out
+}
+
+// ---------- 逐词 diff（LCS，中文按字、ASCII 按词；超长按整段替换） ----------
+let token_re = regex("[A-Za-z0-9]+|\\s+|[^A-Za-z0-9\\s]", "g")
+fn tokenize(text){
+    let toks = []
+    for m in text.match_all(token_re) { toks.push(m.value) }
+    toks
+}
+fn diff_runs(before, after){
+    let a = tokenize(before)
+    let b = tokenize(after)
+    if a.len() > 120 || b.len() > 120 {
+        return [{op: "del", text: before}, {op: "add", text: after}]
+    }
+    let n = a.len()
+    let m = b.len()
+    let w = m + 1
+    let lens = []
+    for i in (n + 1) * w { lens.push(0) }
+    let i = n - 1
+    while i >= 0 {
+        let j = m - 1
+        while j >= 0 {
+            if a[i] == b[j] {
+                lens[i * w + j] = lens[(i + 1) * w + (j + 1)] + 1
+            } else {
+                lens[i * w + j] = max(lens[(i + 1) * w + j], lens[i * w + (j + 1)])
+            }
+            j -= 1
+        }
+        i -= 1
+    }
+    let ops = []
+    let x = 0
+    let y = 0
+    while x < n && y < m {
+        if a[x] == b[y] {
+            ops.push({op: "keep", text: a[x]})
+            x += 1
+            y += 1
+        } else if lens[(x + 1) * w + y] >= lens[x * w + (y + 1)] {
+            ops.push({op: "del", text: a[x]})
+            x += 1
+        } else {
+            ops.push({op: "add", text: b[y]})
+            y += 1
+        }
+    }
+    while x < n { ops.push({op: "del", text: a[x]}) x += 1 }
+    while y < m { ops.push({op: "add", text: b[y]}) y += 1 }
+    // 相邻同操作合并成 run
+    let runs = []
+    for o in ops {
+        if runs.len() > 0 && runs[runs.len() - 1].op == o.op {
+            runs[runs.len() - 1].text = runs[runs.len() - 1].text + o.text
+        } else {
+            runs.push({op: o.op, text: o.text})
+        }
+    }
+    runs
+}
+
+// ---------- 持久化 ----------
+fn save_docs(){
+    fs.write("documents.json", {schema: 1, documents: docs}.to_json())
+}
+fn save_tasks(){
+    if tasks.len() > 200 {
+        let kept = []
+        let start = tasks.len() - 200
+        for i in tasks.len() { if i >= start { kept.push(tasks[i]) } }
+        tasks = kept
+    }
+    fs.write("tasks.json", {schema: 1, tasks: tasks}.to_json())
+}
+fn save_articles(){
+    fs.write("articles.json", {schema: 1, articles: articles}.to_json())
+}
+fn log_decision(task_id, stage, detail){
+    let d = {at: now(), task_id: task_id, stage: stage, detail: detail}
+    decisions.push(d)
+    fs.append("decisions.jsonl", d.to_json() + "\n")
+}
+fn save_decisions(){
+    let out = ""
+    for d in decisions { out = out + d.to_json() + "\n" }
+    fs.write("decisions.jsonl", out)
+}
+
+fn seed_docs(){
+    docs = [{
+        id: new_id()
+        title: "项目介绍（示例）"
+        paragraphs: [
+            "OctoSense 写作工作室是一个驻留在 Rinx 内的原生写作应用。它把可编辑的改写提案放在作品旁边：人选中一段文字、提出修改请求，代理给出提案，人始终保留最终决定权。"
+            "这个项目的背景其实可以说非常复杂，基本上它一开始只是想做一个非常非常简单的 Markdown 编辑器，但是在很多次的讨论之后，众所周知，大家逐渐意识到真正的问题不在于写作工具本身，而在于人机协作的信任边界：代理可以读懂上下文并提出建议，但是它绝对不应该在人没有确认的情况下悄悄修改文档，所以这个段落故意写得十分冗长，方便你选中它并请求「写得更简洁」[^1]。"
+            "引用与研究保持出处关联：本文档的论述带有 [^1] 与 [^2] 两个引用标记，改写提案必须保留它们；缺少来源的论述会被显式标注「需要补充来源」。"
+            "发布永远是另一个选择。应用改写只修改本地文档，导出、发布与分享都是独立的操作，并且在执行前明确呈现目的地[^2]。"
+        ]
+        version: 1
+        modified: now()
+        article_id: ""
+    }]
+    save_docs()
+}
+
+fn load_all(){
+    if fs.exists("documents.json") {
+        let v = fs.read("documents.json").parse_json()
+        let arr = try v.documents catch nil
+        if arr != nil {
+            docs = arr
+            for d in docs {
+                d.article_id = try d.article_id catch ""
+                if d.article_id == nil { d.article_id = "" }
+                d.modified = try d.modified catch 0
+                if d.modified == nil { d.modified = 0 }
+            }
+        }
+    } else {
+        seed_docs()
+    }
+    if fs.exists("tasks.json") {
+        let v = fs.read("tasks.json").parse_json()
+        let arr = try v.tasks catch nil
+        if arr != nil { tasks = arr }
+    }
+    if fs.exists("articles.json") {
+        let v = fs.read("articles.json").parse_json()
+        let arr = try v.articles catch nil
+        if arr != nil { articles = arr }
+    }
+    if fs.exists("decisions.jsonl") {
+        let raw = fs.read("decisions.jsonl")
+        for line in raw.split(regex("\n", "")) {
+            if line.trim() != "" {
+                let d = line.parse_json()
+                if d != nil { decisions.push(d) }
+            }
+        }
+    }
+    // 关掉期间过期的提案，在打开时结算
+    let changed = false
+    for t in tasks { if expire_check(t) { changed = true } }
+    if changed { save_tasks() }
+}
+
+fn load_llm_config(){
+    llm_config = nil
+    // 密钥不进仓库：由使用者把 base_url/api_key/model 写进应用存储的 llm.json
+    if fs.exists("llm.json") {
+        let v = fs.read("llm.json").parse_json()
+        let base = try v.base_url catch ""
+        let key = try v.api_key catch ""
+        let model = try v.model catch ""
+        if base == nil { base = "" }
+        if key == nil { key = "" }
+        if model == nil { model = "" }
+        if base != "" && key != "" && model != "" {
+            llm_config = {base_url: base, api_key: key, model: model}
+        }
+    }
+}
+
+// ---------- 任务生命周期 ----------
+fn status_label(st){
+    if st == "preparing" { return "准备中" }
+    if st == "ready" { return "待审阅" }
+    if st == "applied" { return "已应用" }
+    if st == "discarded" { return "已放弃" }
+    if st == "failed" { return "失败" }
+    "已过期"
+}
+
+fn expire_check(t){
+    let since = 0
+    if t.status == "preparing" { since = t.created_at }
+    else if t.status == "ready" { since = t.proposal_at }
+    if since > 0 && now() - since > PROPOSAL_TTL {
+        t.status = "expired"
+        return true
+    }
+    false
+}
+
+fn engine_display(){
+    if host.has("octos.turn.start") { return "引擎 · Octos 宿主" }
+    if llm_config != nil { return "引擎 · LLM · " + llm_config.model }
+    "引擎 · Mock"
+}
+
+fn complete_task(id, tx, proposal){
+    let t = task_by_id(id)
+    if t == nil { return }
+    if t.status != "preparing" || t.tx_id != tx { return }
+    t.proposal = reanchor_citations(t.text_snapshot, proposal)
+    t.status = "ready"
+    t.proposal_at = now()
+    log_decision(id, "propose", "提出行动：改写提案已生成")
+    save_tasks()
+    if page == "review" && cur_task == id { refresh_review() }
+    if page == "library" { ui.library.render() }
+    if page == "edit" { ui.edit_tasks.render() }
+}
+
+fn fail_task(id, tx, err){
+    let t = task_by_id(id)
+    if t == nil { return }
+    if t.status != "preparing" || t.tx_id != tx { return }
+    t.status = "failed"
+    t.fail_reason = err
+    log_decision(id, "fail", err)
+    save_tasks()
+    if page == "review" && cur_task == id { refresh_review() }
+    if page == "library" { ui.library.render() }
+    if page == "edit" { ui.edit_tasks.render() }
+}
+
+// ---------- 改写引擎：Octos 宿主 → 直连 LLM → Mock ----------
+fn system_prompt(c){
+    let p = "你是一名严谨的中文写作助手。用户会给你一段选中的文字和一条改写请求。只输出改写后的文字本身：不要解释、不要加引号、不要复述请求。"
+    if c.concise { p = p + "改写必须更简洁：删去冗余词语与套话，原意不变。" }
+    if c.formal { p = p + "改写必须更正式：把口语化表达替换为规范的书面语。" }
+    p = p + "硬性要求：保留所有 [^n] 形式的引用标记，不得增加、删除、改写或移动。"
+    p
+}
+
+fn json_escape(s){
+    let out = s.replace(regex("\\\\", "g"), "\\\\")
+    out = out.replace(regex("\"", "g"), "\\\"")
+    out = out.replace(regex("\n", "g"), "\\n")
+    out = out.replace(regex("\r", "g"), "\\r")
+    out = out.replace(regex("\t", "g"), "\\t")
+    out
+}
+
+fn build_llm_body(selection, request, c){
+    let sys = system_prompt(c)
+    let user = "【选中文字】\n" + selection + "\n\n【改写请求】\n" + request
+    "{\"model\":\"" + json_escape(llm_config.model) + "\",\"messages\":[{\"role\":\"system\",\"content\":\"" + json_escape(sys) + "\"},{\"role\":\"user\",\"content\":\"" + json_escape(user) + "\"}],\"temperature\":0.3}"
+}
+
+fn run_engine(id){
+    let t = task_by_id(id)
+    if t == nil { return }
+    ui.prep_engine.set_text(engine_display())
+    if host.has("octos.turn.start") {
+        // 官方链路：密钥由宿主托管，应用零密钥；宿主不可用时降级
+        let prompt = system_prompt(t.constraints) + "\n\n【选中文字】\n" + t.text_snapshot + "\n\n【改写请求】\n" + t.request
+        let tx = t.tx_id
+        host.request("octos.turn.start", {text: prompt}, fn(r){ octos_done(id, tx, r) })
+    } else {
+        llm_or_mock(id)
+    }
+}
+
+fn octos_done(id, tx, r){
+    if r.is_ok {
+        let text = try r.data.text catch nil
+        if text != nil && text.trim() != "" {
+            complete_task(id, tx, text)
+            return
+        }
+    }
+    // 宿主未提供该服务（如开发用 card-host）：落到下一级引擎
+    llm_or_mock(id)
+}
+
+fn llm_or_mock(id){
+    let t = task_by_id(id)
+    if t == nil || t.status != "preparing" { return }
+    if llm_config != nil {
+        let tx = t.tx_id
+        let base = llm_config.base_url.replace(regex("/$", ""), "")
+        let p = promise()
+        net.http_request(net.HttpRequest{
+            url: base + "/chat/completions"
+            method: net.HttpMethod.POST
+            headers: {"Content-Type": "application/json", "Authorization": "Bearer " + llm_config.api_key}
+            body: build_llm_body(t.text_snapshot, t.request, t.constraints)
+        }) do net.HttpEvents{
+            on_response: |res| p.resolve(res)
+            on_error: |err| p.resolve(nil)
+        }
+        llm_done(id, tx, p.await())
+    } else {
+        mock_run(id)
+    }
+}
+
+fn llm_done(id, tx, res){
+    let t = task_by_id(id)
+    if t == nil || t.status != "preparing" || t.tx_id != tx { return }
+    if res == nil { fail_task(id, tx, "LLM 请求失败：网络错误") return }
+    let data = res.body.to_string().parse_json()
+    if res.status_code >= 400 {
+        let msg = try data.error.message catch nil
+        if msg == nil { msg = try data.message catch nil }
+        if msg == nil { msg = "HTTP " + res.status_code }
+        fail_task(id, tx, "LLM 返回错误：" + msg)
+        return
+    }
+    let content = try data.choices[0].message.content catch nil
+    if content == nil || content.trim() == "" {
+        fail_task(id, tx, "LLM 响应中没有可用的改写内容。")
+        return
+    }
+    complete_task(id, tx, content)
+}
+
+// ---------- Mock 引擎（与原生版同规则） ----------
+let CONCISE_DROP = ["基本上可以说", "其实可以说", "可以说", "基本上", "其实", "非常", "十分", "相当", "总的来说", "众所周知", "在一定程度上", "的话", "actually ", "basically ", "very ", "really ", "in general ", "it is known that "]
+let FORMAL_FROM = ["搞定", "弄好", "东西", "咱们", "挺好的", "很多", "挺", "但是", "所以", "a lot of", "stuff", "but ", "so ", "get done"]
+let FORMAL_TO = ["完成", "完成", "事项", "我们", "良好", "大量", "较为", "然而", "因此", "numerous", "material", "however ", "therefore ", "complete"]
+
+fn mock_rewrite(selection, request, c){
+    if request.search("失败") >= 0 {
+        return {good: false, err: "Mock 注入失败：请求文本包含「失败」。", text: ""}
+    }
+    if selection.trim() == "" {
+        return {good: false, err: "选区为空，无法改写。", text: ""}
+    }
+    let out = selection
+    let want_concise = c.concise || request.search("简洁") >= 0 || request.search("concise") >= 0
+    let want_formal = c.formal || request.search("正式") >= 0 || request.search("formal") >= 0
+    if want_concise {
+        for phrase in CONCISE_DROP { out = out.replace(regex(phrase, "g"), "") }
+        while out.search("  ") >= 0 { out = out.replace("  ", " ") }
+        out = out.trim()
+    }
+    if want_formal {
+        for i f in FORMAL_FROM { out = out.replace(regex(f, "g"), FORMAL_TO[i]) }
+    }
+    if !want_concise && !want_formal {
+        let joined = ""
+        for part in out.split(regex("\\s+", "")) {
+            if part != "" {
+                if joined != "" { joined = joined + " " }
+                joined = joined + part
+            }
+        }
+        out = joined
+    }
+    if c.keep_citations || citations_of(selection).len() > 0 {
+        out = reanchor_citations(selection, out)
+    }
+    if out == selection {
+        out = out.replace(regex("[。\\.]$", ""), "") + "（改写：更凝练的表达）"
+    }
+    {good: true, err: "", text: out}
+}
+
+fn mock_run(id){
+    let t = task_by_id(id)
+    if t == nil { return }
+    // 长草稿后台准备，让「准备中」可观察（与原生版一致：>500 字走后台）
+    if t.text_snapshot.len() > 500 {
+        let tx = t.tx_id
+        start_timeout(2.5, || mock_finish(id, tx))
+    } else {
+        mock_finish(id, t.tx_id)
+    }
+}
+
+fn mock_finish(id, tx){
+    let t = task_by_id(id)
+    if t == nil || t.status != "preparing" || t.tx_id != tx { return }
+    let r = mock_rewrite(t.text_snapshot, t.request, t.constraints)
+    if r.good { complete_task(id, tx, r.text) }
+    else { fail_task(id, tx, r.err) }
+}
+
+// ---------- 页面切换与绑定 ----------
+fn page_name(p){
+    if p == "library" { return "01 / 文库" }
+    if p == "edit" { return "01 / 起草" }
+    if p == "review" { return "02 / 审阅" }
+    if p == "confirm" { return "03 / 确认" }
+    if p == "done" { return "04 / 完成" }
+    if p == "publish" { return "05 / 发布" }
+    if p == "import" { return "图文工作室" }
+    "删除确认"
+}
+
+fn show_page(p){
+    page = p
+    ui.library.set_visible(p == "library")
+    ui.edit.set_visible(p == "edit")
+    ui.review.set_visible(p == "review")
+    ui.confirm.set_visible(p == "confirm")
+    ui.done.set_visible(p == "done")
+    ui.publish.set_visible(p == "publish")
+    ui.import_page.set_visible(p == "import")
+    ui.delete_page.set_visible(p == "delete")
+    ui.page_label.set_text(page_name(p))
+    if p == "library" { ui.library.render() }
+    if p == "edit" { ui.para_list.render() ui.edit_tasks.render() }
+    if p == "review" { refresh_review() }
+    if p == "confirm" { bind_confirm() }
+    if p == "import" { ui.import_list.render() }
+}
+
+fn open_doc(id){
+    cur_doc = id
+    cur_task = ""
+    let d = doc_by_id(id)
+    if d == nil { return }
+    // 默认选中最后一个非空段落（对应原生版无选区时取末尾的演示行为）
+    sel_para = -1
+    for i p in d.paragraphs { if p.trim() != "" { sel_para = i } }
+    if sel_para < 0 { sel_para = 0 }
+    if ui.doc_title.text() != d.title { ui.doc_title.set_text(d.title) }
+    let body = doc_body(d)
+    if ui.doc_body.text() != body { ui.doc_body.set_text(body) }
+    preview_on = false
+    show_page("edit")
+}
+
+fn new_document(){
+    let d = {id: new_id(), title: "未命名文档", paragraphs: [""], version: 1, modified: now(), article_id: ""}
+    docs.push(d)
+    save_docs()
+    open_doc(d.id)
+}
+
+fn select_para(i){
+    sel_para = i
+    ui.para_list.render()
+}
+
+fn toggle_constraint(which){
+    if which == "concise" { constraints.concise = !constraints.concise }
+    if which == "formal" { constraints.formal = !constraints.formal }
+    if which == "citations" { constraints.keep_citations = !constraints.keep_citations }
+    bind_toggles()
+}
+
+fn bind_toggles(){
+    let mark_concise = "更简洁"
+    if constraints.concise { mark_concise = "✓ 更简洁" }
+    let mark_formal = "更正式"
+    if constraints.formal { mark_formal = "✓ 更正式" }
+    let mark_cit = "保留引用"
+    if constraints.keep_citations { mark_cit = "✓ 保留引用" }
+    ui.toggle_concise.set_text(mark_concise)
+    ui.toggle_formal.set_text(mark_formal)
+    ui.toggle_citations.set_text(mark_cit)
+}
+
+// ---------- 请求改写 ----------
+fn request_rewrite(){
+    if cur_doc == "" { set_status("请先选择文档") return }
+    let d = doc_by_id(cur_doc)
+    if d == nil { set_status("请先选择文档") return }
+    if sel_para < 0 || sel_para >= d.paragraphs.len() {
+        set_status("请先点选要改写的段落")
+        return
+    }
+    let text = d.paragraphs[sel_para]
+    if text.trim() == "" { set_status("选中段落为空，无法改写") return }
+    let req = ui.request_input.text()
+    let t = {
+        id: new_id()
+        doc_id: d.id
+        para_index: sel_para
+        text_snapshot: text
+        doc_version: d.version
+        request: req
+        constraints: {concise: constraints.concise, formal: constraints.formal, keep_citations: constraints.keep_citations}
+        proposal: ""
+        status: "preparing"
+        fail_reason: ""
+        tx_id: new_tx()
+        created_at: now()
+        proposal_at: 0
+    }
+    tasks.push(t)
+    log_decision("", "read", "读取状态：文档 " + d.title + " 段落 " + (sel_para + 1))
+    save_tasks()
+    cur_task = t.id
+    set_status("")
+    show_page("review")
+    run_engine(t.id)
+}
+
+fn retry_task(){
+    let t = task_by_id(cur_task)
+    if t == nil { return }
+    t.status = "preparing"
+    save_tasks()
+    refresh_review()
+    run_engine(t.id)
+}
+
+fn regen_task(){
+    // 重新生成：基于最新文档重新快照选区
+    let t = task_by_id(cur_task)
+    if t == nil { return }
+    let d = doc_by_id(t.doc_id)
+    if d != nil && t.para_index < d.paragraphs.len() {
+        t.text_snapshot = d.paragraphs[t.para_index]
+        t.doc_version = d.version
+    }
+    t.status = "preparing"
+    t.tx_id = new_tx()
+    save_tasks()
+    refresh_review()
+    run_engine(t.id)
+}
+
+fn discard_task(){
+    let t = task_by_id(cur_task)
+    if t == nil { return }
+    t.status = "discarded"
+    log_decision(t.id, "discard", "用户决定：放弃改写，文档未变")
+    save_tasks()
+    set_status("改写已放弃")
+    show_page("edit")
+}
+
+// ---------- 审阅 / 确认 / 应用 / 撤销 ----------
+fn refresh_review(){
+    let t = task_by_id(cur_task)
+    if t == nil { return }
+    if expire_check(t) {
+        log_decision(t.id, "expire", "提案过期")
+        save_tasks()
+    }
+    ui.prep_card.set_visible(t.status == "preparing")
+    if t.status == "preparing" { ui.prep_engine.set_text(engine_display()) }
+    ui.fail_card.set_visible(t.status == "failed")
+    if t.status == "failed" { ui.fail_reason.set_text(t.fail_reason) }
+    ui.expired_card.set_visible(t.status == "expired")
+    let ready = t.status == "ready" && t.proposal != ""
+    ui.compare_box.set_visible(ready)
+    if !ready { return }
+    ui.review_original.set_text(t.text_snapshot)
+    if ui.review_proposal.text() != t.proposal { ui.review_proposal.set_text(t.proposal) }
+    // 引用行：丢失阻断去确认；保留则列出；长段落无引用则提示需要来源
+    let lost = missing_citations(t.text_snapshot, t.proposal)
+    let kept = citations_of(t.proposal)
+    let line = ""
+    if lost.len() > 0 {
+        line = "引用标记不可移除：" + join_str(lost, " ") + " · 请恢复后再继续"
+    } else if kept.len() > 0 {
+        line = "引用已保留：" + join_str(kept, " ")
+    } else if t.text_snapshot.len() > 450 {
+        line = "需要补充来源"
+    }
+    ui.citations_line.set_text(line)
+    // 逐词 diff 摘要
+    let runs = diff_runs(t.text_snapshot, t.proposal)
+    let adds = ""
+    let dels = ""
+    let na = 0
+    let nd = 0
+    for r in runs {
+        let txt = r.text.trim()
+        if r.op == "add" && na < 8 && txt != "" {
+            adds = adds + "＋ " + txt + "   "
+            na += 1
+        }
+        if r.op == "del" && nd < 8 && txt != "" {
+            dels = dels + "− " + txt + "   "
+            nd += 1
+        }
+    }
+    ui.diff_adds.set_text(adds)
+    ui.diff_dels.set_text(dels)
+}
+
+fn proposal_edited(text){
+    let t = task_by_id(cur_task)
+    if t == nil { return }
+    t.proposal = text
+    // 提案改动即时刷新引用行与 diff，但不打断输入
+    let lost = missing_citations(t.text_snapshot, text)
+    let kept = citations_of(text)
+    let line = ""
+    if lost.len() > 0 { line = "引用标记不可移除：" + join_str(lost, " ") + " · 请恢复后再继续" }
+    else if kept.len() > 0 { line = "引用已保留：" + join_str(kept, " ") }
+    else if t.text_snapshot.len() > 450 { line = "需要补充来源" }
+    ui.citations_line.set_text(line)
+    let runs = diff_runs(t.text_snapshot, text)
+    let adds = ""
+    let dels = ""
+    let na = 0
+    let nd = 0
+    for r in runs {
+        let txt = r.text.trim()
+        if r.op == "add" && na < 8 && txt != "" { adds = adds + "＋ " + txt + "   " na += 1 }
+        if r.op == "del" && nd < 8 && txt != "" { dels = dels + "− " + txt + "   " nd += 1 }
+    }
+    ui.diff_adds.set_text(adds)
+    ui.diff_dels.set_text(dels)
+}
+
+fn goto_confirm(){
+    let t = task_by_id(cur_task)
+    if t == nil { return }
+    let lost = missing_citations(t.text_snapshot, t.proposal)
+    if lost.len() > 0 {
+        set_status("引用标记不可移除；请恢复后再继续")
+        return
+    }
+    set_status("")
+    show_page("confirm")
+}
+
+fn bind_confirm(){
+    let t = task_by_id(cur_task)
+    if t == nil { return }
+    let d = doc_by_id(t.doc_id)
+    if d == nil { return }
+    let excerpt = take_chars(t.text_snapshot, 80)
+    ui.confirm_target.set_text(d.title + " · 第 " + (t.para_index + 1) + " 段：" + excerpt + "…")
+    if preview_on {
+        let paras = []
+        for p in d.paragraphs { paras.push(p) }
+        if t.para_index < paras.len() { paras[t.para_index] = t.proposal }
+        ui.confirm_preview.set_text(join_str(paras, "\n\n"))
+    }
+    ui.preview_card.set_visible(preview_on)
+}
+
+fn toggle_preview(){
+    preview_on = !preview_on
+    bind_confirm()
+}
+
+fn apply_now(){
+    let t = task_by_id(cur_task)
+    if t == nil { set_status("任务不存在") return }
+    if t.status == "applied" {
+        set_status("该提案已应用过")
+        show_page("done")
+        return
+    }
+    if expire_check(t) {
+        log_decision(t.id, "expire", "提案过期")
+        save_tasks()
+        set_status("提案可能已过期；请基于最新文档重新生成")
+        show_page("review")
+        return
+    }
+    if t.status != "ready" { set_status("提案尚未就绪，无法应用") return }
+    let d = doc_by_id(t.doc_id)
+    if d == nil { set_status("文档不存在") return }
+    // 双重校验：文档版本与段落内容都必须仍是提案时的快照
+    if d.version != t.doc_version || t.para_index >= d.paragraphs.len() || d.paragraphs[t.para_index] != t.text_snapshot {
+        log_decision(t.id, "fail", "Document changed; regenerate the proposal")
+        save_tasks()
+        set_status("文档已变更，请重新生成提案")
+        show_page("review")
+        return
+    }
+    let lost = missing_citations(t.text_snapshot, t.proposal)
+    if lost.len() > 0 {
+        set_status("引用标记不可移除：" + join_str(lost, " "))
+        show_page("review")
+        return
+    }
+    log_decision(t.id, "confirm", "用户确认：应用审阅后的改写")
+    undo_stack.push({task_id: t.id, doc_id: d.id, para: t.para_index, before: t.text_snapshot, after: t.proposal})
+    d.paragraphs[t.para_index] = t.proposal
+    d.version += 1
+    d.modified = now()
+    t.status = "applied"
+    log_decision(t.id, "execute", "执行：改写已应用")
+    log_decision(t.id, "verify", "核验：文档版本 " + d.version)
+    save_docs()
+    save_tasks()
+    set_status("改写已应用")
+    show_page("done")
+}
+
+fn undo_now(){
+    let t = task_by_id(cur_task)
+    if t == nil { return }
+    let pos = -1
+    for i u in undo_stack { if u.task_id == t.id { pos = i } }
+    if pos < 0 { set_status("没有可撤销的应用") return }
+    let entry = undo_stack[pos]
+    let d = doc_by_id(entry.doc_id)
+    if d == nil { set_status("撤销失败：文档已删除") return }
+    if entry.para >= d.paragraphs.len() || d.paragraphs[entry.para] != entry.after {
+        set_status("撤销失败：应用的段落在期间被改动")
+        return
+    }
+    d.paragraphs[entry.para] = entry.before
+    d.version += 1
+    d.modified = now()
+    t.status = "ready"
+    // 移除该撤销项
+    let kept = []
+    for i u in undo_stack { if i != pos { kept.push(u) } }
+    undo_stack = kept
+    log_decision(t.id, "undo", "撤销：恢复原文，提案回到待审阅")
+    save_docs()
+    save_tasks()
+    set_status("已撤销")
+    show_page("edit")
+}
+
+// ---------- 删除（确认页 + 级联清理） ----------
+fn ask_delete_doc(id){
+    let d = doc_by_id(id)
+    if d == nil { return }
+    pending_delete = {kind: "doc", id: id}
+    return_page = page
+    ui.delete_title.set_text("删除这篇文档？")
+    ui.delete_body.set_text("文档 · " + d.title + "\n将同时删除它的全部改写历史与图文工作室中的排版草稿。")
+    show_page("delete")
+}
+fn ask_delete_task(id){
+    let t = task_by_id(id)
+    if t == nil { return }
+    pending_delete = {kind: "task", id: id}
+    return_page = page
+    ui.delete_title.set_text("删除这条任务历史？")
+    ui.delete_body.set_text("任务 · " + t.request)
+    show_page("delete")
+}
+fn cancel_delete(){
+    pending_delete = nil
+    show_page(return_page)
+}
+fn confirm_delete(){
+    if pending_delete == nil { show_page(return_page) return }
+    let kind = pending_delete.kind
+    let id = pending_delete.id
+    pending_delete = nil
+    if kind == "doc" {
+        let dropped = []
+        for t in tasks { if t.doc_id == id { dropped.push(t.id) } }
+        let kept_docs = []
+        for d in docs { if d.id != id { kept_docs.push(d) } }
+        docs = kept_docs
+        let kept_tasks = []
+        for t in tasks { if t.doc_id != id { kept_tasks.push(t) } }
+        tasks = kept_tasks
+        let kept_undo = []
+        for u in undo_stack {
+            let drop_it = false
+            for tid in dropped { if u.task_id == tid { drop_it = true } }
+            if !drop_it { kept_undo.push(u) }
+        }
+        undo_stack = kept_undo
+        let kept_dec = []
+        for dc in decisions {
+            let drop_it = false
+            for tid in dropped { if dc.task_id == tid { drop_it = true } }
+            if !drop_it { kept_dec.push(dc) }
+        }
+        decisions = kept_dec
+        // 级联：排版草稿也删除
+        let kept_art = []
+        for a in articles { if a.source_doc != id { kept_art.push(a) } }
+        articles = kept_art
+        log_decision("", "delete", "用户确认删除文档（含 " + dropped.len() + " 条任务历史）")
+        save_docs()
+        save_tasks()
+        save_decisions()
+        save_articles()
+        if cur_doc == id { cur_doc = "" cur_task = "" }
+        set_status("文档已删除")
+        show_page("library")
+    } else {
+        let kept_tasks = []
+        for t in tasks { if t.id != id { kept_tasks.push(t) } }
+        tasks = kept_tasks
+        let kept_undo = []
+        for u in undo_stack { if u.task_id != id { kept_undo.push(u) } }
+        undo_stack = kept_undo
+        let kept_dec = []
+        for dc in decisions { if dc.task_id != id { kept_dec.push(dc) } }
+        decisions = kept_dec
+        log_decision(id, "delete", "用户确认删除任务历史")
+        save_tasks()
+        save_decisions()
+        if cur_task == id { cur_task = "" }
+        set_status("任务历史已删除")
+        show_page(return_page)
+    }
+}
+
+// ---------- 发布（独立确认，目的地可见） ----------
+fn dest_label(d){
+    if d == "chat" { return "发布到当前聊天" }
+    if d == "article" { return "文章编辑器 · 图文工作室" }
+    if d == "file" { return "导出为文件" }
+    "分享链接（演示）"
+}
+fn choose_dest(d){
+    publish_dest = d
+    let title = ""
+    let doc = doc_by_id(cur_doc)
+    if doc != nil { title = doc.title }
+    ui.publish_label.set_text("确认目的地：" + dest_label(d) + " · " + title)
+    ui.publish_box.set_visible(true)
+}
+fn publish_confirm(){
+    if publish_dest == "" { return }
+    let dest = publish_dest
+    publish_dest = ""
+    ui.publish_box.set_visible(false)
+    let d = doc_by_id(cur_doc)
+    if d == nil { set_status("请先选择文档") return }
+    let body = doc_body(d)
+    if dest == "chat" {
+        if host.has("matrix.send_message") {
+            host.request("matrix.send_message", {body: body}, fn(r){ chat_sent(r) })
+        } else {
+            set_status("当前宿主未提供聊天服务；已仅记录决定日志")
+        }
+    } else if dest == "article" {
+        send_article(d)
+    } else if dest == "file" {
+        fs.mkdir("export")
+        let fname = d.title.replace(regex("[\\\\/:*\"<>\\|]", "g"), "_")
+        fs.write("export/" + fname + ".md", "# " + d.title + "\n\n" + body + "\n")
+        set_status("已导出到应用存储 export/" + fname + ".md")
+    } else {
+        set_status("链接已复制（演示）")
+    }
+    log_decision(cur_task, "publish", "发布目的地：" + dest + "（独立确认）")
+}
+fn chat_sent(r){
+    if r.is_ok { set_status("已发送到当前聊天") }
+    else { set_status("发送失败：" + r.error) }
+}
+
+// 写作 → 图文工作室：整篇草稿进入排版库（article_id 稳定，重复发送更新同一篇）
+fn send_article(d){
+    let aid = d.article_id
+    if aid == "" { aid = new_id() d.article_id = aid }
+    let found = false
+    for a in articles {
+        if a.id == aid {
+            a.title = d.title
+            a.body = doc_body(d)
+            a.modified = now()
+            found = true
+        }
+    }
+    if !found {
+        articles.push({id: aid, title: d.title, body: doc_body(d), modified: now(), source_doc: d.id})
+    }
+    save_articles()
+    save_docs()
+    log_decision(d.id, "publish", "发布目的地：article（独立确认）")
+    set_status("已发送到图文工作室排版草稿；可在「从图文工作室拉回」中查看")
+}
+fn send_article_by_id(id){
+    let d = doc_by_id(id)
+    if d == nil { set_status("请先选择文档") return }
+    send_article(d)
+}
+
+// 图文工作室 → 写作：拉回继续改写，版本按 article_id 对齐
+fn import_article(aid){
+    let a = article_by_id(aid)
+    if a == nil { return }
+    let paras = a.body.split(regex("\n\n", ""))
+    if paras.len() == 0 { paras = [""] }
+    let existing = ""
+    for d in docs { if d.article_id == aid { existing = d.id } }
+    if existing != "" {
+        let d = doc_by_id(existing)
+        if doc_body(d) != a.body {
+            d.paragraphs = paras
+            d.title = a.title
+            d.version += 1
+            d.modified = now()
+        }
+        log_decision(d.id, "import", "已与图文工作室草稿对齐 (article " + aid + ")")
+        save_docs()
+        open_doc(d.id)
+    } else {
+        let d = {id: new_id(), title: a.title, paragraphs: paras, version: 1, modified: now(), article_id: aid}
+        docs.push(d)
+        log_decision(d.id, "import", "从图文工作室导入 (article " + aid + ")")
+        save_docs()
+        open_doc(d.id)
+    }
+}
+
+// ---------- 启动 ----------
+fn boot(){
+    load_llm_config()
+    load_all()
+    bind_toggles()
+    ui.engine_status.set_text(engine_display())
+    show_page("library")
+}
+start_timeout(0.05, || boot())
+
+// ---------- 编辑器回写 ----------
+fn title_edited(text){
+    let d = doc_by_id(cur_doc)
+    if d == nil { return }
+    if d.title != text {
+        d.title = text
+        d.version += 1
+        d.modified = now()
+        save_docs()
+    }
+}
+
+fn body_edited(text){
+    if cur_doc == "" { return }
+    let d = doc_by_id(cur_doc)
+    if d == nil { return }
+    if doc_body(d) == text { return }
+    let paras = text.split(regex("\n\n", ""))
+    if paras.len() == 0 { paras = [""] }
+    let cleaned = []
+    for p in paras {
+        cleaned.push(p.replace(regex("^\n+", ""), "").replace(regex("\n+$", ""), ""))
+    }
+    d.paragraphs = cleaned
+    d.version += 1
+    d.modified = now()
+    save_docs()
+    if sel_para >= cleaned.len() { sel_para = cleaned.len() - 1 }
+    ui.para_list.render()
+}
+
+fn open_task(id){
+    let t = task_by_id(id)
+    if t == nil { return }
+    cur_task = id
+    cur_doc = t.doc_id
+    show_page("review")
+}
+fn open_task_line(doc_id, task_id){
+    let t = task_by_id(task_id)
+    if t == nil { return }
+    // 与原生版一致：只有待审阅 / 准备中的任务可跳回审阅页
+    if t.status == "ready" || t.status == "preparing" {
+        cur_doc = doc_id
+        cur_task = task_id
+        show_page("review")
+    }
+}
+fn back_library(){
+    cur_doc = ""
+    cur_task = ""
+    show_page("library")
+}
+
+// =====================================================================
+// 界面（黑白「编辑室」风格，复刻原生版六页 + 拉回复 + 删除确认）
+// =====================================================================
+let ink = #x101010
+let sub = #x10101099
+let faint = #x10101066
+let linec = #x1010101f
+let warm = #xf5f5f2
+let red = #xc0392b
+
+let MetaL = Label{width: Fit height: Fit draw_text.color: sub draw_text.text_style: theme.font_regular{font_size: 10.5 line_spacing: 1.1}}
+let StageL = Label{width: Fit height: Fit draw_text.color: ink draw_text.text_style: theme.font_bold{font_size: 12 line_spacing: 1.1}}
+let TitleL = Label{width: Fill height: Fit draw_text.color: ink draw_text.text_style: theme.font_bold{font_size: 25 line_spacing: 1.12}}
+let BodyL = Label{width: Fill height: Fit draw_text.color: sub draw_text.text_style: theme.font_regular{font_size: 13 line_spacing: 1.55}}
+let TextL = Label{width: Fill height: Fit draw_text.color: ink draw_text.text_style: theme.font_regular{font_size: 13 line_spacing: 1.45}}
+
+let Card = RoundedView{width: Fill height: Fit flow: Down padding: 24 spacing: 14 draw_bg.color: #xffffff draw_bg.border_size: 1.0 draw_bg.border_color: linec draw_bg.border_radius: 20.0}
+let WarmCard = RoundedView{width: Fill height: Fit flow: Down padding: 24 spacing: 12 draw_bg.color: warm draw_bg.border_size: 1.0 draw_bg.border_color: linec draw_bg.border_radius: 20.0}
+
+let Btn = ButtonFlat{height: 40 width: Fit padding: Inset{left: 18 right: 18} draw_bg +: {color: #xffffff color_hover: warm color_down: #xefefea border_size: 1.0 border_color: ink border_radius: 20.0} draw_text +: {color: ink color_hover: ink color_down: ink text_style: theme.font_bold{font_size: 12}}}
+let BtnPrimary = ButtonFlat{height: 48 width: Fill padding: Inset{left: 20 right: 20} draw_bg +: {color: ink color_hover: #x252525 color_down: #x363636 border_size: 0.0 border_radius: 24.0} draw_text +: {color: #xffffff color_hover: #xffffff color_down: #xffffff text_style: theme.font_bold{font_size: 13}}}
+let BtnSmall = ButtonFlat{height: 30 width: Fit padding: Inset{left: 12 right: 12} draw_bg +: {color: #xffffff color_hover: warm color_down: #xefefea border_size: 1.0 border_color: linec border_radius: 15.0} draw_text +: {color: ink color_hover: ink color_down: ink text_style: theme.font_regular{font_size: 11}}}
+
+let LineInput = TextInput{width: Fill height: 44 padding: Inset{left: 14 right: 14 top: 12 bottom: 12} draw_bg +: {color: #xffffff color_hover: #xffffff color_focus: #xffffff color_empty: #xffffff border_size: 1.0 border_color: linec border_color_focus: ink border_radius: 12.0} draw_text +: {color: ink color_hover: ink color_focus: ink text_style: theme.font_regular{font_size: 14}} draw_cursor +: {color: ink}}
+
+let BadgeReady = RoundedView{width: Fit height: Fit padding: Inset{left: 8 right: 8 top: 2 bottom: 3} draw_bg.color: ink draw_bg.border_radius: 9.0
+    txt := Label{text: "待审阅" draw_text.color: #xffffff draw_text.text_style: theme.font_bold{font_size: 10}}}
+let BadgeApplied = RoundedView{width: Fit height: Fit padding: Inset{left: 8 right: 8 top: 2 bottom: 3} draw_bg.color: #xffffff draw_bg.border_size: 1.0 draw_bg.border_color: ink draw_bg.border_radius: 9.0
+    txt := Label{text: "已应用" draw_text.color: ink draw_text.text_style: theme.font_bold{font_size: 10}}}
+let BadgeMuted = RoundedView{width: Fit height: Fit padding: Inset{left: 8 right: 8 top: 2 bottom: 3} draw_bg.color: #x00000000 draw_bg.border_radius: 9.0
+    txt := Label{text: "" draw_text.color: faint draw_text.text_style: theme.font_bold{font_size: 10}}}
+let BadgeFailed = RoundedView{width: Fit height: Fit padding: Inset{left: 8 right: 8 top: 2 bottom: 3} draw_bg.color: #x00000000 draw_bg.border_radius: 9.0
+    txt := Label{text: "失败" draw_text.color: red draw_text.text_style: theme.font_bold{font_size: 10}}}
+
+SolidView{width: Fill height: Fill flow: Down draw_bg.color: #xffffff
+
+    // ---------- 顶栏 ----------
+    View{width: Fill height: Fit flow: Right align: Align{y: 0.5} padding: Inset{left: 24 right: 24 top: 14 bottom: 14} spacing: 10
+        Label{width: Fit height: Fit text: "写作工作室" draw_text.color: ink draw_text.text_style: theme.font_bold{font_size: 16}}
+        page_label := MetaL{}
+        Filler{}
+        engine_status := MetaL{text: ""}
+    }
+    Hr{}
+
+    // ---------- 01 文库 ----------
+    library := ScrollYView{width: Fill height: Fill flow: Down padding: Inset{left: 24 right: 24 top: 22 bottom: 16} spacing: 14 on_render: || {
+        MetaL{text: "W R I T I N G   A T E L I E R"}
+        SolidView{width: 92 height: 1 draw_bg.color: linec}
+        StageL{text: "01 / 文库"}
+        TitleL{text: "草稿箱"}
+        BodyL{text: "选择一篇文档，在其中选中段落，请求一次由你掌控的改写。"}
+        BtnPrimary{text: "新建文档" on_click: || new_document()}
+        Btn{width: Fill text: "从图文工作室拉回" on_click: || show_page("import")}
+        if docs.len() == 0 {
+            BodyL{text: "还没有文档，点「新建文档」开始。"}
+        }
+        for i d in docs {
+            RoundedView{width: Fill height: Fit flow: Down padding: 18 spacing: 8 margin: Inset{bottom: 4} draw_bg.color: #xffffff draw_bg.border_size: 1.0 draw_bg.border_color: linec draw_bg.border_radius: 16.0
+                View{width: Fill height: Fit flow: Right align: Align{y: 0.5} spacing: 6
+                    Label{width: Fill height: Fit text: d.title draw_text.color: ink draw_text.text_style: theme.font_bold{font_size: 14.5}}
+                    BtnSmall{text: "打开" on_click: || open_doc(d.id)}
+                    BtnSmall{text: "排版" on_click: || send_article_by_id(d.id)}
+                    BtnSmall{text: "删除" on_click: || ask_delete_doc(d.id)}
+                }
+                BodyL{text: doc_preview(d, 40) draw_text.text_style: theme.font_regular{font_size: 12}}
+                MetaL{text: "" + d.paragraphs.len() + " 段 · v" + d.version + " · 最后编辑 " + fmt_time(d.modified)}
+                Hr{}
+                let ts = tasks_of(d.id)
+                let total = ts.len()
+                let open = 0
+                for t in ts { if t.status == "ready" || t.status == "preparing" { open += 1 } }
+                let shown = 0
+                let j = total - 1
+                while j >= 0 && shown < 3 {
+                    let t = ts[j]
+                    GestureView{width: Fill height: Fit on_tap: |x, y| open_task_line(d.id, t.id)
+                        View{width: Fill height: Fit flow: Right align: Align{y: 0.5} spacing: 8 padding: Inset{top: 5 bottom: 5}
+                            if t.status == "ready" { BadgeReady{} }
+                            else if t.status == "applied" { BadgeApplied{} }
+                            else if t.status == "failed" { BadgeFailed{} }
+                            else if t.status == "preparing" { BadgeMuted{txt.text: "准备中"} }
+                            else if t.status == "expired" { BadgeMuted{txt.text: "已过期"} }
+                            else { BadgeMuted{txt.text: "已放弃"} }
+                            Label{width: Fit height: Fit text: t.request draw_text.color: #x101010cc draw_text.text_style: theme.font_regular{font_size: 12}}
+                            Filler{}
+                            MetaL{text: fmt_time(t.created_at)}
+                        }
+                    }
+                    shown += 1
+                    j -= 1
+                }
+                if total == 0 { MetaL{text: "暂无任务"} }
+                else if total > 3 { MetaL{text: "" + total + " 条任务 · " + open + " 条待审阅"} }
+            }
+        }
+    }}
+
+    // ---------- 02 起草 ----------
+    edit := ScrollYView{visible: false width: Fill height: Fill flow: Down padding: Inset{left: 24 right: 24 top: 22 bottom: 16} spacing: 14
+        Btn{width: Fit text: "← 返回文库" on_click: || back_library()}
+        MetaL{text: "W R I T I N G   A T E L I E R"}
+        SolidView{width: 92 height: 1 draw_bg.color: linec}
+        StageL{text: "01 / 起草"}
+        doc_title := LineInput{empty_text: "未命名文档" on_change: |text| title_edited(text)}
+        RoundedView{width: Fill height: 260 padding: 0 draw_bg.color: warm draw_bg.border_size: 1.0 draw_bg.border_color: linec draw_bg.border_radius: 20.0
+            doc_body := TextInput{width: Fill height: Fill is_multiline: true empty_text: "写下你的文章…（段落之间空一行）" padding: Inset{left: 20 right: 20 top: 20 bottom: 20} on_change: |text| body_edited(text)
+                draw_bg +: {color: #x00000000 color_hover: #x00000000 color_focus: #x00000000 color_empty: #x00000000 border_size: 0.0}
+                draw_text +: {color: ink color_hover: ink color_focus: ink text_style: theme.font_regular{font_size: 15 line_spacing: 1.6}}
+                draw_cursor +: {color: ink}}
+        }
+        MetaL{text: "点选要改写的段落（对应原生版的「选中文字」）："}
+        para_list := View{width: Fill height: Fit flow: Down spacing: 8 on_render: || {
+            let d = doc_by_id(cur_doc)
+            if d != nil {
+                for i p in d.paragraphs {
+                    if p.trim() != "" {
+                        if i == sel_para {
+                            GestureView{width: Fill height: Fit on_tap: |x, y| select_para(i)
+                                RoundedView{width: Fill height: Fit padding: 12 draw_bg.color: ink draw_bg.border_radius: 10.0
+                                    Label{width: Fill height: Fit text: "第 " + (i + 1) + " 段 · " + take_chars(p.trim(), 24) draw_text.color: #xffffff draw_text.text_style: theme.font_regular{font_size: 12}}}
+                            }
+                        } else {
+                            GestureView{width: Fill height: Fit on_tap: |x, y| select_para(i)
+                                RoundedView{width: Fill height: Fit padding: 12 draw_bg.color: warm draw_bg.border_radius: 10.0
+                                    Label{width: Fill height: Fit text: "第 " + (i + 1) + " 段 · " + take_chars(p.trim(), 24) draw_text.color: ink draw_text.text_style: theme.font_regular{font_size: 12}}}
+                            }
+                        }
+                    }
+                }
+            }
+        }}
+        View{width: Fill height: Fit flow: Right spacing: 10
+            toggle_concise := Btn{text: "更简洁" height: 36 on_click: || toggle_constraint("concise")}
+            toggle_formal := Btn{text: "更正式" height: 36 on_click: || toggle_constraint("formal")}
+            toggle_citations := Btn{text: "保留引用" height: 36 on_click: || toggle_constraint("citations")}
+        }
+        request_input := LineInput{empty_text: "描述改写要求，例如：写得更简洁…"}
+        BtnPrimary{text: "请求改写" on_click: || request_rewrite()}
+        Hr{}
+        StageL{text: "任务历史"}
+        edit_tasks := View{width: Fill height: Fit flow: Down spacing: 8 on_render: || {
+            let ts = tasks_of(cur_doc)
+            if ts.len() == 0 { MetaL{text: "暂无任务"} }
+            let j = ts.len() - 1
+            while j >= 0 {
+                let t = ts[j]
+                RoundedView{width: Fill height: Fit flow: Down padding: 14 spacing: 6 draw_bg.color: #xffffff draw_bg.border_size: 1.0 draw_bg.border_color: linec draw_bg.border_radius: 12.0
+                    View{width: Fill height: Fit flow: Right align: Align{y: 0.5} spacing: 8
+                        Label{width: Fill height: Fit text: status_label(t.status) + " · " + t.request draw_text.color: ink draw_text.text_style: theme.font_bold{font_size: 12.5}}
+                        BtnSmall{text: "打开" on_click: || open_task(t.id)}
+                        BtnSmall{text: "删除" on_click: || ask_delete_task(t.id)}
+                    }
+                    MetaL{text: "第 " + (t.para_index + 1) + " 段 · " + take_chars(t.text_snapshot, 40) + " · " + fmt_time(t.created_at)}
+                }
+                j -= 1
+            }
+        }}
+    }
+
+    // ---------- 03 审阅 ----------
+    review := ScrollYView{visible: false width: Fill height: Fill flow: Down padding: Inset{left: 24 right: 24 top: 22 bottom: 16} spacing: 14
+        MetaL{text: "W R I T I N G   A T E L I E R"}
+        SolidView{width: 92 height: 1 draw_bg.color: linec}
+        StageL{text: "02 / 审阅"}
+        TitleL{text: "对照改写提案"}
+        BodyL{text: "审阅并可直接修改这份改写提案。"}
+        prep_card := WarmCard{visible: false
+            StageL{text: "准备中…"}
+            BodyL{text: "较长的草稿正在后台准备；提案就绪后此卡片会自动更新。"}
+            prep_engine := MetaL{text: ""}
+        }
+        fail_card := Card{visible: false
+            StageL{text: "失败"}
+            fail_reason := BodyL{text: ""}
+            Btn{width: Fill text: "重试" on_click: || retry_task()}
+        }
+        expired_card := WarmCard{visible: false
+            StageL{text: "已过期"}
+            BodyL{text: "提案可能已过期；请基于最新文档重新生成。"}
+            Btn{width: Fill text: "重新生成" on_click: || regen_task()}
+        }
+        compare_box := View{visible: false width: Fill height: Fit flow: Down spacing: 14
+            View{width: Fill height: Fit flow: Right spacing: 20
+                WarmCard{width: Fill padding: 18 spacing: 10
+                    MetaL{text: "原文"}
+                    review_original := TextL{draw_text.color: sub}
+                }
+                Card{width: Fill padding: 18 spacing: 4
+                    MetaL{text: "提案（可编辑）"}
+                    View{width: Fill height: 160
+                        review_proposal := TextInput{width: Fill height: Fill is_multiline: true padding: Inset{left: 0 right: 0 top: 10 bottom: 0} on_change: |text| proposal_edited(text)
+                            draw_bg +: {color: #x00000000 color_hover: #x00000000 color_focus: #x00000000 color_empty: #x00000000 border_size: 0.0}
+                            draw_text +: {color: ink color_hover: ink color_focus: ink text_style: theme.font_regular{font_size: 13.5 line_spacing: 1.6}}
+                            draw_cursor +: {color: ink}}
+                    }
+                }
+            }
+            citations_line := MetaL{text: "" width: Fill}
+            Card{padding: 18 spacing: 8
+                MetaL{text: "改动"}
+                diff_adds := Label{width: Fill height: Fit draw_text.color: ink draw_text.text_style: theme.font_bold{font_size: 12.5 line_spacing: 1.5}}
+                diff_dels := Label{width: Fill height: Fit draw_text.color: faint draw_text.text_style: theme.font_regular{font_size: 12.5 line_spacing: 1.5}}
+            }
+            BtnPrimary{text: "继续确认" on_click: || goto_confirm()}
+        }
+        Btn{width: Fill text: "放弃改写" on_click: || discard_task()}
+    }
+
+    // ---------- 04 确认 ----------
+    confirm := ScrollYView{visible: false width: Fill height: Fill flow: Down padding: Inset{left: 24 right: 24 top: 22 bottom: 16} spacing: 14
+        MetaL{text: "W R I T I N G   A T E L I E R"}
+        SolidView{width: 92 height: 1 draw_bg.color: linec}
+        StageL{text: "03 / 确认"}
+        TitleL{text: "确认这次修改"}
+        BodyL{text: "将把这次改写应用到选中的段落。"}
+        Card{
+            MetaL{text: "目标 · 选中段落"}
+            confirm_target := BodyL{text: ""}
+            Hr{}
+            MetaL{text: "其他段落 · 不变"}
+            MetaL{text: "操作 · 应用审阅后的改写"}
+        }
+        Btn{width: Fill text: "查看修改后的文档" on_click: || toggle_preview()}
+        preview_card := WarmCard{visible: false
+            confirm_preview := TextL{draw_text.color: sub}
+        }
+        BtnPrimary{text: "应用" on_click: || apply_now()}
+        Btn{width: Fill text: "放弃" on_click: || discard_task()}
+    }
+
+    // ---------- 05 完成 ----------
+    done := ScrollYView{visible: false width: Fill height: Fill flow: Down padding: Inset{left: 24 right: 24 top: 22 bottom: 16} spacing: 14
+        MetaL{text: "W R I T I N G   A T E L I E R"}
+        SolidView{width: 92 height: 1 draw_bg.color: linec}
+        StageL{text: "04 / 完成"}
+        TitleL{text: "改写已应用"}
+        BodyL{text: "文档已使用你审阅过的措辞；发布仍是独立的操作。"}
+        Btn{width: Fill text: "撤销" on_click: || undo_now()}
+        BtnPrimary{text: "发布" on_click: || show_page("publish")}
+        Btn{width: Fill text: "返回文档" on_click: || show_page("edit")}
+    }
+
+    // ---------- 06 发布 ----------
+    publish := ScrollYView{visible: false width: Fill height: Fill flow: Down padding: Inset{left: 24 right: 24 top: 22 bottom: 16} spacing: 14
+        MetaL{text: "W R I T I N G   A T E L I E R"}
+        SolidView{width: 92 height: 1 draw_bg.color: linec}
+        StageL{text: "05 / 发布"}
+        TitleL{text: "发布"}
+        BodyL{text: "发布与应用互不影响。选择一个目的地；执行前需要单独确认。"}
+        Btn{width: Fill height: 48 text: "发布到当前聊天" on_click: || choose_dest("chat")}
+        Btn{width: Fill height: 48 text: "文章编辑器 · 图文工作室" on_click: || choose_dest("article")}
+        Btn{width: Fill height: 48 text: "导出为文件" on_click: || choose_dest("file")}
+        Btn{width: Fill height: 48 text: "分享链接（演示）" on_click: || choose_dest("link")}
+        publish_box := WarmCard{visible: false
+            publish_label := BodyL{text: ""}
+            BtnPrimary{text: "确认目的地" on_click: || publish_confirm()}
+        }
+        Btn{width: Fill text: "返回文档" on_click: || show_page("edit")}
+    }
+
+    // ---------- 图文工作室拉回 ----------
+    import_page := ScrollYView{visible: false width: Fill height: Fill flow: Down padding: Inset{left: 24 right: 24 top: 22 bottom: 16} spacing: 14
+        MetaL{text: "A R T I C L E   S T U D I O"}
+        SolidView{width: 92 height: 1 draw_bg.color: linec}
+        StageL{text: "拉回到写作"}
+        TitleL{text: "图文库"}
+        BodyL{text: "选择一篇排版草稿拉回继续改写；版本会按来源自动对齐。"}
+        Btn{width: Fill text: "返回文库" on_click: || show_page("library")}
+        import_list := View{width: Fill height: Fit flow: Down spacing: 8 on_render: || {
+            if articles.len() == 0 {
+                BodyL{text: "图文库为空。先在文库卡片点「排版」或在发布页选择图文工作室。"}
+            }
+            let j = articles.len() - 1
+            while j >= 0 {
+                let a = articles[j]
+                GestureView{width: Fill height: Fit on_tap: |x, y| import_article(a.id)
+                    RoundedView{width: Fill height: Fit flow: Down padding: 18 spacing: 6 draw_bg.color: #xffffff draw_bg.border_size: 1.0 draw_bg.border_color: linec draw_bg.border_radius: 16.0
+                        Label{width: Fill height: Fit text: a.title draw_text.color: ink draw_text.text_style: theme.font_bold{font_size: 14.5}}
+                        MetaL{text: "图文工作室 · " + fmt_time(a.modified)}
+                    }
+                }
+                j -= 1
+            }
+        }}
+    }
+
+    // ---------- 删除确认 ----------
+    delete_page := ScrollYView{visible: false width: Fill height: Fill flow: Down padding: Inset{left: 32 right: 32 top: 60 bottom: 32} spacing: 14
+        Card{
+            delete_title := StageL{text: "删除？" draw_text.text_style: theme.font_bold{font_size: 16 line_spacing: 1.25}}
+            delete_body := BodyL{text: ""}
+            View{width: Fill height: Fit flow: Right spacing: 12
+                Btn{width: Fill text: "取消" on_click: || cancel_delete()}
+                BtnPrimary{width: Fill text: "删除" on_click: || confirm_delete()}
+            }
+        }
+    }
+
+    // ---------- 状态栏 ----------
+    View{width: Fill height: Fit flow: Down padding: Inset{left: 24 right: 24 top: 8 bottom: 12} spacing: 8
+        Hr{}
+        status_label := Label{width: Fill height: Fit text: "" draw_text.color: sub draw_text.text_style: theme.font_regular{font_size: 11 line_spacing: 1.3}}
+    }
+}

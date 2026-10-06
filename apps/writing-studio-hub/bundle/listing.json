@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "subtitle": "AI 辅助写作：选段改写、逐词对照、确认后应用",
+  "description": "写作工作室是 Rinx「写作工作室」原生小程序的 App Hub 脚本版：起草文档，选中段落请求 AI 改写（更简洁 / 更正式 / 保留引用），在左右对照与逐词 diff 中审阅并可亲手修改提案，确认后才应用，支持撤销、过期阻断与改写历史。改写引擎三级回退：Octos 宿主（密钥由设备托管，应用零密钥）→ 本地配置的智谱 GLM 直连 → 内置 Mock，演示永不中断。发布是独立确认的操作：发送到当前聊天、导出排版草稿、导出文件或分享链接。所有草稿与历史仅保存在本机。",
+  "category": "productivity",
+  "keywords": ["writing", "ai", "rewrite", "draft", "写作", "改写"],
+  "screenshots": [
+    "screenshots/01-library.png",
+    "screenshots/02-editor.png",
+    "screenshots/03-review.png"
+  ],
+  "icon": "assets/icon.svg",
+  "platforms": ["windows"],
+  "publisher": {
+    "name": "Bluemsun Team",
+    "support": "https://github.com/hhyyzz-enda/bluemsun-2026AgentticApp/issues",
+    "privacy_policy_url": "https://github.com/hhyyzz-enda/bluemsun-2026AgentticApp#隐私说明"
+  },
+  "release_notes": "首个 App Hub 版本：全部功能由 Rust 原生代码重写为 main.splash 脚本，功能与原生版一致。",
+  "age_rating": "all",
+  "license": "Apache-2.0"
+}
