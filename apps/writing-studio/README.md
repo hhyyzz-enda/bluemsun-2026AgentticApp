@@ -18,7 +18,7 @@ AI-assisted writing studio built on Rinx.
 
 ## 环境要求
 
-- Rinx 宿主：本仓库 main 分支 commit `da0c4bff`
+- Rinx 宿主：本仓库 tag `v1.0.0`（commit `71cdae97`）
 - Rust 1.98.0+
 - Windows 10/11
 
