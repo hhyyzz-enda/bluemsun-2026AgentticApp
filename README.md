@@ -4,6 +4,19 @@ English | [简体中文](README.zh-CN.md)
 
 A native Matrix messenger from [Upstream Labs](https://github.com/upstreamlabs), with a WeChat-style interface, English/Chinese support, Moments, and scoped mini apps.
 
+---
+
+## 🏆 Hackathon Entry: Writing Studio
+
+This repository is our entry for the Agentic App Hackathon. The submission app is **Writing Studio**.
+
+- 📖 App docs: [apps/writing-studio/README.md](apps/writing-studio/README.md)
+- 📸 Screenshots: [apps/writing-studio/bundle/screenshots/](apps/writing-studio/bundle/screenshots/)
+- 🎬 Demo video: [apps/writing-studio/bundle/基础功能演示.mp4](apps/writing-studio/bundle/基础功能演示.mp4)
+- 🏷️ Submission tag: `v1.0.0`
+
+---
+
 Rinx is an independent continuation of [`OctoSense-org/robrix2`'s `wechat-ui` branch](https://github.com/OctoSense-org/robrix2/tree/wechat-ui), starting at `16913e0c6f0397b4ed1272b7dcd421935521d5f3`. That branch's commit history is preserved here. Development now lives on this repository's **`main`** branch.
 
 ## Features
