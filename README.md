@@ -10,7 +10,15 @@ A native Matrix messenger from [Upstream Labs](https://github.com/upstreamlabs),
 
 This repository is our entry for the Agentic App Hackathon. The submission app is **Writing Studio**.
 
-- 📖 App docs: [apps/writing-studio/README.md](apps/writing-studio/README.md)
+### Two versions
+
+| Version | Location | Description |
+|---------|----------|-------------|
+| **Rinx native** | [apps/writing-studio/](apps/writing-studio/) | Rust native code, runs as Rinx mini app |
+| **App Hub script** | [apps/writing-studio-hub/](apps/writing-studio-hub/) | OctoScript script, submitted to App Hub (Issue #107) |
+
+### Assets
+
 - 📸 Screenshots: [apps/writing-studio/bundle/screenshots/](apps/writing-studio/bundle/screenshots/)
 - 🎬 Demo video: [apps/writing-studio/bundle/基础功能演示.mp4](apps/writing-studio/bundle/基础功能演示.mp4)
 - 🏷️ Submission tag: `v1.0.0`

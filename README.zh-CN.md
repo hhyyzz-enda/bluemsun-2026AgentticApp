@@ -10,7 +10,15 @@ Rinx 是原生 Matrix 客户端，包含聊天、联系人、发现、朋友圈�
 
 **本仓库为 Agentic App 黑客松参赛作品，应用为 Writing Studio（写作工作室）。**
 
-- 📖 应用说明：[apps/writing-studio/README.md](apps/writing-studio/README.md)
+### 两个版本
+
+| 版本 | 位置 | 说明 |
+|------|------|------|
+| **Rinx 原生版** | [apps/writing-studio/](apps/writing-studio/) | Rust 原生代码，在 Rinx 小程序里运行 |
+| **App Hub 脚本版** | [apps/writing-studio-hub/](apps/writing-studio-hub/) | OctoScript 脚本，已提交 App Hub（Issue #107） |
+
+### 资料
+
 - 📸 截图：[apps/writing-studio/bundle/screenshots/](apps/writing-studio/bundle/screenshots/)
 - 🎬 演示视频：[apps/writing-studio/bundle/基础功能演示.mp4](apps/writing-studio/bundle/基础功能演示.mp4)
 - 🏷️ 提交版本：tag `v1.0.0`
