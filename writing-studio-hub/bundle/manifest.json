@@ -1,0 +1,27 @@
+{
+  "capabilities": [
+    "storage",
+    "net",
+    "octos.turn.start",
+    "matrix.send_message"
+  ],
+  "compute": {
+    "instruction_budget": 8000000,
+    "memory_bytes": 33554432
+  },
+  "id": "bluemsun.writing-studio",
+  "integrity": {
+    "bundle_blake3": "0c4c3e2d334a4f43d78eb3ec7509cf3567203c9613c86a9062cf4ecca0653a4f"
+  },
+  "name": "写作工作室 Writing Studio",
+  "network": {
+    "hosts": [
+      "open.bigmodel.cn"
+    ]
+  },
+  "schema": 1,
+  "storage": {
+    "max_bytes": 8388608
+  },
+  "version": "1.0.0"
+}
