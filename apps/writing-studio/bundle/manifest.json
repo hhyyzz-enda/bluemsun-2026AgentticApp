@@ -1,13 +1,13 @@
 {
-  "schema": 1,
-  "id": "org.octosense.writing-studio",
-  "version": "1.0.0",
-  "name": "Writing studio",
-  "integrity": {
-    "bundle_blake3": ""
-  },
   "capabilities": [
     "storage",
     "matrix.send_message"
-  ]
+  ],
+  "id": "org.octosense.writing-studio",
+  "integrity": {
+    "bundle_blake3": "b62c773d91fcbbd4d7f6297cc6f6d8f68da9338551b4421a672932cfd83077e3"
+  },
+  "name": "Writing studio",
+  "schema": 1,
+  "version": "1.0.0"
 }
