@@ -12,8 +12,9 @@ AI-assisted writing studio built on Rinx / OctoScript.
 
 ## 团队
 
-- 队长：待填
-- 成员：待填、待填
+- bluemsun-lin
+- bluemsun-CK橙柚
+- bluemsun-Endangered
 
 ## 运行
 
